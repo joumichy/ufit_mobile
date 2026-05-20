@@ -1,19 +1,18 @@
 import SwiftUI
 
 struct HomeFeedView: View {
+    let store: MarketplaceStore
     let onOutfitTap: (Outfit) -> Void
     let onCreatorTap: () -> Void
-
-    @State private var likedOutfitIDs = Set<Int>()
 
     var body: some View {
         ScrollView(.vertical) {
             LazyVStack(spacing: 0) {
-                ForEach(SampleData.outfits) { outfit in
+                ForEach(store.outfits) { outfit in
                     OutfitFeedCard(
                         outfit: outfit,
-                        isLiked: likedOutfitIDs.contains(outfit.id),
-                        onLike: { toggleLike(outfit.id) },
+                        isLiked: store.savedOutfitIDs.contains(outfit.id),
+                        onLike: { toggleLike(outfit) },
                         onOutfitTap: { onOutfitTap(outfit) },
                         onCreatorTap: onCreatorTap
                     )
@@ -26,21 +25,34 @@ struct HomeFeedView: View {
         .scrollTargetBehavior(.paging)
         .background(Color.black)
         .ignoresSafeArea()
-    }
-}
-
-private extension HomeFeedView {
-    func toggleLike(_ id: Int) {
-        withAnimation(.spring(response: 0.25, dampingFraction: 0.75)) {
-            if likedOutfitIDs.contains(id) {
-                likedOutfitIDs.remove(id)
-            } else {
-                likedOutfitIDs.insert(id)
+        .task {
+            await store.loadFeedIfNeeded()
+        }
+        .refreshable {
+            await store.refreshFeed()
+        }
+        .overlay(alignment: .top) {
+            if let message = store.feedErrorMessage {
+                Text(message)
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(Color.ufitInk)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 9)
+                    .background(.white.opacity(0.92), in: Capsule())
+                    .padding(.top, 58)
             }
         }
     }
 }
 
+private extension HomeFeedView {
+    func toggleLike(_ outfit: Outfit) {
+        Task {
+            await store.toggleSaved(outfit: outfit)
+        }
+    }
+}
+
 #Preview {
-    HomeFeedView(onOutfitTap: { _ in }, onCreatorTap: {})
+    HomeFeedView(store: MarketplaceStore.live(), onOutfitTap: { _ in }, onCreatorTap: {})
 }

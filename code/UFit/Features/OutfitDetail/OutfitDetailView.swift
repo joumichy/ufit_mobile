@@ -1,8 +1,32 @@
 import SwiftUI
 
 struct OutfitDetailView: View {
+    @Environment(\.openURL) private var openURL
+
+    let store: MarketplaceStore
     let outfit: Outfit
     let onBack: () -> Void
+
+    @State private var resolvedOutfit: Outfit
+    @State private var shippingAddress = UFitShippingAddress(
+        fullName: "",
+        line1: "",
+        line2: nil,
+        postalCode: "",
+        city: "",
+        country: "CH",
+        phone: nil
+    )
+    @State private var isCheckoutPresented = false
+    @State private var isCheckingOut = false
+    @State private var checkoutMessage: String?
+
+    init(store: MarketplaceStore, outfit: Outfit, onBack: @escaping () -> Void) {
+        self.store = store
+        self.outfit = outfit
+        self.onBack = onBack
+        _resolvedOutfit = State(initialValue: outfit)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -17,11 +41,11 @@ struct OutfitDetailView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
-                    OutfitHeroImage(imageName: outfit.imageName)
-                    OutfitSummary(outfit: outfit)
-                    OutfitPiecesSection(pieces: SampleData.outfitPieces)
-                    CheckoutSummary()
-                    Button("Acheter le look complet") {}
+                    OutfitHeroImage(imageName: resolvedOutfit.imageName)
+                    OutfitSummary(outfit: resolvedOutfit)
+                    OutfitPiecesSection(pieces: pieces)
+                    CheckoutSummary(total: resolvedOutfit.price)
+                    Button("Acheter le look complet", action: presentCheckout)
                         .buttonStyle(PrimaryButtonStyle())
                         .padding(.horizontal, 24)
                         .padding(.bottom, 104)
@@ -31,6 +55,44 @@ struct OutfitDetailView: View {
             .background(Color.white)
         }
         .background(Color.white)
+        .task(id: outfit.id) {
+            resolvedOutfit = await store.detail(for: outfit)
+        }
+        .sheet(isPresented: $isCheckoutPresented) {
+            CheckoutSheet(
+                shippingAddress: $shippingAddress,
+                isCheckingOut: isCheckingOut,
+                message: checkoutMessage,
+                onCheckout: checkout
+            )
+            .presentationDetents([.medium, .large])
+        }
+    }
+
+    private var pieces: [OutfitPiece] {
+        resolvedOutfit.pieces.isEmpty ? SampleData.outfitPieces : resolvedOutfit.pieces
+    }
+
+    private func presentCheckout() {
+        checkoutMessage = nil
+        isCheckoutPresented = true
+    }
+
+    private func checkout() {
+        guard !isCheckingOut else { return }
+        isCheckingOut = true
+        checkoutMessage = nil
+
+        Task {
+            defer { isCheckingOut = false }
+            do {
+                let url = try await store.checkout(outfit: resolvedOutfit, shippingAddress: shippingAddress)
+                isCheckoutPresented = false
+                openURL(url)
+            } catch {
+                checkoutMessage = error.localizedDescription
+            }
+        }
     }
 }
 
@@ -38,9 +100,7 @@ private struct OutfitHeroImage: View {
     let imageName: String
 
     var body: some View {
-        Image(imageName)
-            .resizable()
-            .scaledToFill()
+        FashionImage(source: imageName)
             .frame(maxWidth: .infinity)
             .aspectRatio(3.0 / 4.0, contentMode: .fill)
             .clipped()
@@ -58,7 +118,7 @@ private struct OutfitSummary: View {
             Text("By \(outfit.creator)")
                 .font(.system(size: 15))
                 .foregroundStyle(Color.ufitMuted)
-            Text("Effortless elegance meets street style. A carefully curated selection of premium pieces from independent European ateliers.")
+            Text(outfit.description)
                 .font(.system(size: 14))
                 .lineSpacing(3)
                 .foregroundStyle(Color.ufitMuted)
@@ -86,13 +146,15 @@ private struct OutfitPiecesSection: View {
 }
 
 private struct CheckoutSummary: View {
+    let total: String
+
     var body: some View {
         VStack(spacing: 12) {
             HStack {
                 Text("Subtotal")
                     .foregroundStyle(Color.ufitMuted)
                 Spacer()
-                Text("449€")
+                Text(total)
             }
 
             Divider()
@@ -100,7 +162,7 @@ private struct CheckoutSummary: View {
             HStack {
                 Text("Total")
                 Spacer()
-                Text("449€")
+                Text(total)
                     .font(.system(size: 22, weight: .medium))
             }
         }
@@ -112,6 +174,51 @@ private struct CheckoutSummary: View {
     }
 }
 
+private struct CheckoutSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    @Binding var shippingAddress: UFitShippingAddress
+    let isCheckingOut: Bool
+    let message: String?
+    let onCheckout: () -> Void
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Shipping") {
+                    TextField("Full name", text: $shippingAddress.fullName)
+                    TextField("Address", text: $shippingAddress.line1)
+                    TextField("Postal code", text: $shippingAddress.postalCode)
+                    TextField("City", text: $shippingAddress.city)
+                    TextField("Country", text: $shippingAddress.country)
+                }
+
+                if let message {
+                    Section {
+                        Text(message)
+                            .font(.system(size: 13))
+                            .foregroundStyle(Color.ufitMuted)
+                    }
+                }
+            }
+            .navigationTitle("Checkout")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") {
+                        dismiss()
+                    }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button(isCheckingOut ? "Preparing..." : "Pay") {
+                        onCheckout()
+                    }
+                    .disabled(isCheckingOut || shippingAddress.fullName.isEmpty || shippingAddress.line1.isEmpty || shippingAddress.postalCode.isEmpty || shippingAddress.city.isEmpty)
+                }
+            }
+        }
+    }
+}
+
 #Preview {
-    OutfitDetailView(outfit: SampleData.outfits[0], onBack: {})
+    OutfitDetailView(store: MarketplaceStore.live(), outfit: SampleData.outfits[0], onBack: {})
 }

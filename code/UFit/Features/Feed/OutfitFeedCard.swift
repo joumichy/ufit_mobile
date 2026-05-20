@@ -10,9 +10,7 @@ struct OutfitFeedCard: View {
     var body: some View {
         GeometryReader { proxy in
             ZStack {
-                Image(outfit.imageName)
-                    .resizable()
-                    .scaledToFill()
+                FashionImage(source: outfit.imageName)
                     .frame(width: proxy.size.width, height: proxy.size.height)
                     .clipped()
 
@@ -141,7 +139,7 @@ private struct OutfitFeedActions: View {
 }
 
 private struct ProductShortcutList: View {
-    let outfitID: Int
+    let outfitID: String
     let products: [OutfitProduct]
 
     @State private var isExpanded = false

@@ -30,7 +30,7 @@ enum SampleData {
 
     static let outfits = [
         Outfit(
-            id: 1,
+            id: "sample-urban-minimalism",
             imageName: "unsplash-09",
             creator: "Sofia Laurent",
             creatorAvatar: "SL",
@@ -38,16 +38,22 @@ enum SampleData {
             likes: 342,
             comments: 28,
             title: "Urban Minimalism",
+            description: "Effortless elegance meets street style. A carefully curated selection of premium pieces from independent European ateliers.",
+            currency: "EUR",
+            totalPrice: 28900,
+            sourceCreatorId: nil,
+            sourceOutfitId: "sample-urban-minimalism",
             products: [
-                OutfitProduct(id: "oversized-shirt", systemImage: "tshirt", name: "Oversized Shirt"),
-                OutfitProduct(id: "wide-pants", systemImage: "figure.walk", name: "Wide Pants"),
-                OutfitProduct(id: "leather-bag", systemImage: "handbag", name: "Leather Bag"),
-                OutfitProduct(id: "sandals", systemImage: "shoeprints.fill", name: "Sandals"),
-                OutfitProduct(id: "sunglasses", systemImage: "sunglasses", name: "Sunglasses")
-            ]
+                OutfitProduct(id: "oversized-shirt", systemImage: "tshirt", name: "Oversized Shirt", productID: nil, brandID: nil),
+                OutfitProduct(id: "wide-pants", systemImage: "figure.walk", name: "Wide Pants", productID: nil, brandID: nil),
+                OutfitProduct(id: "leather-bag", systemImage: "handbag", name: "Leather Bag", productID: nil, brandID: nil),
+                OutfitProduct(id: "sandals", systemImage: "shoeprints.fill", name: "Sandals", productID: nil, brandID: nil),
+                OutfitProduct(id: "sunglasses", systemImage: "sunglasses", name: "Sunglasses", productID: nil, brandID: nil)
+            ],
+            pieces: []
         ),
         Outfit(
-            id: 2,
+            id: "sample-cozy-essentials",
             imageName: "unsplash-10",
             creator: "Emma Stone",
             creatorAvatar: "ES",
@@ -55,14 +61,20 @@ enum SampleData {
             likes: 287,
             comments: 15,
             title: "Cozy Essentials",
+            description: "Soft textures and quiet everyday pieces for a grounded silhouette.",
+            currency: "EUR",
+            totalPrice: 19800,
+            sourceCreatorId: nil,
+            sourceOutfitId: "sample-cozy-essentials",
             products: [
-                OutfitProduct(id: "sweater", systemImage: "tshirt", name: "Sweater"),
-                OutfitProduct(id: "jeans", systemImage: "figure.walk", name: "Jeans"),
-                OutfitProduct(id: "sneakers", systemImage: "shoeprints.fill", name: "Sneakers")
-            ]
+                OutfitProduct(id: "sweater", systemImage: "tshirt", name: "Sweater", productID: nil, brandID: nil),
+                OutfitProduct(id: "jeans", systemImage: "figure.walk", name: "Jeans", productID: nil, brandID: nil),
+                OutfitProduct(id: "sneakers", systemImage: "shoeprints.fill", name: "Sneakers", productID: nil, brandID: nil)
+            ],
+            pieces: []
         ),
         Outfit(
-            id: 3,
+            id: "sample-professional-edit",
             imageName: "unsplash-11",
             creator: "Lena M.",
             creatorAvatar: "LM",
@@ -70,21 +82,27 @@ enum SampleData {
             likes: 412,
             comments: 34,
             title: "Professional Edit",
+            description: "Tailored essentials with a polished rhythm for weekday movement.",
+            currency: "EUR",
+            totalPrice: 24500,
+            sourceCreatorId: nil,
+            sourceOutfitId: "sample-professional-edit",
             products: [
-                OutfitProduct(id: "blazer", systemImage: "tshirt", name: "Blazer"),
-                OutfitProduct(id: "trousers", systemImage: "figure.walk", name: "Trousers"),
-                OutfitProduct(id: "laptop-bag", systemImage: "briefcase", name: "Laptop Bag"),
-                OutfitProduct(id: "heels", systemImage: "shoeprints.fill", name: "Heels"),
-                OutfitProduct(id: "watch", systemImage: "watch.analog", name: "Watch")
-            ]
+                OutfitProduct(id: "blazer", systemImage: "tshirt", name: "Blazer", productID: nil, brandID: nil),
+                OutfitProduct(id: "trousers", systemImage: "figure.walk", name: "Trousers", productID: nil, brandID: nil),
+                OutfitProduct(id: "laptop-bag", systemImage: "briefcase", name: "Laptop Bag", productID: nil, brandID: nil),
+                OutfitProduct(id: "heels", systemImage: "shoeprints.fill", name: "Heels", productID: nil, brandID: nil),
+                OutfitProduct(id: "watch", systemImage: "watch.analog", name: "Watch", productID: nil, brandID: nil)
+            ],
+            pieces: []
         )
     ]
 
     static let outfitPieces = [
-        OutfitPiece(id: 1, name: "Oversized Linen Shirt", brand: "Atelier Minimal", price: "89€", sizes: ["XS", "S", "M", "L"]),
-        OutfitPiece(id: 2, name: "High-Waisted Wide Pants", brand: "Maison Blanche", price: "120€", sizes: ["36", "38", "40", "42"]),
-        OutfitPiece(id: 3, name: "Leather Crossbody Bag", brand: "Studio Craft", price: "145€", sizes: ["One Size"]),
-        OutfitPiece(id: 4, name: "Minimalist Sandals", brand: "Bare Studio", price: "95€", sizes: ["37", "38", "39", "40"])
+        OutfitPiece(id: "sample-piece-shirt", name: "Oversized Linen Shirt", brand: "Atelier Minimal", price: "89€", sizes: ["XS", "S", "M", "L"], productID: nil, isRequired: true, isShoppable: true),
+        OutfitPiece(id: "sample-piece-pants", name: "High-Waisted Wide Pants", brand: "Maison Blanche", price: "120€", sizes: ["36", "38", "40", "42"], productID: nil, isRequired: true, isShoppable: true),
+        OutfitPiece(id: "sample-piece-bag", name: "Leather Crossbody Bag", brand: "Studio Craft", price: "145€", sizes: ["One Size"], productID: nil, isRequired: true, isShoppable: true),
+        OutfitPiece(id: "sample-piece-sandals", name: "Minimalist Sandals", brand: "Bare Studio", price: "95€", sizes: ["37", "38", "39", "40"], productID: nil, isRequired: true, isShoppable: true)
     ]
 
     static let creatorImages = [
