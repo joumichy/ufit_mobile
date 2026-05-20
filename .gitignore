@@ -1,0 +1,25 @@
+.DS_Store
+.playwright-cli/
+
+# Local dependencies and build output
+node_modules/
+dist/
+build/
+DerivedData/
+coverage/
+
+# Kept local for this mobile/front repository
+code/UFit_backend/
+docs/
+
+# Local secrets
+.env
+.env.*
+!.env.example
+
+# Xcode user state
+xcuserdata/
+*.xcuserstate
+*.moved-aside
+*.xccheckout
+*.xcscmblueprint
