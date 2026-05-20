@@ -3,33 +3,35 @@ import SwiftUI
 struct OutfitFeedCard: View {
     let outfit: Outfit
     let isLiked: Bool
-    let viewportSize: CGSize
     let onLike: () -> Void
     let onOutfitTap: () -> Void
     let onCreatorTap: () -> Void
 
     var body: some View {
-        ZStack {
-            Image(outfit.imageName)
-                .resizable()
-                .scaledToFill()
-                .frame(width: viewportSize.width, height: viewportSize.height)
-                .clipped()
+        GeometryReader { proxy in
+            ZStack {
+                Image(outfit.imageName)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: proxy.size.width, height: proxy.size.height)
+                    .clipped()
 
-            LinearGradient(
-                colors: [.clear, .clear, .black.opacity(0.68)],
-                startPoint: .top,
-                endPoint: .bottom
-            )
+                LinearGradient(
+                    colors: [.clear, .clear, .black.opacity(0.68)],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
 
-            OutfitFeedOverlay(
-                outfit: outfit,
-                isLiked: isLiked,
-                onLike: onLike,
-                onOutfitTap: onOutfitTap,
-                onCreatorTap: onCreatorTap
-            )
+                OutfitFeedOverlay(
+                    outfit: outfit,
+                    isLiked: isLiked,
+                    onLike: onLike,
+                    onOutfitTap: onOutfitTap,
+                    onCreatorTap: onCreatorTap
+                )
+            }
         }
+        .clipped()
     }
 }
 
@@ -53,7 +55,7 @@ private struct OutfitFeedOverlay: View {
             OutfitFeedActions(outfit: outfit, isLiked: isLiked, onLike: onLike)
         }
         .padding(.horizontal, 22)
-        .padding(.bottom, 116)
+        .padding(.bottom, 132)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
     }
 }
@@ -80,24 +82,13 @@ private struct OutfitFeedCaption: View {
             }
             .buttonStyle(.plain)
 
-            VStack(alignment: .leading, spacing: 10) {
+            Button(action: onOutfitTap) {
                 Text(outfit.title)
                     .font(.system(size: 22, weight: .medium))
-
-                Button(action: onOutfitTap) {
-                    HStack(spacing: 8) {
-                        Text("Voir le look")
-                        Text(outfit.price)
-                            .foregroundStyle(.black.opacity(0.68))
-                    }
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundStyle(.black)
-                    .padding(.horizontal, 16)
-                    .padding(.vertical, 11)
-                    .background(.white, in: Capsule())
-                }
-                .buttonStyle(.plain)
+                    .multilineTextAlignment(.leading)
             }
+            .buttonStyle(.plain)
+            .accessibilityLabel("Open \(outfit.title)")
         }
         .foregroundStyle(.white)
     }
@@ -123,7 +114,8 @@ private struct OutfitFeedActions: View {
 
     var body: some View {
         VStack(spacing: 20) {
-            ProductShortcutList(products: outfit.products)
+            ProductShortcutList(outfitID: outfit.id, products: outfit.products)
+                .id(outfit.id)
 
             Button(action: onLike) {
                 VStack(spacing: 5) {
@@ -149,17 +141,105 @@ private struct OutfitFeedActions: View {
 }
 
 private struct ProductShortcutList: View {
+    let outfitID: Int
     let products: [OutfitProduct]
 
+    @State private var isExpanded = false
+    @State private var isContentVisible = false
+    @State private var presentationToken = UUID()
+
+    private var expandedHeight: CGFloat {
+        let iconHeight: CGFloat = 50
+        let spacing: CGFloat = 11
+        let totalHeight = CGFloat(products.count) * iconHeight + CGFloat(max(products.count - 1, 0)) * spacing
+        return min(totalHeight, 320)
+    }
+
     var body: some View {
-        ScrollView(.vertical) {
-            VStack(spacing: 11) {
-                ForEach(products) { product in
-                    CircularIconButton(systemImage: product.systemImage, accessibilityLabel: product.name)
+        VStack(spacing: 11) {
+            if isExpanded {
+                ScrollView(.vertical) {
+                    VStack(spacing: 11) {
+                        ForEach(products) { product in
+                            CircularIconButton(systemImage: product.systemImage, accessibilityLabel: product.name)
+                        }
+                    }
                 }
+                .scrollIndicators(.hidden)
+                .frame(height: expandedHeight)
+                .opacity(isContentVisible ? 1 : 0)
+                .scaleEffect(isContentVisible ? 1 : 0.96, anchor: .bottom)
+                .accessibilityHidden(!isContentVisible)
+            }
+
+            Button(action: toggleExpanded) {
+                CircularIconButton(
+                    systemImage: "tshirt",
+                    accessibilityLabel: isExpanded ? "Hide outfit pieces" : "Show outfit pieces"
+                )
+            }
+            .buttonStyle(.plain)
+        }
+        .frame(width: 50)
+        .onChange(of: outfitID) { _, _ in
+            resetPresentation()
+        }
+    }
+
+    private func toggleExpanded() {
+        if products.isEmpty || isExpanded {
+            collapse()
+        } else {
+            expand()
+        }
+    }
+
+    private func resetPresentation() {
+        presentationToken = UUID()
+        var transaction = Transaction(animation: nil)
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            isExpanded = false
+            isContentVisible = false
+        }
+    }
+
+    private func expand() {
+        let token = UUID()
+        presentationToken = token
+
+        var transaction = Transaction(animation: nil)
+        transaction.disablesAnimations = true
+        withTransaction(transaction) {
+            isExpanded = true
+            isContentVisible = false
+        }
+
+        Task { @MainActor in
+            await Task.yield()
+            guard presentationToken == token, isExpanded else { return }
+            withAnimation(.spring(response: 0.24, dampingFraction: 0.9)) {
+                isContentVisible = true
             }
         }
-        .scrollIndicators(.hidden)
-        .frame(maxHeight: 204)
+    }
+
+    private func collapse() {
+        let token = UUID()
+        presentationToken = token
+
+        withAnimation(.easeOut(duration: 0.14)) {
+            isContentVisible = false
+        }
+
+        Task { @MainActor in
+            try? await Task.sleep(nanoseconds: 150_000_000)
+            guard presentationToken == token else { return }
+            var transaction = Transaction(animation: nil)
+            transaction.disablesAnimations = true
+            withTransaction(transaction) {
+                isExpanded = false
+            }
+        }
     }
 }

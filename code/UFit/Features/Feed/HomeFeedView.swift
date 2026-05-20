@@ -7,28 +7,25 @@ struct HomeFeedView: View {
     @State private var likedOutfitIDs = Set<Int>()
 
     var body: some View {
-        GeometryReader { proxy in
-            ScrollView(.vertical) {
-                LazyVStack(spacing: 0) {
-                    ForEach(SampleData.outfits) { outfit in
-                        OutfitFeedCard(
-                            outfit: outfit,
-                            isLiked: likedOutfitIDs.contains(outfit.id),
-                            viewportSize: proxy.size,
-                            onLike: { toggleLike(outfit.id) },
-                            onOutfitTap: { onOutfitTap(outfit) },
-                            onCreatorTap: onCreatorTap
-                        )
-                        .frame(width: proxy.size.width, height: proxy.size.height)
-                    }
+        ScrollView(.vertical) {
+            LazyVStack(spacing: 0) {
+                ForEach(SampleData.outfits) { outfit in
+                    OutfitFeedCard(
+                        outfit: outfit,
+                        isLiked: likedOutfitIDs.contains(outfit.id),
+                        onLike: { toggleLike(outfit.id) },
+                        onOutfitTap: { onOutfitTap(outfit) },
+                        onCreatorTap: onCreatorTap
+                    )
+                    .containerRelativeFrame([.horizontal, .vertical])
                 }
-                .scrollTargetLayout()
             }
-            .scrollIndicators(.hidden)
-            .scrollTargetBehavior(.paging)
-            .background(Color.black)
-            .ignoresSafeArea()
+            .scrollTargetLayout()
         }
+        .scrollIndicators(.hidden)
+        .scrollTargetBehavior(.paging)
+        .background(Color.black)
+        .ignoresSafeArea()
     }
 }
 
