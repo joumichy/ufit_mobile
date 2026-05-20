@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct BrandDashboardView: View {
+    let store: MarketplaceStore
     let onBack: () -> Void
 
     var body: some View {
@@ -9,10 +10,13 @@ struct BrandDashboardView: View {
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 24) {
-                    BrandDashboardHeader()
-                    BrandMetricsSection()
-                    RevenueSummaryCard()
-                    RecentOrdersSection(orders: SampleData.orders)
+                    BrandDashboardHeader(brandName: brandName, subtitle: subtitle)
+                    if let message = workspaceMessage {
+                        WorkspaceNotice(message: message)
+                    }
+                    BrandMetricsSection(metrics: store.brandDashboard?.performance)
+                    RevenueSummaryCard(metrics: store.brandDashboard?.performance)
+                    RecentOrdersSection(orders: store.brandOrders)
                 }
                 .padding(.horizontal, 24)
                 .padding(.top, 26)
@@ -22,15 +26,39 @@ struct BrandDashboardView: View {
             .background(Color.white)
         }
         .background(Color.white)
+        .task {
+            await store.loadBrandWorkspace()
+        }
+    }
+
+    private var brandName: String {
+        store.brandDashboard?.profile.brandName ?? "Atelier Minimal"
+    }
+
+    private var subtitle: String {
+        store.brandDashboard.map { "\($0.profile.memberRole.capitalized) workspace" } ?? "Independent Fashion Brand"
+    }
+
+    private var workspaceMessage: String? {
+        if !store.isAuthenticated {
+            return "Connect a brand session to load live products and orders."
+        }
+        if store.brandProfileID == nil {
+            return "Set UFIT_BRAND_PROFILE_ID to load this brand workspace."
+        }
+        return nil
     }
 }
 
 private struct BrandDashboardHeader: View {
+    let brandName: String
+    let subtitle: String
+
     var body: some View {
         VStack(alignment: .leading, spacing: 4) {
-            Text("Atelier Minimal")
+            Text(brandName)
                 .font(.system(size: 28, weight: .regular))
-            Text("Independent Fashion Brand")
+            Text(subtitle)
                 .font(.system(size: 14))
                 .foregroundStyle(Color.ufitMuted)
         }
@@ -38,24 +66,53 @@ private struct BrandDashboardHeader: View {
 }
 
 private struct BrandMetricsSection: View {
+    let metrics: UFitBrandPerformanceDTO?
+
     var body: some View {
         HStack(spacing: 14) {
-            MetricCard(icon: "shippingbox", value: "24", label: "Pending Orders")
-            MetricCard(icon: "eurosign.circle", value: "8,942€", label: "This Month")
+            MetricCard(icon: "shippingbox", value: "\(pendingOrders)", label: "Pending Orders")
+            MetricCard(icon: "eurosign.circle", value: revenue, label: "Revenue")
         }
+    }
+
+    private var pendingOrders: Int {
+        guard let metrics else { return 24 }
+        return metrics.orders.paid + metrics.orders.preparing
+    }
+
+    private var revenue: String {
+        guard let metrics else { return "8,942€" }
+        return UFitMoney.format(metrics.sales.grossAmount, currency: metrics.sales.currency)
     }
 }
 
 private struct RevenueSummaryCard: View {
+    let metrics: UFitBrandPerformanceDTO?
+
     var body: some View {
         VStack(spacing: 13) {
-            DashboardRow(label: "Total Revenue (Mai)", value: "8,942€", valueSize: 22)
-            DashboardRow(label: "Commission UFit (8%)", value: "-715€", muted: true)
+            DashboardRow(label: "Total Revenue", value: totalRevenue, valueSize: 22)
+            DashboardRow(label: "Products active", value: activeProducts, muted: true)
             Divider()
-            DashboardRow(label: "Net Revenue", value: "8,227€", valueSize: 22)
+            DashboardRow(label: "Low stock variants", value: lowStock, valueSize: 22)
         }
         .padding(18)
         .background(Color.ufitSecondary, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    private var totalRevenue: String {
+        guard let metrics else { return "8,942€" }
+        return UFitMoney.format(metrics.sales.grossAmount, currency: metrics.sales.currency)
+    }
+
+    private var activeProducts: String {
+        guard let metrics else { return "24" }
+        return "\(metrics.products.active)"
+    }
+
+    private var lowStock: String {
+        guard let metrics else { return "3" }
+        return "\(metrics.stock.lowStockVariants)"
     }
 }
 
@@ -80,6 +137,19 @@ private struct RecentOrdersSection: View {
     }
 }
 
+private struct WorkspaceNotice: View {
+    let message: String
+
+    var body: some View {
+        Text(message)
+            .font(.system(size: 13))
+            .foregroundStyle(Color.ufitMuted)
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.ufitSecondary, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+}
+
 #Preview {
-    BrandDashboardView(onBack: {})
+    BrandDashboardView(store: MarketplaceStore.live(), onBack: {})
 }

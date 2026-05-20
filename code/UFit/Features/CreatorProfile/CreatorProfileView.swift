@@ -1,35 +1,129 @@
 import SwiftUI
 
 struct CreatorProfileView: View {
+    let store: MarketplaceStore
     let onBack: () -> Void
-
-    private let columns = [
-        GridItem(.flexible(), spacing: 1),
-        GridItem(.flexible(), spacing: 1)
-    ]
 
     var body: some View {
         VStack(spacing: 0) {
-            DetailHeader(title: "Sofia Laurent", onBack: onBack)
+            CreatorProfileNavigationBar(title: displayName, onBack: onBack)
 
-            ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
-                    CreatorHeaderSection()
-                    PublishedOutfitsSection(columns: columns)
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 24) {
+                        CreatorHeaderSection(
+                            displayName: displayName,
+                            slug: creatorSlug,
+                            stats: creatorStats,
+                            grade: creatorGrade,
+                            statusMessage: workspaceMessage
+                        )
+                            .id(ProfileScrollAnchor.top)
+                        PublishedOutfitsSection()
+                    }
+                }
+                .scrollIndicators(.hidden)
+                .background(Color.white)
+                .onAppear {
+                    scrollToTop(with: proxy)
                 }
             }
-            .scrollIndicators(.hidden)
-            .background(Color.white)
         }
         .background(Color.white)
+        .task {
+            await store.loadCreatorWorkspace()
+        }
+    }
+
+    private var displayName: String {
+        store.creatorDashboard?.profile.displayName ?? "Sofia Laurent"
+    }
+
+    private var creatorSlug: String {
+        store.creatorDashboard.map { "@\($0.profile.slug)" } ?? "@sofialaurent"
+    }
+
+    private var creatorGrade: CreatorGradeSnapshot {
+        guard let grade = store.creatorDashboard?.profile.grade else {
+            return CreatorGradeSnapshot(label: "Elite", commissionRate: "12%")
+        }
+        return CreatorGradeSnapshot(label: grade.label, commissionRate: "\(grade.commissionBps / 100)%")
+    }
+
+    private var creatorStats: [CreatorStatSnapshot] {
+        guard let performance = store.creatorDashboard?.performance else {
+            return [
+                CreatorStatSnapshot(icon: "person.2", value: "12.4k", label: "Followers"),
+                CreatorStatSnapshot(icon: "shippingbox", value: "87", label: "Outfits"),
+                CreatorStatSnapshot(icon: "medal", value: "Elite", label: "Grade")
+            ]
+        }
+
+        return [
+            CreatorStatSnapshot(icon: "shippingbox", value: "\(performance.outfits.total)", label: "Outfits"),
+            CreatorStatSnapshot(icon: "bag", value: "\(performance.sales.paidOrderCount)", label: "Sales"),
+            CreatorStatSnapshot(icon: "eurosign.circle", value: UFitMoney.format(performance.commissions.pendingAmount, currency: performance.sales.currency), label: "Pending")
+        ]
+    }
+
+    private var workspaceMessage: String? {
+        store.creatorDashboard == nil && !store.isAuthenticated ? "Connect a creator session to load live performance." : nil
+    }
+
+    private func scrollToTop(with proxy: ScrollViewProxy) {
+        Task { @MainActor in
+            await Task.yield()
+            proxy.scrollTo(ProfileScrollAnchor.top, anchor: .top)
+        }
+    }
+}
+
+private enum ProfileScrollAnchor {
+    static let top = "creator-profile-top"
+}
+
+private struct CreatorProfileNavigationBar: View {
+    let title: String
+    let onBack: () -> Void
+
+    var body: some View {
+        HStack(spacing: 13) {
+            Button(action: onBack) {
+                Image(systemName: "arrow.left")
+                    .font(.system(size: 19, weight: .regular))
+                    .foregroundStyle(Color.ufitInk)
+                    .frame(width: 30, height: 30)
+            }
+            .buttonStyle(.plain)
+
+            Text(title)
+                .font(.system(size: 20, weight: .semibold))
+                .foregroundStyle(Color.ufitInk)
+
+            Spacer()
+        }
+        .padding(.horizontal, 24)
+        .padding(.vertical, 16)
+        .background(.white.opacity(0.96))
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(Color.ufitBorder)
+                .frame(height: 1)
+        }
     }
 }
 
 private struct CreatorHeaderSection: View {
+    let displayName: String
+    let slug: String
+    let stats: [CreatorStatSnapshot]
+    let grade: CreatorGradeSnapshot
+    let statusMessage: String?
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 22) {
+        VStack(alignment: .leading, spacing: 24) {
             HStack(alignment: .top, spacing: 16) {
-                Text("SL")
+                Text(initials)
                     .font(.system(size: 24, weight: .medium))
                     .foregroundStyle(Color.ufitInk)
                     .frame(width: 82, height: 82)
@@ -37,18 +131,30 @@ private struct CreatorHeaderSection: View {
 
                 VStack(alignment: .leading, spacing: 12) {
                     VStack(alignment: .leading, spacing: 3) {
-                        Text("Sofia Laurent")
+                        Text(displayName)
                             .font(.system(size: 22, weight: .medium))
-                        Text("@sofialaurent")
+                        Text(slug)
                             .font(.system(size: 14))
                             .foregroundStyle(Color.ufitMuted)
                     }
 
-                    Button("Follow") {}
-                        .buttonStyle(CompactPrimaryButtonStyle())
+                    Button(action: {}) {
+                        Text("Follow")
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(CompactPrimaryButtonStyle())
                 }
 
                 Spacer()
+            }
+
+            if let statusMessage {
+                Text(statusMessage)
+                    .font(.system(size: 13))
+                    .foregroundStyle(Color.ufitMuted)
+                    .padding(14)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color.ufitSecondary, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             }
 
             Text("Parisian fashion curator. Minimalist aesthetic, timeless pieces. Collaborating with independent European brands to bring you sustainable, high-quality fashion.")
@@ -57,19 +163,43 @@ private struct CreatorHeaderSection: View {
                 .foregroundStyle(Color.ufitMuted)
 
             HStack(spacing: 12) {
-                CreatorStatCard(icon: "person.2", value: "12.4k", label: "Followers")
-                CreatorStatCard(icon: "shippingbox", value: "87", label: "Outfits")
-                CreatorStatCard(icon: "medal", value: "Elite", label: "Grade")
+                ForEach(stats) { stat in
+                    CreatorStatCard(icon: stat.icon, value: stat.value, label: stat.label)
+                }
             }
 
-            CreatorGradeCard()
+            CreatorGradeCard(grade: grade)
         }
         .padding(.horizontal, 24)
-        .padding(.top, 26)
+        .padding(.top, 32)
+    }
+
+    private var initials: String {
+        displayName
+            .split(separator: " ")
+            .prefix(2)
+            .compactMap { $0.first }
+            .map(String.init)
+            .joined()
+            .uppercased()
     }
 }
 
+private struct CreatorStatSnapshot: Identifiable {
+    let id = UUID()
+    let icon: String
+    let value: String
+    let label: String
+}
+
+private struct CreatorGradeSnapshot {
+    let label: String
+    let commissionRate: String
+}
+
 private struct CreatorGradeCard: View {
+    let grade: CreatorGradeSnapshot
+
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
@@ -77,7 +207,7 @@ private struct CreatorGradeCard: View {
                     .font(.system(size: 14))
                     .foregroundStyle(Color.ufitMuted)
                 Spacer()
-                Label("Elite", systemImage: "medal")
+                Label(grade.label, systemImage: "medal")
                     .font(.system(size: 14, weight: .medium))
             }
 
@@ -95,11 +225,11 @@ private struct CreatorGradeCard: View {
                 Text("Commission Rate")
                     .foregroundStyle(Color.ufitMuted)
                 Spacer()
-                Text("12% -> 15%")
+                Text("\(grade.commissionRate) -> 15%")
             }
             .font(.system(size: 12))
 
-            Text("85 sales to reach Premium tier and unlock 15% commission")
+            Text("Keep publishing high-quality outfits to unlock the next creator tier.")
                 .font(.system(size: 12))
                 .foregroundStyle(Color.ufitMuted)
         }
@@ -109,7 +239,10 @@ private struct CreatorGradeCard: View {
 }
 
 private struct PublishedOutfitsSection: View {
-    let columns: [GridItem]
+    private let columns = [
+        GridItem(.flexible(), spacing: 1),
+        GridItem(.flexible(), spacing: 1)
+    ]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -119,11 +252,7 @@ private struct PublishedOutfitsSection: View {
 
             LazyVGrid(columns: columns, spacing: 1) {
                 ForEach(SampleData.creatorImages, id: \.self) { imageName in
-                    Image(imageName)
-                        .resizable()
-                        .scaledToFill()
-                        .aspectRatio(3.0 / 4.0, contentMode: .fill)
-                        .clipped()
+                    CreatorOutfitGridImage(imageName: imageName)
                 }
             }
             .background(Color.ufitBorder)
@@ -132,6 +261,22 @@ private struct PublishedOutfitsSection: View {
     }
 }
 
+private struct CreatorOutfitGridImage: View {
+    let imageName: String
+
+    var body: some View {
+        Rectangle()
+            .fill(Color.white)
+            .aspectRatio(3.0 / 4.0, contentMode: .fit)
+            .overlay {
+                Image(imageName)
+                    .resizable()
+                    .scaledToFill()
+            }
+            .clipped()
+    }
+}
+
 #Preview {
-    CreatorProfileView(onBack: {})
+    CreatorProfileView(store: MarketplaceStore.live(), onBack: {})
 }

@@ -8,7 +8,7 @@ struct OnboardingSlide: Identifiable {
 }
 
 struct Outfit: Identifiable {
-    let id: Int
+    let id: String
     let imageName: String
     let creator: String
     let creatorAvatar: String
@@ -16,21 +16,32 @@ struct Outfit: Identifiable {
     let likes: Int
     let comments: Int
     let title: String
+    let description: String
+    let currency: String
+    let totalPrice: Int?
+    let sourceCreatorId: String?
+    let sourceOutfitId: String?
     let products: [OutfitProduct]
+    let pieces: [OutfitPiece]
 }
 
 struct OutfitProduct: Identifiable {
     let id: String
     let systemImage: String
     let name: String
+    let productID: String?
+    let brandID: String?
 }
 
 struct OutfitPiece: Identifiable {
-    let id: Int
+    let id: String
     let name: String
     let brand: String
     let price: String
     let sizes: [String]
+    let productID: String?
+    let isRequired: Bool
+    let isShoppable: Bool
 }
 
 struct BrandOrder: Identifiable {
@@ -46,6 +57,17 @@ enum OrderStatus {
     case pending
     case shipped
     case delivered
+
+    init(apiStatus: String) {
+        switch apiStatus {
+        case "shipped":
+            self = .shipped
+        case "delivered":
+            self = .delivered
+        default:
+            self = .pending
+        }
+    }
 
     var label: String {
         switch self {

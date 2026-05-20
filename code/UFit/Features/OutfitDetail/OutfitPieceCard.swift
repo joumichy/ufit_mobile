@@ -38,6 +38,12 @@ struct OutfitPieceCard: View {
                         )
                 }
             }
+
+            if !piece.isShoppable {
+                Text("Inspiration only")
+                    .font(.system(size: 12, weight: .medium))
+                    .foregroundStyle(Color.ufitMuted)
+            }
         }
         .padding(18)
         .background(Color.ufitSecondary, in: RoundedRectangle(cornerRadius: 16, style: .continuous))

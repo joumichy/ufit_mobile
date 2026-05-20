@@ -4,7 +4,7 @@ enum AppTab: String, CaseIterable, Identifiable {
     case feed
     case search
     case create
-    case orders
+    case saved
     case profile
 
     var id: String { rawValue }
@@ -14,7 +14,7 @@ enum AppTab: String, CaseIterable, Identifiable {
         case .feed: "Feed"
         case .search: "Search"
         case .create: "Create"
-        case .orders: "Orders"
+        case .saved: "Saved"
         case .profile: "Profile"
         }
     }
@@ -24,7 +24,7 @@ enum AppTab: String, CaseIterable, Identifiable {
         case .feed: "house"
         case .search: "magnifyingglass"
         case .create: "plus.circle"
-        case .orders: "bag"
+        case .saved: "bookmark"
         case .profile: "person"
         }
     }
@@ -34,7 +34,7 @@ enum AppTab: String, CaseIterable, Identifiable {
         case .feed: "house.fill"
         case .search: "magnifyingglass"
         case .create: "plus.circle.fill"
-        case .orders: "bag.fill"
+        case .saved: "bookmark.fill"
         case .profile: "person.fill"
         }
     }
