@@ -48,9 +48,9 @@ final class MarketplaceStore {
             let remoteOutfits = response.items.enumerated().map { index, item in
                 item.toOutfit(fallbackIndex: index)
             }
+            feedErrorMessage = nil
             if !remoteOutfits.isEmpty {
                 outfits = remoteOutfits
-                feedErrorMessage = nil
             }
         } catch {
             feedErrorMessage = friendlyMessage(for: error)
