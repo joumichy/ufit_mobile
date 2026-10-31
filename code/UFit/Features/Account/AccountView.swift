@@ -7,9 +7,12 @@ struct UFitAccountView: View {
     let message: String?
     let onSaveName: (String) -> Void
     let onSignOut: () -> Void
+    var onOrders: (() -> Void)?
     @State private var editing = false
     @State private var editedName = String()
     private enum Copy {
+        static let orders = String(localized: "Mes commandes")
+        static let ordersIcon = "bag"
         static let title = String(localized: "Mon compte")
         static let edit = String(localized: "Modifier mon profil")
         static let name = String(localized: "Nom affiché")
@@ -26,6 +29,7 @@ struct UFitAccountView: View {
         static let title: CGFloat = 32
         static let radius: CGFloat = 14
         static let bottom: CGFloat = 100
+        static let touch: CGFloat = 44
     }
     var body: some View {
         ScrollView {
@@ -53,6 +57,7 @@ struct UFitAccountView: View {
                 }
                 if let message { Text(message).font(.callout).foregroundStyle(Color.ufitMuted) }
                 Divider()
+                if let onOrders { Button(action: onOrders) { Label(Copy.orders, systemImage: Copy.ordersIcon) }.frame(minHeight: Layout.touch) }
                 Button(action: onSignOut) { Label(Copy.signOut, systemImage: Copy.exitIcon) }.disabled(isBusy)
             }
             .padding(Layout.spacing)

@@ -5,6 +5,7 @@ struct MarketplaceRootView: View {
     @State private var session: UFitSessionStore
     @State private var store: MarketplaceStore
     @State private var cart: UFitCartStore
+    @State private var orders: UFitOrdersStore
     @State private var routeHistory: [AppRoute] = []
     @State private var showAuthentication = false
 
@@ -13,6 +14,7 @@ struct MarketplaceRootView: View {
         _session = State(initialValue: session)
         _store = State(initialValue: MarketplaceStore.live(client: session.api, session: session))
         _cart = State(initialValue: UFitCartStore(client: session.api, session: session))
+        _orders = State(initialValue: UFitOrdersStore(client: session.api, session: session))
     }
     @State private var showOnboarding = !ProcessInfo.processInfo.arguments.contains("--skip-onboarding")
     @State private var activeTab: AppTab = ProcessInfo.processInfo.arguments.contains("--start-profile") ? .profile : .feed
@@ -39,6 +41,8 @@ struct MarketplaceRootView: View {
         .onChange(of: session.user?.id) { _, userID in
             store.clearAccountData()
             cart.reset()
+            orders.reset()
+            if userID == nil { returnToFeed() }
             if userID != nil { Task { await store.loadSavedOutfits() } }
         }
         .onChange(of: session.needsNewPassword) { _, needed in
@@ -73,11 +77,15 @@ struct MarketplaceRootView: View {
         case .cart:
             UFitCartHost(store: cart, onBack: goBack, onCheckout: showCheckout)
         case .checkout(let checkout):
-            UFitCheckoutHost(store: checkout, onBack: goBack, onFinish: returnToFeed)
+            UFitCheckoutHost(store: checkout, onBack: goBack, onFinish: {showPurchasedOrder(checkout)})
         case .saved:
             SavedOutfitsView(store: store, onOutfitTap: showOutfitDetail)
         case .account:
-            UFitAccountHost(session: session, onSignedOut: returnToFeed)
+            UFitAccountHost(session: session, onSignedOut: returnToFeed, onOrders: showOrders)
+        case .orders:
+            UFitOrdersHost(store: orders, onBack: goBack, onSelect: showOrder)
+        case .order(let order):
+            UFitOrderDetailHost(store: order, onBack: goBack)
         case .creator:
             CreatorProfileView(store: store, onBack: returnToFeed)
                 .id(creatorProfileViewID)
@@ -140,6 +148,23 @@ private extension MarketplaceRootView {
         activeRoute = .checkout(UFitCheckoutStore(client: session.api, cart: cart, name: session.user?.displayName))
     }
 
+    func showOrders() {
+        guard session.user != nil else {showAuthentication = true; return}
+        routeHistory.append(activeRoute)
+        activeRoute = .orders
+    }
+    func showOrder(_ id: String) {
+        routeHistory.append(activeRoute)
+        activeRoute = .order(UFitOrderDetailStore(id: id, client: session.api, session: session, orders: orders))
+    }
+    func showPurchasedOrder(_ checkout: UFitCheckoutStore) {
+        guard let purchased = checkout.order else {returnToFeed(); return}
+        orders.receive(purchased)
+        activeTab = .profile
+        routeHistory = [.account, .orders]
+        activeRoute = .order(UFitOrderDetailStore(id: purchased.id, client: session.api, session: session, orders: orders))
+    }
+
     func showCart() {
         guard session.user != nil else { showAuthentication = true; return }
         routeHistory.append(activeRoute)
@@ -164,6 +189,8 @@ private enum AppRoute {
     case checkout(UFitCheckoutStore)
     case saved
     case account
+    case orders
+    case order(UFitOrderDetailStore)
     case creator
     case brand
 }

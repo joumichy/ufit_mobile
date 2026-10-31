@@ -3,6 +3,7 @@ import SwiftUI
 struct UFitAccountHost: View {
     let session: UFitSessionStore
     let onSignedOut: () -> Void
+    let onOrders: () -> Void
 
     var body: some View {
         Group {
@@ -13,7 +14,7 @@ struct UFitAccountHost: View {
                     onSignOut: { Task {
                         await session.signOut()
                         if !session.isSignedIn { onSignedOut() }
-                    } })
+                    } }, onOrders: onOrders)
             } else if let message = session.message {
                 ContentUnavailableView {
                     Label(String(localized: "Compte indisponible"), systemImage: "person.crop.circle.badge.exclamationmark")

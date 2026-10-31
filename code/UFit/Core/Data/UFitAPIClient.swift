@@ -26,6 +26,10 @@ enum UFitAPIError: LocalizedError {
         static let brand = "cart_brand_conflict"
         static let currency = "cart_currency_conflict"
         static let stock = "cart_insufficient_stock"
+        static let cancellationUnavailable = "order_cancellation_unavailable"
+        static let cancellationChanged = "order_cancellation_changed"
+        static let paymentUnavailable = "order_payment_unavailable"
+        static let refundAttention = "order_refund_requires_attention"
     }
     var errorDescription: String? {
         switch self {
@@ -36,6 +40,10 @@ enum UFitAPIError: LocalizedError {
             else if code == "checkout_quote_changed" || code == "cart_changed" { String(localized: "Le panier ou les frais ont changé. Vérifiez le nouveau montant.") }
             else if code == "shipping_unavailable" { String(localized: "La marque ne livre pas dans ce pays pour cette devise.") }
             else if code == "brand_policy_missing" || code == "brand_policy_invalid" { String(localized: "Les conditions de livraison de la marque ne sont pas encore disponibles.") }
+            else if code == Code.cancellationUnavailable { String(localized: "Cette commande ne peut plus être annulée.") }
+            else if code == Code.cancellationChanged { String(localized: "L’état de la commande a changé. Actualisez avant de réessayer.") }
+            else if code == Code.paymentUnavailable { String(localized: "Cette commande n’accepte plus de paiement. Actualisez son statut.") }
+            else if code == Code.refundAttention { String(localized: "Le remboursement nécessite une vérification. Votre demande d’annulation reste enregistrée.") }
             else if code == Code.stock { String(localized: "La quantité demandée n’est plus disponible.") }
             else if status == 401 { String(localized: "Votre session a expiré. Reconnectez-vous.") }
             else if status == 403 { String(localized: "Votre compte ne peut pas effectuer cette action.") }

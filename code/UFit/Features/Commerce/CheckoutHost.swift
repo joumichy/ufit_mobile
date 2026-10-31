@@ -23,13 +23,3 @@ struct UFitCheckoutHost: View {
             }
     }
 }
-
-private struct UFitStripePaymentPresentation: View {
-    let sheet: PaymentSheet
-    let onCompletion: (PaymentSheetResult) -> Void
-    @State private var isPresented = false
-    var body: some View {
-        Color.clear.paymentSheet(isPresented: $isPresented, paymentSheet: sheet, onCompletion: onCompletion)
-            .onAppear { isPresented = true }
-    }
-}

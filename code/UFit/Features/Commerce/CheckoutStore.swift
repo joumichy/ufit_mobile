@@ -81,24 +81,14 @@ final class UFitCheckoutStore {
     func editAddress() { guard !isBusy else { return }; step = .address; message = nil }
     func preparePayment() async -> Bool {
         guard !isBusy, let quote else { return false }
-        guard let publicKey = Bundle.main.object(forInfoDictionaryKey: "STRIPE_PUBLIC_KEY") as? String, publicKey.hasPrefix("pk_") else {
-            message = String(localized: "Le paiement est momentanément indisponible."); return false
-        }
         isBusy = true; message = nil
         defer { isBusy = false }
         requestID = requestID ?? UUID().uuidString
         do {
+            let publicKey = try UFitPaymentSheetFactory.publicKey()
             let intent = try await client.checkout(UFitCheckoutRequest(requestId: requestID!, quoteFingerprint: quote.fingerprint, shippingAddress: address))
             orderID = intent.orderId
-            var configuration = PaymentSheet.Configuration()
-            configuration.apiClient = STPAPIClient(publishableKey: publicKey)
-            configuration.merchantDisplayName = "Ufit"
-            configuration.returnURL = "ufit://payments/return"
-            configuration.style = .alwaysLight
-            configuration.link = .init(display: .never)
-            configuration.defaultBillingDetails.name = address.fullName
-            configuration.defaultBillingDetails.phone = address.phone
-            paymentSheet = PaymentSheet(paymentIntentClientSecret: intent.clientSecret, configuration: configuration)
+            paymentSheet = UFitPaymentSheetFactory.make(secret: intent.clientSecret, address: address, publicKey: publicKey)
             return true
         } catch {
             if let failure = error as? UFitAPIError, case .requestFailed(_, _, let code) = failure, code == "checkout_quote_changed" {

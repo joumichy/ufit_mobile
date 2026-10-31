@@ -44,6 +44,12 @@ extension UFitAPIClient {
         if let cursor { query.append(URLQueryItem(name: CommerceHTTP.cursor, value: cursor)) }
         return try await send(CommerceHTTP.get, path: CommerceHTTP.orders, query: query, requiresAuth: true)
     }
+    func cancelOrder(id: String) async throws -> UFitOrderDTO {
+        try await send("POST", path: CommerceHTTP.orders + "/" + id + "/cancel", requiresAuth: true)
+    }
+    func resumeOrderPayment(id: String) async throws -> UFitPaymentIntentDTO {
+        try await send("POST", path: CommerceHTTP.orders + "/" + id + "/payment", requiresAuth: true)
+    }
     func fetchOrder(id: String) async throws -> UFitOrderDTO {
         try await send(CommerceHTTP.get, path: CommerceHTTP.orders + "/" + id, requiresAuth: true)
     }
@@ -70,16 +76,31 @@ struct UFitOrdersPageDTO: Decodable {
     let items: [UFitOrderDTO]
     let nextCursor: String?
 }
-enum UFitOrderLifecycle: String, Decodable {
-    case pendingPayment = "pending_payment", paid, preparing, shipped, delivered, cancelled, refunded
-}
 struct UFitOrderDTO: Decodable, Identifiable {
+    struct Actions: Decodable { let cancel: Bool; let resumePayment: Bool }
+    struct Cancellation: Decodable { let status: String; let outcome: UFitCancellationOutcome? }
+    struct Shipment: Decodable {
+        let id: String
+        let status: UFitShipmentLifecycle
+        let carrier: String?
+        let trackingNumber: String?
+        let trackingUrl: String?
+        let shippedAt: String?
+        let deliveredAt: String?
+    }
+    struct Terms: Decodable { let returnPolicy: String }
+    let createdAt: String
+    let actions: Actions
+    let shipment: Shipment?
+    let cancellation: Cancellation?
+    let commerceSnapshot: Terms?
     let id: String
     let orderNumber: String
     let status: UFitOrderLifecycle
     let brandId: String
     let subtotalAmount: Int
     let shippingAmount: Int
+    let taxAmount: Int
     let totalAmount: Int
     let currency: String
     let shippingAddress: UFitShippingAddress
