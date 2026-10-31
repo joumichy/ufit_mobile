@@ -262,16 +262,6 @@ struct UFitAddCartItemRequest: Encodable {
     let sourceCreatorId: String?
 }
 
-struct UFitShippingAddress: Encodable {
-    var fullName: String
-    var line1: String
-    var line2: String?
-    var postalCode: String
-    var city: String
-    var country: String
-    var phone: String?
-}
-
 struct UFitCheckoutRequest: Encodable {
     let shippingAddress: UFitShippingAddress
     let shippingAmount: Int?

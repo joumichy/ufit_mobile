@@ -42,7 +42,7 @@ private extension OnboardingView {
     }
 }
 
-private struct OnboardingSlideView: View {
+struct OnboardingSlideView: View {
     let slide: OnboardingSlide
 
     var body: some View {
@@ -72,7 +72,7 @@ private struct OnboardingSlideView: View {
     }
 }
 
-private struct OnboardingProgressIndicator: View {
+struct OnboardingProgressIndicator: View {
     let count: Int
     let currentIndex: Int
 
@@ -88,7 +88,7 @@ private struct OnboardingProgressIndicator: View {
     }
 }
 
-private struct OnboardingActions: View {
+struct OnboardingActions: View {
     let isLastSlide: Bool
     let onContinue: () -> Void
     let onSkip: () -> Void

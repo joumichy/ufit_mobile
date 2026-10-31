@@ -27,7 +27,7 @@ struct BottomNavBar: View {
     }
 }
 
-private struct BottomNavItem: View {
+struct BottomNavItem: View {
     let tab: AppTab
     let isActive: Bool
 

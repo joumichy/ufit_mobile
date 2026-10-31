@@ -33,7 +33,7 @@ struct OutfitFeedCard: View {
     }
 }
 
-private struct OutfitFeedOverlay: View {
+struct OutfitFeedOverlay: View {
     let outfit: Outfit
     let isLiked: Bool
     let onLike: () -> Void
@@ -58,7 +58,7 @@ private struct OutfitFeedOverlay: View {
     }
 }
 
-private struct OutfitFeedCaption: View {
+struct OutfitFeedCaption: View {
     let outfit: Outfit
     let onOutfitTap: () -> Void
     let onCreatorTap: () -> Void
@@ -92,7 +92,7 @@ private struct OutfitFeedCaption: View {
     }
 }
 
-private struct CreatorAvatar: View {
+struct CreatorAvatar: View {
     let initials: String
 
     var body: some View {
@@ -105,7 +105,7 @@ private struct CreatorAvatar: View {
     }
 }
 
-private struct OutfitFeedActions: View {
+struct OutfitFeedActions: View {
     let outfit: Outfit
     let isLiked: Bool
     let onLike: () -> Void
@@ -138,7 +138,7 @@ private struct OutfitFeedActions: View {
     }
 }
 
-private struct ProductShortcutList: View {
+struct ProductShortcutList: View {
     let outfitID: String
     let products: [OutfitProduct]
 
