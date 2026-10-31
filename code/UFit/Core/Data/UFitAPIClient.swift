@@ -29,6 +29,10 @@ enum UFitAPIError: LocalizedError {
         static let cancellationUnavailable = "order_cancellation_unavailable"
         static let cancellationChanged = "order_cancellation_changed"
         static let paymentUnavailable = "order_payment_unavailable"
+        static let connectSetup = "connect_platform_setup_required"
+        static let connectCountry = "connect_country_immutable"
+        static let connectRecipient = "connect_recipient_incomplete"
+        static let connectOwner = "connect_owner_required"
         static let refundAttention = "order_refund_requires_attention"
     }
     var errorDescription: String? {
@@ -43,6 +47,10 @@ enum UFitAPIError: LocalizedError {
             else if code == Code.cancellationUnavailable { String(localized: "Cette commande ne peut plus être annulée.") }
             else if code == Code.cancellationChanged { String(localized: "L’état de la commande a changé. Actualisez avant de réessayer.") }
             else if code == Code.paymentUnavailable { String(localized: "Cette commande n’accepte plus de paiement. Actualisez son statut.") }
+            else if code == Code.connectSetup { String(localized: "La plateforme doit terminer sa configuration Stripe Connect. Votre compte n’est pas encore activé.") }
+            else if code == Code.connectCountry { String(localized: "Le pays de ce compte Stripe ne peut plus être modifié.") }
+            else if code == Code.connectRecipient { String(localized: "La marque ou le créateur doit terminer sa configuration Stripe avant cet achat.") }
+            else if code == Code.connectOwner { String(localized: "Seul le propriétaire peut configurer ce compte Stripe.") }
             else if code == Code.refundAttention { String(localized: "Le remboursement nécessite une vérification. Votre demande d’annulation reste enregistrée.") }
             else if code == Code.stock { String(localized: "La quantité demandée n’est plus disponible.") }
             else if status == 401 { String(localized: "Votre session a expiré. Reconnectez-vous.") }

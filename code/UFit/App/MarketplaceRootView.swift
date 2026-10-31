@@ -36,6 +36,7 @@ struct MarketplaceRootView: View {
         .preferredColorScheme(.light)
         .task { session.start() }
         .onOpenURL { url in
+            if case .connect(let connect) = activeRoute { Task { await connect.handleCallback(url) } }
             if !StripeAPI.handleURLCallback(with: url), url.host == "auth" { Task { await session.handle(url) } }
         }
         .onChange(of: session.user?.id) { _, userID in
@@ -81,7 +82,9 @@ struct MarketplaceRootView: View {
         case .saved:
             SavedOutfitsView(store: store, onOutfitTap: showOutfitDetail)
         case .account:
-            UFitAccountHost(session: session, onSignedOut: returnToFeed, onOrders: showOrders)
+            UFitAccountHost(session: session, onSignedOut: returnToFeed, onOrders: showOrders, onPayments: showPayments)
+        case .connect(let connect):
+            UFitConnectHost(store: connect, onBack: goBack)
         case .orders:
             UFitOrdersHost(store: orders, onBack: goBack, onSelect: showOrder)
         case .order(let order):
@@ -148,6 +151,11 @@ private extension MarketplaceRootView {
         activeRoute = .checkout(UFitCheckoutStore(client: session.api, cart: cart, name: session.user?.displayName))
     }
 
+    func showPayments() {
+        guard session.user != nil else { showAuthentication = true; return }
+        routeHistory.append(activeRoute)
+        activeRoute = .connect(UFitConnectStore(client: session.api, session: session))
+    }
     func showOrders() {
         guard session.user != nil else {showAuthentication = true; return}
         routeHistory.append(activeRoute)
@@ -189,6 +197,7 @@ private enum AppRoute {
     case checkout(UFitCheckoutStore)
     case saved
     case account
+    case connect(UFitConnectStore)
     case orders
     case order(UFitOrderDetailStore)
     case creator

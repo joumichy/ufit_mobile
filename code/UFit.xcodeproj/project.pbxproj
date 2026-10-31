@@ -59,6 +59,11 @@
 		721202BACD4090F6F2D0814E = {isa = PBXBuildFile; fileRef = 540C8495DD19B9605BFA79B0; };
 		58B2BFAD0D6FA971E5F23E0D = {isa = PBXBuildFile; fileRef = 88DDAD5B93BEA4C077680E8D; };
 		7E5907C99A632805B36F82E9 = {isa = PBXBuildFile; fileRef = 3849881BF53F05D04941BA59; };
+		5059186C4487F07D25DDE1D9 = {isa = PBXBuildFile; fileRef = 503C354CF8F140F61B46D9DA; };
+		C198A167E1CB8DBCB24DBB71 = {isa = PBXBuildFile; fileRef = DD04D1522C7753F73F436D54; };
+		76B36DC87FF6ED7539613688 = {isa = PBXBuildFile; fileRef = F76A8E19BDAB97DF275E9739; };
+		0AEB35ED4445D7191733FEA6 = {isa = PBXBuildFile; fileRef = 22FF9099EF32FEFA25D0B609; };
+		290DDDA0B7788C4CBC13291E = {isa = PBXBuildFile; fileRef = DA95BB8CAC648E2FE2ED9110; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -115,6 +120,11 @@
 		540C8495DD19B9605BFA79B0 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Orders/OrdersStore.swift"; sourceTree = SOURCE_ROOT; };
 		88DDAD5B93BEA4C077680E8D = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Orders/OrderDetailStore.swift"; sourceTree = SOURCE_ROOT; };
 		3849881BF53F05D04941BA59 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Orders/OrdersHost.swift"; sourceTree = SOURCE_ROOT; };
+		503C354CF8F140F61B46D9DA = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Core/Models/ConnectPresentation.swift"; sourceTree = SOURCE_ROOT; };
+		DD04D1522C7753F73F436D54 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Payments/ConnectContent.swift"; sourceTree = SOURCE_ROOT; };
+		F76A8E19BDAB97DF275E9739 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Core/Data/UFitConnectAPI.swift"; sourceTree = SOURCE_ROOT; };
+		22FF9099EF32FEFA25D0B609 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Payments/ConnectStore.swift"; sourceTree = SOURCE_ROOT; };
+		DA95BB8CAC648E2FE2ED9110 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Payments/ConnectHost.swift"; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -133,6 +143,11 @@
 		1A2B3C4D5E6F700000000030 = {
 			isa = PBXGroup;
 			children = (
+				DA95BB8CAC648E2FE2ED9110,
+				22FF9099EF32FEFA25D0B609,
+				F76A8E19BDAB97DF275E9739,
+				DD04D1522C7753F73F436D54,
+				503C354CF8F140F61B46D9DA,
 				3849881BF53F05D04941BA59,
 				88DDAD5B93BEA4C077680E8D,
 				540C8495DD19B9605BFA79B0,
@@ -379,6 +394,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				290DDDA0B7788C4CBC13291E,
+				0AEB35ED4445D7191733FEA6,
+				76B36DC87FF6ED7539613688,
+				C198A167E1CB8DBCB24DBB71,
+				5059186C4487F07D25DDE1D9,
 				7E5907C99A632805B36F82E9,
 				58B2BFAD0D6FA971E5F23E0D,
 				721202BACD4090F6F2D0814E,
