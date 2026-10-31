@@ -31,6 +31,26 @@
 		2A2B3C4D5E6F000000000113 /* UFitAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2B3C4D5E6F000000000113 /* UFitAPIClient.swift */; };
 		2A2B3C4D5E6F000000000114 /* MarketplaceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2B3C4D5E6F000000000114 /* MarketplaceStore.swift */; };
 		2A2B3C4D5E6F000000000115 /* FashionImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2B3C4D5E6F000000000115 /* FashionImage.swift */; };
+		F10000000000000000000001 = {isa = PBXBuildFile; productRef = F10000000000000000000002; };
+		04906FE3CA129284C3C09510 = {isa = PBXBuildFile; fileRef = F51114A9CC93F64B93ADBD5F; };
+		1BE7CD2A2E1A3DAFC785063E = {isa = PBXBuildFile; fileRef = AE3276149FA2E5E38DD147B6; };
+		1F521D1D3B0E596CAD910A9A = {isa = PBXBuildFile; fileRef = DA8600D187AF26DA3324B042; };
+		7CA5AA005E2EEB4EEED44693 = {isa = PBXBuildFile; fileRef = 1E87431FA4AFDF35E63D9966; };
+		EC336B96C6F0D608D71D6573 = {isa = PBXBuildFile; fileRef = 43F28D9391FBD672FAF1516F; };
+		18A5822F5D3B64D6F02DA46C = {isa = PBXBuildFile; fileRef = 4DB14335AB79E4E407704909; };
+		0F4A769B0E76A99525A5ADE1 = {isa = PBXBuildFile; fileRef = 2AA20D242BCED2B056F894C0; };
+		7ED13B4467C4A2D6E9562BE0 = {isa = PBXBuildFile; fileRef = 3959A02237D9BC335EFBA4A6; };
+		1A74C898EB4F43E280FC6289 = {isa = PBXBuildFile; fileRef = 649F56F37F2FBC525A571FB4; };
+		F26BD3F2474F1AE783971E7B = {isa = PBXBuildFile; fileRef = 979103AF5BFDAFA3D7B88AC4; };
+		FA474C7B6F39282471A1F794 = {isa = PBXBuildFile; fileRef = 49255C9BDCCD71EC5090FAA4; };
+		B1E71FA9F07F7DB9D9B8D481 = {isa = PBXBuildFile; fileRef = 70F2ED68E0B73643775A7B9C; };
+		12885148CCFF4E5D4AE2F7F7 = {isa = PBXBuildFile; fileRef = 3BDB6A011CBFFA6839769A4A; };
+        F20000000000000000000001 = {isa = PBXBuildFile; productRef = F20000000000000000000002; };
+		A1809D943635F46A4607D525 = {isa = PBXBuildFile; fileRef = BBB321E5E409FB65B5E5FC5A; };
+		6AA58F30C57B51D8D8B4A347 = {isa = PBXBuildFile; fileRef = E48EE2D615976E0E88410CB5; };
+		EE0DC5CBF7DDA65650F7A0DF = {isa = PBXBuildFile; fileRef = C09E17D6CF3B9DA1EF014C03; };
+		4851558855D236C4B7B5C047 = {isa = PBXBuildFile; fileRef = 2474FAB574E60FD03E579412; };
+		C4B67F77FBE44FF986273E39 = {isa = PBXBuildFile; fileRef = FEA37F9258714EB702D4FE2E; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -60,6 +80,25 @@
 		3A2B3C4D5E6F000000000113 /* UFitAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UFitAPIClient.swift; sourceTree = "<group>"; };
 		3A2B3C4D5E6F000000000114 /* MarketplaceStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarketplaceStore.swift; sourceTree = "<group>"; };
 		3A2B3C4D5E6F000000000115 /* FashionImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FashionImage.swift; sourceTree = "<group>"; };
+		F51114A9CC93F64B93ADBD5F = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Core/Auth/UFitSessionStore.swift"; sourceTree = SOURCE_ROOT; };
+		AE3276149FA2E5E38DD147B6 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Account/AuthenticationView.swift"; sourceTree = SOURCE_ROOT; };
+		F10000000000000000000004 = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/UFit.xcconfig; sourceTree = SOURCE_ROOT; };
+		DA8600D187AF26DA3324B042 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Account/AuthenticationHost.swift"; sourceTree = SOURCE_ROOT; };
+		1E87431FA4AFDF35E63D9966 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Account/AccountView.swift"; sourceTree = SOURCE_ROOT; };
+		43F28D9391FBD672FAF1516F = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Account/AccountHost.swift"; sourceTree = SOURCE_ROOT; };
+		4DB14335AB79E4E407704909 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Feed/FeedStatusView.swift"; sourceTree = SOURCE_ROOT; };
+		2AA20D242BCED2B056F894C0 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Core/Data/UFitCommerceAPI.swift"; sourceTree = SOURCE_ROOT; };
+		3959A02237D9BC335EFBA4A6 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Commerce/OutfitShoppingContent.swift"; sourceTree = SOURCE_ROOT; };
+		649F56F37F2FBC525A571FB4 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Commerce/CartContent.swift"; sourceTree = SOURCE_ROOT; };
+		979103AF5BFDAFA3D7B88AC4 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Core/Models/ShoppingPresentation.swift"; sourceTree = SOURCE_ROOT; };
+		49255C9BDCCD71EC5090FAA4 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Commerce/CartStore.swift"; sourceTree = SOURCE_ROOT; };
+		70F2ED68E0B73643775A7B9C = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Commerce/CartHost.swift"; sourceTree = SOURCE_ROOT; };
+		3BDB6A011CBFFA6839769A4A = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Commerce/OutfitShoppingStore.swift"; sourceTree = SOURCE_ROOT; };
+		BBB321E5E409FB65B5E5FC5A = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Core/Models/CheckoutPresentation.swift"; sourceTree = SOURCE_ROOT; };
+		E48EE2D615976E0E88410CB5 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Commerce/CheckoutContent.swift"; sourceTree = SOURCE_ROOT; };
+		C09E17D6CF3B9DA1EF014C03 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Core/Data/UFitCheckoutAPI.swift"; sourceTree = SOURCE_ROOT; };
+		2474FAB574E60FD03E579412 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Commerce/CheckoutStore.swift"; sourceTree = SOURCE_ROOT; };
+		FEA37F9258714EB702D4FE2E = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Commerce/CheckoutHost.swift"; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -67,6 +106,8 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F10000000000000000000001,
+                F20000000000000000000001,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -76,6 +117,24 @@
 		1A2B3C4D5E6F700000000030 = {
 			isa = PBXGroup;
 			children = (
+				FEA37F9258714EB702D4FE2E,
+				2474FAB574E60FD03E579412,
+				C09E17D6CF3B9DA1EF014C03,
+				E48EE2D615976E0E88410CB5,
+				BBB321E5E409FB65B5E5FC5A,
+				3BDB6A011CBFFA6839769A4A,
+				70F2ED68E0B73643775A7B9C,
+				49255C9BDCCD71EC5090FAA4,
+				979103AF5BFDAFA3D7B88AC4,
+				649F56F37F2FBC525A571FB4,
+				3959A02237D9BC335EFBA4A6,
+				2AA20D242BCED2B056F894C0,
+				4DB14335AB79E4E407704909,
+				43F28D9391FBD672FAF1516F,
+				1E87431FA4AFDF35E63D9966,
+				DA8600D187AF26DA3324B042,
+				AE3276149FA2E5E38DD147B6,
+				F51114A9CC93F64B93ADBD5F,
 				1A2B3C4D5E6F700000000031 /* UFit */,
 				1A2B3C4D5E6F700000000035 /* Products */,
 			);
@@ -241,6 +300,7 @@
 			dependencies = (
 			);
 			name = UFit;
+			packageProductDependencies = (F10000000000000000000002,F20000000000000000000002,);
 			productName = UFit;
 			productReference = 1A2B3C4D5E6F700000000010 /* UFit.app */;
 			productType = "com.apple.product-type.application";
@@ -270,6 +330,7 @@
 			);
 			mainGroup = 1A2B3C4D5E6F700000000030;
 			productRefGroup = 1A2B3C4D5E6F700000000035 /* Products */;
+			packageReferences = (F10000000000000000000003,F20000000000000000000003,);
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -294,6 +355,24 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C4B67F77FBE44FF986273E39,
+				4851558855D236C4B7B5C047,
+				EE0DC5CBF7DDA65650F7A0DF,
+				6AA58F30C57B51D8D8B4A347,
+				A1809D943635F46A4607D525,
+				12885148CCFF4E5D4AE2F7F7,
+				B1E71FA9F07F7DB9D9B8D481,
+				FA474C7B6F39282471A1F794,
+				F26BD3F2474F1AE783971E7B,
+				1A74C898EB4F43E280FC6289,
+				7ED13B4467C4A2D6E9562BE0,
+				0F4A769B0E76A99525A5ADE1,
+				18A5822F5D3B64D6F02DA46C,
+				EC336B96C6F0D608D71D6573,
+				7CA5AA005E2EEB4EEED44693,
+				1F521D1D3B0E596CAD910A9A,
+				1BE7CD2A2E1A3DAFC785063E,
+				04906FE3CA129284C3C09510,
 				1A2B3C4D5E6F700000000001 /* UFitApp.swift in Sources */,
 				2A2B3C4D5E6F000000000100 /* MarketplaceRootView.swift in Sources */,
 				2A2B3C4D5E6F000000000101 /* AppTab.swift in Sources */,
@@ -322,6 +401,14 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+        F10000000000000000000003 = {isa = XCRemoteSwiftPackageReference; repositoryURL = "https://github.com/supabase/supabase-swift.git"; requirement = {kind = upToNextMajorVersion; minimumVersion = 2.0.0; }; };
+        F20000000000000000000003 = {isa = XCRemoteSwiftPackageReference; repositoryURL = "https://github.com/stripe/stripe-ios-spm.git"; requirement = {kind = exactVersion; version = 26.15.1; }; };
+/* End XCRemoteSwiftPackageReference section */
+/* Begin XCSwiftPackageProductDependency section */
+        F10000000000000000000002 = {isa = XCSwiftPackageProductDependency; package = F10000000000000000000003; productName = Supabase; };
+        F20000000000000000000002 = {isa = XCSwiftPackageProductDependency; package = F20000000000000000000003; productName = StripePaymentSheet; };
+/* End XCSwiftPackageProductDependency section */
 /* Begin XCBuildConfiguration section */
 		1A2B3C4D5E6F700000000072 /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -444,6 +531,7 @@
 		};
 		1A2B3C4D5E6F700000000081 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = F10000000000000000000004;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
@@ -451,6 +539,7 @@
 				DEVELOPMENT_ASSET_PATHS = "\"UFit/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+                INFOPLIST_FILE = UFit/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = UFit;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.shopping";
 				INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsLocalNetworking = YES;
@@ -478,6 +567,7 @@
 		};
 		1A2B3C4D5E6F700000000082 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = F10000000000000000000004;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
@@ -485,6 +575,7 @@
 				DEVELOPMENT_ASSET_PATHS = "\"UFit/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+                INFOPLIST_FILE = UFit/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = UFit;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.shopping";
 				INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsLocalNetworking = YES;

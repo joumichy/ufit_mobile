@@ -1,0 +1,181 @@
+import Foundation
+import Observation
+import Supabase
+
+struct UFitRuntimeConfiguration {
+    let apiURL: URL
+    let supabaseURL: URL?
+    let supabaseKey: String?
+    static let callbackURL = URL(string: "ufit://auth/callback")!
+    private static let resourceName = "UFitRuntime"
+    private static let resourceExtension = "plist"
+    private static let apiKey = "UFIT_API_BASE_URL"
+    private static let authURLKey = "SUPABASE_URL"
+    private static let authPublicKey = "SUPABASE_PUBLIC_KEY"
+    private static let localAPI = "http://127.0.0.1:4013"
+
+    static func load() -> Self {
+        let environment = ProcessInfo.processInfo.environment
+        let settings: [String: String]
+        if let url = Bundle.main.url(forResource: resourceName, withExtension: resourceExtension),
+           let data = try? Data(contentsOf: url),
+           let decoded = try? PropertyListDecoder().decode([String: String].self, from: data) {
+            settings = decoded
+        } else { settings = [:] }
+        func value(_ key: String) -> String? { environment[key] ?? (Bundle.main.object(forInfoDictionaryKey: key) as? String).flatMap { $0.isEmpty ? nil : $0 } ?? settings[key] }
+        return Self(
+            apiURL: URL(string: value(apiKey) ?? localAPI)!,
+            supabaseURL: value(authURLKey).flatMap(URL.init(string:)),
+            supabaseKey: value(authPublicKey)
+        )
+    }
+}
+
+enum UFitUserRole: String, Decodable {
+    case customer, creator, brandOwner = "brand_owner", brandManager = "brand_manager", admin, superAdmin = "super_admin"
+}
+
+struct UFitCurrentUser: Decodable, Identifiable {
+    let id: String
+    let email: String
+    let displayName: String?
+    let avatarUrl: String?
+    let status: String
+    let roles: [UFitUserRole]
+    var canAdminister: Bool { roles.contains(.admin) || roles.contains(.superAdmin) }
+    var isCreator: Bool { roles.contains(.creator) }
+    var isBrandMember: Bool { roles.contains(.brandOwner) || roles.contains(.brandManager) }
+}
+
+enum UFitSessionError: LocalizedError {
+    case unavailable, invalidAppleCredential
+    var errorDescription: String? {
+        switch self {
+        case .unavailable: String(localized: "La connexion est momentanément indisponible.")
+        case .invalidAppleCredential: String(localized: "Apple n’a pas transmis une identité valide. Réessayez.")
+        }
+    }
+}
+
+@MainActor @Observable
+final class UFitSessionStore {
+    private(set) var user: UFitCurrentUser?
+    private(set) var isRestoring = true
+    private(set) var isBusy = false
+    private(set) var isSignedIn = false
+    var message: String?
+    var needsNewPassword = false
+    @ObservationIgnored let api: UFitAPIClient
+    @ObservationIgnored private let auth: SupabaseClient?
+    @ObservationIgnored private var observation: Task<Void, Never>?
+
+    init(configuration: UFitRuntimeConfiguration = .load()) {
+        let client: SupabaseClient?
+        if let url = configuration.supabaseURL, let key = configuration.supabaseKey, !key.isEmpty {
+            client = SupabaseClient(supabaseURL: url, supabaseKey: key)
+        } else { client = nil }
+        auth = client
+        api = UFitAPIClient(configuration: UFitAPIConfiguration(baseURL: configuration.apiURL, bearerToken: nil, brandProfileID: nil), tokenProvider: {
+            guard let client else { return nil }
+            return try await client.auth.session.accessToken
+        })
+    }
+
+    func start() {
+        guard observation == nil else { return }
+        guard let auth else { isRestoring = false; return }
+        observation = Task { [weak self] in
+            for await (event, session) in auth.auth.authStateChanges {
+                guard !Task.isCancelled, let self else { return }
+                self.isSignedIn = session != nil
+                self.isRestoring = false
+                if session == nil { self.user = nil }
+                else if self.user == nil || event == .userUpdated { await self.reloadProfile() }
+                if event == .passwordRecovery { self.needsNewPassword = true }
+            }
+        }
+    }
+
+    func signIn(email: String, password: String) async {
+        await perform {
+            guard let auth = self.auth else { throw UFitSessionError.unavailable }
+            _ = try await auth.auth.signIn(email: email.trimmingCharacters(in: .whitespacesAndNewlines), password: password)
+            self.isSignedIn = true
+            await self.reloadProfile()
+        }
+    }
+
+    func signUp(email: String, password: String, name: String) async {
+        await perform {
+            guard let auth = self.auth else { throw UFitSessionError.unavailable }
+            let response = try await auth.auth.signUp(email: email.trimmingCharacters(in: .whitespacesAndNewlines), password: password, data: ["full_name": .string(name)], redirectTo: UFitRuntimeConfiguration.callbackURL)
+            if response.session == nil { self.message = String(localized: "Consultez votre e-mail pour confirmer votre inscription.") }
+            else { self.isSignedIn = true; await self.reloadProfile() }
+        }
+    }
+
+    func signInWithApple(idToken: String, nonce: String) async {
+        await perform {
+            guard let auth = self.auth else { throw UFitSessionError.unavailable }
+            _ = try await auth.auth.signInWithIdToken(credentials: .init(provider: .apple, idToken: idToken, nonce: nonce))
+            self.isSignedIn = true
+            await self.reloadProfile()
+        }
+    }
+
+    func resetPassword(email: String) async {
+        await perform {
+            guard let auth = self.auth else { throw UFitSessionError.unavailable }
+            try await auth.auth.resetPasswordForEmail(email.trimmingCharacters(in: .whitespacesAndNewlines), redirectTo: UFitRuntimeConfiguration.callbackURL)
+            self.message = String(localized: "Si ce compte existe, un lien de réinitialisation vous a été envoyé.")
+        }
+    }
+
+    func updatePassword(_ password: String) async {
+        await perform {
+            guard let auth = self.auth else { throw UFitSessionError.unavailable }
+            _ = try await auth.auth.update(user: .init(password: password))
+            self.needsNewPassword = false
+            self.message = String(localized: "Mot de passe mis à jour.")
+        }
+    }
+
+    func handle(_ url: URL) async {
+        await perform {
+            guard let auth = self.auth else { throw UFitSessionError.unavailable }
+            _ = try await auth.auth.session(from: url)
+            self.isSignedIn = true
+            await self.reloadProfile()
+        }
+    }
+
+    func signOut() async {
+        await perform {
+            guard let auth = self.auth else { throw UFitSessionError.unavailable }
+            try await auth.auth.signOut()
+            self.user = nil
+            self.isSignedIn = false
+        }
+    }
+
+    func updateProfile(name: String) async -> Bool {
+        await perform {
+            self.user = try await self.api.updateProfile(name: name.trimmingCharacters(in: .whitespacesAndNewlines))
+        }
+    }
+
+    func reloadProfile() async {
+        do { user = try await api.fetchCurrentUser(); message = nil }
+        catch { message = error.localizedDescription }
+    }
+
+    @discardableResult
+    private func perform(_ operation: () async throws -> Void) async -> Bool {
+        guard !isBusy else { return false }
+        isBusy = true
+        message = nil
+        defer { isBusy = false }
+        do { try await operation(); return true }
+        catch { message = error.localizedDescription; return false }
+    }
+}

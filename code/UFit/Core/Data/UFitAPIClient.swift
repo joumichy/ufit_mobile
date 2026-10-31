@@ -16,21 +16,47 @@ struct UFitAPIConfiguration {
 }
 
 enum UFitAPIError: LocalizedError {
-    case authenticationRequired
-    case invalidURL
-    case requestFailed(statusCode: Int, message: String)
-    case emptyResponse
-
+    case authenticationRequired, invalidURL, emptyResponse
+    case requestFailed(statusCode: Int, message: String, code: String? = nil)
+    var isCartConflict: Bool {
+        guard case .requestFailed(_, _, let code) = self else { return false }
+        return code == Code.brand || code == Code.currency
+    }
+    private enum Code {
+        static let brand = "cart_brand_conflict"
+        static let currency = "cart_currency_conflict"
+        static let stock = "cart_insufficient_stock"
+    }
     var errorDescription: String? {
         switch self {
-        case .authenticationRequired:
-            "Connect a UFit session to continue."
-        case .invalidURL:
-            "The UFit API URL is invalid."
-        case .requestFailed(let statusCode, let message):
-            message.isEmpty ? "UFit API request failed with status \(statusCode)." : message
-        case .emptyResponse:
-            "The UFit API returned an empty response."
+        case .authenticationRequired: String(localized: "Connectez-vous pour continuer.")
+        case .invalidURL, .emptyResponse: String(localized: "Le service est momentanément indisponible.")
+        case .requestFailed(let status, _, let code):
+            if code == Code.brand || code == Code.currency { String(localized: "Votre panier contient une autre marque ou devise.") }
+            else if code == "checkout_quote_changed" || code == "cart_changed" { String(localized: "Le panier ou les frais ont changé. Vérifiez le nouveau montant.") }
+            else if code == "shipping_unavailable" { String(localized: "La marque ne livre pas dans ce pays pour cette devise.") }
+            else if code == "brand_policy_missing" || code == "brand_policy_invalid" { String(localized: "Les conditions de livraison de la marque ne sont pas encore disponibles.") }
+            else if code == Code.stock { String(localized: "La quantité demandée n’est plus disponible.") }
+            else if status == 401 { String(localized: "Votre session a expiré. Reconnectez-vous.") }
+            else if status == 403 { String(localized: "Votre compte ne peut pas effectuer cette action.") }
+            else if status == 404 { String(localized: "Cet élément n’est plus disponible.") }
+            else { String(localized: "L’action a échoué. Actualisez et réessayez.") }
+        }
+    }
+}
+
+private struct UFitServerFailure: Decodable {
+    let code: String?
+    let message: Message?
+    enum Message: Decodable {
+        case text(String), fields([String])
+        init(from decoder: Decoder) throws {
+            let value = try decoder.singleValueContainer()
+            if let text = try? value.decode(String.self) { self = .text(text) }
+            else { self = .fields(try value.decode([String].self)) }
+        }
+        var text: String {
+            switch self { case .text(let text): text; case .fields(let fields): fields.joined(separator: "\n") }
         }
     }
 }
@@ -38,12 +64,27 @@ enum UFitAPIError: LocalizedError {
 struct UFitAPIClient {
     let configuration: UFitAPIConfiguration
     private let session: URLSession
+    private let tokenProvider: (@Sendable () async throws -> String?)?
     private let decoder = JSONDecoder()
     private let encoder = JSONEncoder()
 
-    init(configuration: UFitAPIConfiguration = .live(), session: URLSession = .shared) {
+    init(configuration: UFitAPIConfiguration = .live(), session: URLSession = .shared, tokenProvider: (@Sendable () async throws -> String?)? = nil) {
         self.configuration = configuration
         self.session = session
+        self.tokenProvider = tokenProvider
+    }
+
+    func updateProfile(name: String) async throws -> UFitCurrentUser {
+        struct ProfilePatch: Encodable { let displayName: String }
+        return try await send("PATCH", path: "me", body: ProfilePatch(displayName: name), requiresAuth: true)
+    }
+
+    func fetchSavedOutfits() async throws -> UFitSavedReferencesDTO {
+        try await send("GET", path: "me/saved-outfits", requiresAuth: true)
+    }
+
+    func fetchCurrentUser() async throws -> UFitCurrentUser {
+        try await send("GET", path: "me", requiresAuth: true)
     }
 
     func fetchOutfitFeed(limit: Int = 20, cursor: String? = nil) async throws -> UFitFeedResponseDTO {
@@ -70,7 +111,7 @@ struct UFitAPIClient {
         try await send("POST", path: "cart/items", body: body, requiresAuth: true)
     }
 
-    func checkout(_ body: UFitCheckoutRequest) async throws -> UFitCheckoutSessionDTO {
+    func checkout(_ body: UFitCheckoutRequest) async throws -> UFitPaymentIntentDTO {
         try await send("POST", path: "orders/checkout", body: body, requiresAuth: true)
     }
 
@@ -102,7 +143,7 @@ struct UFitAPIClient {
         try await send("GET", path: "brands/\(brandProfileID)/orders", query: [URLQueryItem(name: "limit", value: String(limit))], requiresAuth: true)
     }
 
-    private func send<Response: Decodable, Body: Encodable>(
+    func send<Response: Decodable, Body: Encodable>(
         _ method: String,
         path: String,
         query: [URLQueryItem] = [],
@@ -112,7 +153,7 @@ struct UFitAPIClient {
         try await send(method, path: path, query: query, bodyData: encoder.encode(body), requiresAuth: requiresAuth)
     }
 
-    private func send<Response: Decodable>(
+    func send<Response: Decodable>(
         _ method: String,
         path: String,
         query: [URLQueryItem] = [],
@@ -128,7 +169,11 @@ struct UFitAPIClient {
         bodyData: Data?,
         requiresAuth: Bool
     ) async throws -> Response {
-        if requiresAuth, configuration.bearerToken == nil {
+        let token: String?
+        if let tokenProvider {
+            token = requiresAuth ? try await tokenProvider() : nil
+        } else { token = configuration.bearerToken }
+        if requiresAuth, token == nil {
             throw UFitAPIError.authenticationRequired
         }
 
@@ -143,7 +188,7 @@ struct UFitAPIClient {
             request.httpBody = bodyData
             request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         }
-        if let token = configuration.bearerToken {
+        if let token {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
 
@@ -152,7 +197,8 @@ struct UFitAPIClient {
             throw UFitAPIError.emptyResponse
         }
         guard 200..<300 ~= httpResponse.statusCode else {
-            throw UFitAPIError.requestFailed(statusCode: httpResponse.statusCode, message: String(data: data, encoding: .utf8) ?? "")
+            let failure = try? decoder.decode(UFitServerFailure.self, from: data)
+            throw UFitAPIError.requestFailed(statusCode: httpResponse.statusCode, message: failure?.message?.text ?? String(), code: failure?.code)
         }
         guard !data.isEmpty else {
             throw UFitAPIError.emptyResponse
@@ -183,9 +229,10 @@ struct UFitOutfitCardDTO: Decodable {
     let id: String
     let title: String
     let coverImageUrl: String
-    let totalPriceMin: Int
-    let totalPriceMax: Int
-    let currency: String
+    let prices: [UFitProductPriceDTO]
+    let author: OutfitAuthor?
+    let creatorId: String?
+    let brandId: String?
     let publishedAt: String?
 }
 
@@ -193,13 +240,12 @@ struct UFitOutfitDetailDTO: Decodable {
     let id: String
     let title: String
     let coverImageUrl: String
-    let totalPriceMin: Int
-    let totalPriceMax: Int
-    let currency: String
-    let publishedAt: String?
-    let description: String
+    let prices: [UFitProductPriceDTO]
+    let author: OutfitAuthor?
     let creatorId: String?
     let brandId: String?
+    let publishedAt: String?
+    let description: String
     let items: [UFitOutfitItemDTO]
 }
 
@@ -227,6 +273,9 @@ struct UFitPublicProductDTO: Decodable {
     let id: String
     let brandId: String
     let name: String
+    let description: String
+    let category: String
+    let images: [UFitProductImageDTO]
     let price: UFitProductPriceDTO
     let variants: [UFitProductVariantDTO]
 }
@@ -245,42 +294,40 @@ struct UFitProductVariantDTO: Decodable {
     let price: Int
 }
 
+struct UFitSavedReferencesDTO: Decodable {
+    struct Item: Decodable { let id: String; let savedAt: String }
+    let items: [Item]
+}
+
 struct UFitSavedActionDTO: Decodable {
     let saved: Bool?
 }
 
 struct UFitCartDTO: Decodable {
     let id: String
+    let status: String
+    let brandId: String?
     let subtotalAmount: Int
     let currency: String
+    let items: [UFitCartLineDTO]
 }
 
 struct UFitAddCartItemRequest: Encodable {
     let productVariantId: String
     let quantity: Int
     let sourceOutfitId: String?
-    let sourceCreatorId: String?
-}
-
-struct UFitShippingAddress: Encodable {
-    var fullName: String
-    var line1: String
-    var line2: String?
-    var postalCode: String
-    var city: String
-    var country: String
-    var phone: String?
 }
 
 struct UFitCheckoutRequest: Encodable {
+    let requestId: String
+    let quoteFingerprint: String
     let shippingAddress: UFitShippingAddress
-    let shippingAmount: Int?
 }
 
-struct UFitCheckoutSessionDTO: Decodable {
+struct UFitPaymentIntentDTO: Decodable {
     let orderId: String
-    let checkoutSessionId: String
-    let url: String
+    let paymentIntentId: String
+    let clientSecret: String
 }
 
 struct UFitCreatorDashboardDTO: Decodable {

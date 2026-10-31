@@ -1,7 +1,19 @@
 import SwiftUI
+import StripePaymentSheet
 
 struct MarketplaceRootView: View {
-    @State private var store = MarketplaceStore.live()
+    @State private var session: UFitSessionStore
+    @State private var store: MarketplaceStore
+    @State private var cart: UFitCartStore
+    @State private var routeHistory: [AppRoute] = []
+    @State private var showAuthentication = false
+
+    init() {
+        let session = UFitSessionStore()
+        _session = State(initialValue: session)
+        _store = State(initialValue: MarketplaceStore.live(client: session.api, session: session))
+        _cart = State(initialValue: UFitCartStore(client: session.api, session: session))
+    }
     @State private var showOnboarding = !ProcessInfo.processInfo.arguments.contains("--skip-onboarding")
     @State private var activeTab: AppTab = ProcessInfo.processInfo.arguments.contains("--start-profile") ? .profile : .feed
     @State private var activeRoute: AppRoute = ProcessInfo.processInfo.arguments.contains("--start-profile") ? .creator : .feed
@@ -14,12 +26,27 @@ struct MarketplaceRootView: View {
             } else {
                 ZStack(alignment: .bottom) {
                     routedContent
-                    BottomNavBar(activeTab: activeTab, onSelect: selectTab)
+                    if !isCheckingOut { BottomNavBar(activeTab: activeTab, onSelect: selectTab) }
                 }
                 .background(Color.ufitBackground)
             }
         }
         .preferredColorScheme(.light)
+        .task { session.start() }
+        .onOpenURL { url in
+            if !StripeAPI.handleURLCallback(with: url), url.host == "auth" { Task { await session.handle(url) } }
+        }
+        .onChange(of: session.user?.id) { _, userID in
+            store.clearAccountData()
+            cart.reset()
+            if userID != nil { Task { await store.loadSavedOutfits() } }
+        }
+        .onChange(of: session.needsNewPassword) { _, needed in
+            if needed { showAuthentication = true }
+        }
+        .sheet(isPresented: $showAuthentication) {
+            UFitAuthenticationHost(session: session, onBrowse: { showAuthentication = false })
+        }
     }
 
     @ViewBuilder
@@ -29,7 +56,8 @@ struct MarketplaceRootView: View {
             HomeFeedView(
                 store: store,
                 onOutfitTap: showOutfitDetail,
-                onCreatorTap: showCreatorProfile
+                onCreatorTap: showCreatorProfile,
+                onSignIn: { showAuthentication = true }
             )
         case .search:
             SearchOutfitsView(store: store, onOutfitTap: showOutfitDetail)
@@ -39,10 +67,17 @@ struct MarketplaceRootView: View {
                 onCreatorTap: showCreatorProfile,
                 onBrandTap: showBrandWorkspace
             )
-        case .outfit(let outfit):
-            OutfitDetailView(store: store, outfit: outfit, onBack: returnToFeed)
+        case .outfit(let outfit, let shopping):
+            OutfitDetailView(outfit: outfit, shopping: shopping, session: session, cart: cart,
+                onBack: goBack, onCart: showCart, onSignIn: { showAuthentication = true })
+        case .cart:
+            UFitCartHost(store: cart, onBack: goBack, onCheckout: showCheckout)
+        case .checkout(let checkout):
+            UFitCheckoutHost(store: checkout, onBack: goBack, onFinish: returnToFeed)
         case .saved:
             SavedOutfitsView(store: store, onOutfitTap: showOutfitDetail)
+        case .account:
+            UFitAccountHost(session: session, onSignedOut: returnToFeed)
         case .creator:
             CreatorProfileView(store: store, onBack: returnToFeed)
                 .id(creatorProfileViewID)
@@ -60,6 +95,11 @@ private extension MarketplaceRootView {
     }
 
     func selectTab(_ tab: AppTab) {
+        if (tab == .profile || tab == .saved || tab == .create) && session.user == nil {
+            showAuthentication = true
+            return
+        }
+        routeHistory = []
         activeTab = tab
 
         switch tab {
@@ -72,13 +112,14 @@ private extension MarketplaceRootView {
         case .saved:
             activeRoute = .saved
         case .profile:
-            activeRoute = .creator
+            activeRoute = .account
             creatorProfileViewID = UUID()
         }
     }
 
     func showOutfitDetail(_ outfit: Outfit) {
-        activeRoute = .outfit(outfit)
+        routeHistory.append(activeRoute)
+        activeRoute = .outfit(outfit, UFitOutfitShoppingStore(client: session.api))
     }
 
     func showCreatorProfile() {
@@ -91,7 +132,24 @@ private extension MarketplaceRootView {
         activeRoute = .brand
     }
 
+    var isCheckingOut: Bool { if case .checkout = activeRoute { true } else { false } }
+
+    func showCheckout() {
+        guard session.user != nil else { showAuthentication = true; return }
+        routeHistory.append(activeRoute)
+        activeRoute = .checkout(UFitCheckoutStore(client: session.api, cart: cart, name: session.user?.displayName))
+    }
+
+    func showCart() {
+        guard session.user != nil else { showAuthentication = true; return }
+        routeHistory.append(activeRoute)
+        activeRoute = .cart
+    }
+
+    func goBack() { activeRoute = routeHistory.popLast() ?? .feed }
+
     func returnToFeed() {
+        routeHistory = []
         activeRoute = .feed
         activeTab = .feed
     }
@@ -101,8 +159,11 @@ private enum AppRoute {
     case feed
     case search
     case create
-    case outfit(Outfit)
+    case outfit(Outfit, UFitOutfitShoppingStore)
+    case cart
+    case checkout(UFitCheckoutStore)
     case saved
+    case account
     case creator
     case brand
 }
@@ -427,7 +488,7 @@ private struct SavedOutfitsView: View {
     let onOutfitTap: (Outfit) -> Void
 
     private var savedOutfits: [Outfit] {
-        store.outfits.filter { store.savedOutfitIDs.contains($0.id) }
+        store.savedOutfits
     }
 
     var body: some View {

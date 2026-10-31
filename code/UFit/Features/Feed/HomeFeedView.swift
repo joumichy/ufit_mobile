@@ -4,6 +4,7 @@ struct HomeFeedView: View {
     let store: MarketplaceStore
     let onOutfitTap: (Outfit) -> Void
     let onCreatorTap: () -> Void
+    var onSignIn: () -> Void = {}
 
     var body: some View {
         ScrollView(.vertical) {
@@ -14,7 +15,8 @@ struct HomeFeedView: View {
                         isLiked: store.savedOutfitIDs.contains(outfit.id),
                         onLike: { toggleLike(outfit) },
                         onOutfitTap: { onOutfitTap(outfit) },
-                        onCreatorTap: onCreatorTap
+                        onCreatorTap: onCreatorTap,
+                        isSaving: store.savingOutfitIDs.contains(outfit.id)
                     )
                     .containerRelativeFrame([.horizontal, .vertical])
                 }
@@ -31,22 +33,24 @@ struct HomeFeedView: View {
         .refreshable {
             await store.refreshFeed()
         }
-        .overlay(alignment: .top) {
-            if let message = store.feedErrorMessage {
-                Text(message)
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(Color.ufitInk)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 9)
-                    .background(.white.opacity(0.92), in: Capsule())
-                    .padding(.top, 58)
+        .overlay {
+            if store.outfits.isEmpty {
+                UFitFeedStatusView(status: status) { Task { await store.refreshFeed() } }
             }
         }
+
     }
 }
 
 private extension HomeFeedView {
+    var status: UFitFeedStatus {
+        if store.isLoadingFeed { return .loading }
+        if let message = store.feedErrorMessage { return .failed(message) }
+        return .empty
+    }
+
     func toggleLike(_ outfit: Outfit) {
+        guard store.isAuthenticated else { onSignIn(); return }
         Task {
             await store.toggleSaved(outfit: outfit)
         }
