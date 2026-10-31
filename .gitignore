@@ -12,6 +12,9 @@ coverage/
 code/UFit_backend/
 docs/
 
+# Independent design workshop repository
+/design-lab/
+
 # Local secrets
 .env
 .env.*
