@@ -27,6 +27,7 @@ enum UFitAPIError: LocalizedError {
         return code == Code.brand || code == Code.currency
     }
     private enum Code {
+        static let profileEditUnavailable = "profile_edit_unavailable"
         static let applicationChanged = "application_version_changed"
         static let applicationPending = "application_already_pending"
         static let applicationCreator = "application_creator_exists"
@@ -74,6 +75,7 @@ enum UFitAPIError: LocalizedError {
             else if code == Code.connectOwner { String(localized: "Seul le propriétaire peut configurer ce compte Stripe.") }
             else if code == Code.refundAttention { String(localized: "Le remboursement nécessite une vérification. Votre demande d’annulation reste enregistrée.") }
             else if code == Code.stock { String(localized: "La quantité demandée n’est plus disponible.") }
+            else if code == Code.profileEditUnavailable { String(localized: "Votre accès ou le statut du profil a changé. Revenez aux espaces et actualisez.") }
             else if code == Code.applicationChanged { ApplicationCopy.changed }
             else if code == Code.applicationPending { ApplicationCopy.pending }
             else if code == Code.applicationCreator { ApplicationCopy.creatorExists }

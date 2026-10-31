@@ -3,20 +3,11 @@ import Foundation
 private enum ConnectHTTP {
     static let get = "GET"
     static let post = "POST"
-    static let cursor = "cursor"
-    static let memberships = "me/workspaces"
     static let countries = "payments/connect/countries"
     static let base = "payments/connect/"
     static let separator = "/"
     static let onboarding = "/onboarding"
     static let dashboard = "/dashboard"
-}
-struct UFitWorkspaceMemberships: Decodable {
-    struct Creator: Decodable { let id: String; let displayName: String; let status: String }
-    struct Brand: Decodable { let id: String; let brandName: String; let status: String; let memberRole: String }
-    let creator: Creator?
-    let brands: [Brand]
-    let nextCursor: String?
 }
 private enum ConnectContractError: LocalizedError {
     case profileMismatch
@@ -24,10 +15,6 @@ private enum ConnectContractError: LocalizedError {
 }
 struct UFitConnectLink: Decodable { let url: URL }
 extension UFitAPIClient {
-    func fetchWorkspaceMemberships(cursor: String? = nil) async throws -> UFitWorkspaceMemberships {
-        let query = cursor.map { [URLQueryItem(name: ConnectHTTP.cursor, value: $0)] } ?? []
-        return try await send(ConnectHTTP.get, path: ConnectHTTP.memberships, query: query, requiresAuth: true)
-    }
     func fetchConnectCountries() async throws -> [String] {
         struct Countries: Decodable { let countries: [String] }
         let result: Countries = try await send(ConnectHTTP.get, path: ConnectHTTP.countries, requiresAuth: true)

@@ -17,7 +17,7 @@ final class UFitConnectStore {
     @ObservationIgnored private let client: UFitAPIClient
     @ObservationIgnored private let session: UFitSessionStore
     @ObservationIgnored private var browserProfile: UFitPaymentProfile?
-    private enum ProtocolValue { static let active = "active"; static let locale = Locale(identifier: "fr"); static let homeCountry = "CH"; static let secureScheme = "https"; static let scheme = "ufit"; static let callbackHost = "connect"; static let refreshPath = "/refresh"; static let returnPath = "/return" }
+    private enum ProtocolValue { static let locale = Locale(identifier: "fr"); static let homeCountry = "CH"; static let secureScheme = "https"; static let scheme = "ufit"; static let callbackHost = "connect"; static let refreshPath = "/refresh"; static let returnPath = "/return" }
     init(client: UFitAPIClient, session: UFitSessionStore) { self.client = client; self.session = session }
     var selected: UFitPaymentProfile? { profiles.first { $0.id == selectedID } }
     var status: UFitConnectAccountStatus? { selectedID.flatMap { statuses[$0] } }
@@ -27,30 +27,18 @@ final class UFitConnectStore {
         loadingProfiles = true; loadError = nil
         defer { loadingProfiles = false }
         do {
-            async let memberships = loadMemberships()
+            async let memberships = client.fetchAllWorkspaceMemberships()
             async let countryCodes = client.fetchConnectCountries()
             let (owned, codes) = try await (memberships, countryCodes)
             guard session.user?.id == userID else { return }
-            var profiles = owned.brands.filter { $0.status == ProtocolValue.active }.map { UFitPaymentProfile(kind: .brand, profileID: $0.id, name: $0.brandName) }
-            if let creator = owned.creator, creator.status == ProtocolValue.active {
+            var profiles = owned.brands.filter { $0.status == .active }.map { UFitPaymentProfile(kind: .brand, profileID: $0.id, name: $0.brandName) }
+            if let creator = owned.creator, creator.status == .active {
                 profiles.insert(UFitPaymentProfile(kind: .creator, profileID: creator.id, name: creator.displayName), at: .zero)
             }
             self.profiles = profiles
             countries = codes.map { UFitConnectCountry(id: $0, name: ProtocolValue.locale.localizedString(forRegionCode: $0) ?? $0) }.sorted { $0.name.localizedCompare($1.name) == .orderedAscending }
             if let profile = selected ?? profiles.first { await select(profile) }
         } catch { if session.user?.id == userID { loadError = error.localizedDescription } }
-    }
-    private func loadMemberships() async throws -> UFitWorkspaceMemberships {
-        let first = try await client.fetchWorkspaceMemberships()
-        var brands = first.brands
-        var cursor = first.nextCursor
-        while let next = cursor {
-            try Task.checkCancellation()
-            let page = try await client.fetchWorkspaceMemberships(cursor: next)
-            brands.append(contentsOf: page.brands)
-            cursor = page.nextCursor
-        }
-        return UFitWorkspaceMemberships(creator: first.creator, brands: brands, nextCursor: nil)
     }
     func select(_ profile: UFitPaymentProfile) async {
         guard profiles.contains(profile) else { return }

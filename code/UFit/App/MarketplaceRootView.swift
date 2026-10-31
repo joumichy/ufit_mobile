@@ -6,6 +6,7 @@ struct MarketplaceRootView: View {
     @State private var store: MarketplaceStore
     @State private var cart: UFitCartStore
     @State private var orders: UFitOrdersStore
+    @State private var workspaces: UFitWorkspacesStore
     @State private var applications: UFitApplicationsStore
     @State private var adminApplications: UFitApplicationQueueStore
     @State private var routeHistory: [AppRoute] = []
@@ -17,6 +18,7 @@ struct MarketplaceRootView: View {
         _store = State(initialValue: MarketplaceStore.live(client: session.api, session: session))
         _cart = State(initialValue: UFitCartStore(client: session.api, session: session))
         _orders = State(initialValue: UFitOrdersStore(client: session.api, session: session))
+        _workspaces = State(initialValue: UFitWorkspacesStore(client: session.api, session: session))
         _applications = State(initialValue: UFitApplicationsStore(client: session.api, session: session))
         _adminApplications = State(initialValue: UFitApplicationQueueStore(client: session.api, session: session))
     }
@@ -47,6 +49,7 @@ struct MarketplaceRootView: View {
             store.clearAccountData()
             cart.reset()
             orders.reset()
+            workspaces.reset()
             applications.reset()
             adminApplications.reset()
             if userID == nil { returnToFeed() }
@@ -73,11 +76,11 @@ struct MarketplaceRootView: View {
         case .search:
             SearchOutfitsView(store: store, onOutfitTap: showOutfitDetail)
         case .create:
-            CreateWorkspaceView(
-                store: store,
-                onCreatorTap: showCreatorProfile,
-                onBrandTap: showBrandWorkspace
-            )
+            UFitWorkspacesHost(store: workspaces, canAdminister: session.user?.canAdminister == true,
+                onOpen: showManagedProfile, onApplications: showApplications, onPayments: showPayments,
+                onAdminApplications: showAdminApplications)
+        case .managedProfile(let profile):
+            UFitManagedProfileHost(store: profile, onBack: goBack)
         case .outfit(let outfit, let shopping):
             OutfitDetailView(outfit: outfit, shopping: shopping, session: session, cart: cart,
                 onBack: goBack, onCart: showCart, onSignIn: { showAuthentication = true })
@@ -106,8 +109,6 @@ struct MarketplaceRootView: View {
         case .creator:
             CreatorProfileView(store: store, onBack: returnToFeed)
                 .id(creatorProfileViewID)
-        case .brand:
-            BrandDashboardView(store: store, onBack: returnToFeed)
         }
     }
 }
@@ -153,12 +154,18 @@ private extension MarketplaceRootView {
         creatorProfileViewID = UUID()
     }
 
-    func showBrandWorkspace() {
-        activeRoute = .brand
+    func showManagedProfile(_ space: UFitWorkspaceReference) {
+        guard let userID = session.user?.id else { return }
+        Task {
+            guard let profile = await workspaces.open(space), session.user?.id == userID,
+                  case .create = activeRoute else { return }
+            routeHistory.append(activeRoute)
+            activeRoute = .managedProfile(profile)
+        }
     }
 
     var hidesTabBar: Bool {
-        switch activeRoute { case .checkout, .applicationForm, .adminApplication: true; default: false }
+        switch activeRoute { case .checkout, .applicationForm, .adminApplication, .managedProfile: true; default: false }
     }
 
     func showApplications() {
@@ -228,6 +235,7 @@ private enum AppRoute {
     case feed
     case search
     case create
+    case managedProfile(UFitManagedProfileStore)
     case outfit(Outfit, UFitOutfitShoppingStore)
     case cart
     case checkout(UFitCheckoutStore)
@@ -241,7 +249,6 @@ private enum AppRoute {
     case orders
     case order(UFitOrderDetailStore)
     case creator
-    case brand
 }
 
 private struct RootScreenHeader: View {
@@ -399,163 +406,6 @@ private struct EmptySearchState: View {
         .frame(maxWidth: .infinity)
         .padding(28)
         .background(Color.ufitSecondary, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-    }
-}
-
-private struct CreateWorkspaceView: View {
-    let store: MarketplaceStore
-    let onCreatorTap: () -> Void
-    let onBrandTap: () -> Void
-
-    var body: some View {
-        VStack(spacing: 0) {
-            RootScreenHeader(title: "Create", subtitle: "Compose looks and manage partner workspaces.")
-
-            ScrollView {
-                VStack(spacing: 14) {
-                    WorkspaceEntryCard(
-                        systemImage: "sparkles",
-                        title: "Creator studio",
-                        subtitle: creatorSubtitle,
-                        primaryMetric: creatorMetric,
-                        actionTitle: "Open profile",
-                        action: onCreatorTap
-                    )
-
-                    WorkspaceEntryCard(
-                        systemImage: "shippingbox",
-                        title: "Brand workspace",
-                        subtitle: brandSubtitle,
-                        primaryMetric: brandMetric,
-                        actionTitle: "Open dashboard",
-                        action: onBrandTap
-                    )
-
-                    WorkspaceNotice(
-                        text: store.isAuthenticated
-                            ? "Live workspace data is loaded through the backend API when profile identifiers are available."
-                            : "Set UFIT_API_BEARER_TOKEN to enable authenticated creator, brand, saved, cart, and checkout actions."
-                    )
-                }
-                .padding(.horizontal, 24)
-                .padding(.bottom, 104)
-            }
-            .scrollIndicators(.hidden)
-            .background(Color.white)
-        }
-        .background(Color.white)
-        .task {
-            guard store.isAuthenticated else { return }
-            await store.loadCreatorWorkspace()
-            if store.brandProfileID != nil {
-                await store.loadBrandWorkspace()
-            }
-        }
-    }
-
-    private var creatorSubtitle: String {
-        if let profile = store.creatorDashboard?.profile {
-            return "\(profile.displayName) · \(profile.grade.label)"
-        }
-        return "Submit and track selected outfits."
-    }
-
-    private var creatorMetric: String {
-        if let performance = store.creatorDashboard?.performance {
-            return "\(performance.outfits.published) published"
-        }
-        return "\(store.outfits.count) looks available"
-    }
-
-    private var brandSubtitle: String {
-        if let profile = store.brandDashboard?.profile {
-            return "\(profile.brandName) · \(profile.memberRole)"
-        }
-        if store.brandProfileID == nil {
-            return "Set UFIT_BRAND_PROFILE_ID to bind this app to a brand."
-        }
-        return "Manage products, stock, and orders."
-    }
-
-    private var brandMetric: String {
-        if let performance = store.brandDashboard?.performance {
-            return "\(performance.products.active) active products"
-        }
-        return "\(store.brandOrders.count) sample orders"
-    }
-}
-
-private struct WorkspaceEntryCard: View {
-    let systemImage: String
-    let title: String
-    let subtitle: String
-    let primaryMetric: String
-    let actionTitle: String
-    let action: () -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            HStack(alignment: .top, spacing: 14) {
-                Image(systemName: systemImage)
-                    .font(.system(size: 20, weight: .medium))
-                    .foregroundStyle(Color.ufitInk)
-                    .frame(width: 44, height: 44)
-                    .background(Color.ufitSecondary, in: Circle())
-
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(title)
-                        .font(.system(size: 19, weight: .semibold))
-                        .foregroundStyle(Color.ufitInk)
-                    Text(subtitle)
-                        .font(.system(size: 14))
-                        .foregroundStyle(Color.ufitMuted)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-
-                Spacer()
-            }
-
-            HStack {
-                Text(primaryMetric)
-                    .font(.system(size: 13, weight: .medium))
-                    .foregroundStyle(Color.ufitInk)
-                    .padding(.horizontal, 12)
-                    .frame(height: 34)
-                    .background(Color.ufitSecondary, in: Capsule())
-
-                Spacer()
-
-                Button(action: action) {
-                    HStack(spacing: 7) {
-                        Text(actionTitle)
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 12, weight: .semibold))
-                    }
-                    .font(.system(size: 14, weight: .semibold))
-                }
-                .buttonStyle(CompactPrimaryButtonStyle())
-                .frame(width: 148)
-            }
-        }
-        .padding(18)
-        .background(Color.white, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
-        .overlay {
-            RoundedRectangle(cornerRadius: 18, style: .continuous)
-                .stroke(Color.ufitBorder, lineWidth: 1)
-        }
-    }
-}
-
-private struct WorkspaceNotice: View {
-    let text: String
-
-    var body: some View {
-        Text(text)
-            .font(.system(size: 13))
-            .foregroundStyle(Color.ufitMuted)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding(16)
-            .background(Color.ufitSecondary, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 }
 

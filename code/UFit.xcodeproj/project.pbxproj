@@ -76,6 +76,13 @@
 		50870C7713AD83A044FFB920 = {isa = PBXBuildFile; fileRef = F46AF452AC6D7DD176C6F970; };
 		C49B079935771061F9227792 = {isa = PBXBuildFile; fileRef = B73D12D9881E875B497C61F8; };
 		4504ED4E0677CEEAA6DC5E09 = {isa = PBXBuildFile; fileRef = DA99F9AFC26A9E355060E22B; };
+		209C260A5A6B65725F621BE2 = {isa = PBXBuildFile; fileRef = A51C2FC228F1E9A45612F366; };
+		42F1304B4AE1619F64F525DE = {isa = PBXBuildFile; fileRef = 63D846BF6B38FB94EAF8F003; };
+		5DB244B63CFB61181797E4B6 = {isa = PBXBuildFile; fileRef = 4E74B17861E0DADC0D261FDD; };
+		ABC57C9A9F1920B973C90F4F = {isa = PBXBuildFile; fileRef = 35E7982F16AC85D88DB56983; };
+		363AF890D0E147544EC5761E = {isa = PBXBuildFile; fileRef = 13E4799558AC96267E2991C5; };
+		EB216F545828FA771DD87B0B = {isa = PBXBuildFile; fileRef = C1DB1B4BED2F9E8034E4800A; };
+		86E7D69D660B821AF7A280BF = {isa = PBXBuildFile; fileRef = 901D63EAA897E0A40654602A; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -149,6 +156,13 @@
 		F46AF452AC6D7DD176C6F970 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Admin/ApplicationQueueStore.swift"; sourceTree = SOURCE_ROOT; };
 		B73D12D9881E875B497C61F8 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Admin/ApplicationReviewStore.swift"; sourceTree = SOURCE_ROOT; };
 		DA99F9AFC26A9E355060E22B = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Admin/ApplicationsAdminHost.swift"; sourceTree = SOURCE_ROOT; };
+		A51C2FC228F1E9A45612F366 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Core/Models/WorkspacePresentation.swift"; sourceTree = SOURCE_ROOT; };
+		63D846BF6B38FB94EAF8F003 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Workspaces/WorkspacesContent.swift"; sourceTree = SOURCE_ROOT; };
+		4E74B17861E0DADC0D261FDD = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Workspaces/ManagedProfileContent.swift"; sourceTree = SOURCE_ROOT; };
+		35E7982F16AC85D88DB56983 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Core/Data/UFitWorkspacesAPI.swift"; sourceTree = SOURCE_ROOT; };
+		13E4799558AC96267E2991C5 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Workspaces/WorkspacesStore.swift"; sourceTree = SOURCE_ROOT; };
+		C1DB1B4BED2F9E8034E4800A = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Workspaces/ManagedProfileStore.swift"; sourceTree = SOURCE_ROOT; };
+		901D63EAA897E0A40654602A = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Workspaces/WorkspacesHost.swift"; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -167,6 +181,13 @@
 		1A2B3C4D5E6F700000000030 = {
 			isa = PBXGroup;
 			children = (
+				901D63EAA897E0A40654602A,
+				C1DB1B4BED2F9E8034E4800A,
+				13E4799558AC96267E2991C5,
+				35E7982F16AC85D88DB56983,
+				4E74B17861E0DADC0D261FDD,
+				63D846BF6B38FB94EAF8F003,
+				A51C2FC228F1E9A45612F366,
 				DA99F9AFC26A9E355060E22B,
 				B73D12D9881E875B497C61F8,
 				F46AF452AC6D7DD176C6F970,
@@ -430,6 +451,13 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				86E7D69D660B821AF7A280BF,
+				EB216F545828FA771DD87B0B,
+				363AF890D0E147544EC5761E,
+				ABC57C9A9F1920B973C90F4F,
+				5DB244B63CFB61181797E4B6,
+				42F1304B4AE1619F64F525DE,
+				209C260A5A6B65725F621BE2,
 				4504ED4E0677CEEAA6DC5E09,
 				C49B079935771061F9227792,
 				50870C7713AD83A044FFB920,
