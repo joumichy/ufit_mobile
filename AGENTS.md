@@ -19,15 +19,20 @@ Pour une nouvelle interface ou une modification visuelle :
 5. Raccorder les données et contrats réels dans les features produit.
 6. Basculer les stories sur la source produit et qualifier le parcours réel.
 
-Le Lab lit le produit ; le produit n'importe jamais le Lab, ses fixtures,
-stories ou dépendances Storybook. React reste la cible du prototype web.
-L'application iOS reçoit des fichiers SwiftUI conçus et prévisualisés en natif.
+Le Lab maison se pilote dans le navigateur : exploration, édition des variantes,
+comparaison et promotion. Le simulateur affiche uniquement la maquette native.
+Swift Storybook assure la découverte des #Preview, sans son interface générique. Le Lab lit les composants iOS du produit ; le produit
+n'importe jamais le Lab, ses fixtures ou `StorybookKit`. L'application reçoit
+les mêmes fichiers SwiftUI examinés, par promotion ciblée. Le prototype React
+reste une surface secondaire et ne sert pas de source de conception iOS.
 Les écrans appartiennent à `Features`, les composants à `Core/Components`, les
 tokens et styles à `Core/DesignSystem`.
 
-`npm run lab` ouvre Storybook sur le port 6007 ; `npm run lab:design -- ...`
-gère les copies et promotions ; `npm run lab:native -- ...` prévisualise le
-code natif dans un snapshot isolé. Le guide détaillé est possédé par
+`npm run lab` lance l’atelier navigateur sur `127.0.0.1:6010`. `npm run lab:open` ouvre le projet
+Lab et les `#Preview` dans Xcode. `npm run lab:design -- ...` gère les reworks
+et promotions ; `npm run lab:native -- --candidate <id>` prévisualise une copie ciblée.
+`npm run lab:web` conserve le prototype Storybook React sur le port 6007.
+Le guide détaillé est possédé par
 `design-lab/README.md` et `design-lab/docs/architecture.md`.
 
 Préserver les deltas locaux préexistants. Ne pas forcer les hashes de promotion.

@@ -2,10 +2,12 @@
   "name": "ufit-workspace",
   "private": true,
   "scripts": {
-    "lab": "npm --prefix design-lab run storybook",
+    "lab": "npm --prefix design-lab run studio --",
     "lab:build": "npm --prefix design-lab run build",
     "lab:check": "npm --prefix design-lab run check",
     "lab:design": "npm --prefix design-lab run design --",
-    "lab:native": "npm --prefix design-lab run native:preview --"
+    "lab:native": "npm --prefix design-lab run native:preview --",
+    "lab:open": "npm --prefix design-lab run open:native --",
+    "lab:web": "npm --prefix design-lab run web:storybook"
   }
 }
