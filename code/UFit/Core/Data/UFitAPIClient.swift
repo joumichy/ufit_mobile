@@ -18,11 +18,23 @@ struct UFitAPIConfiguration {
 enum UFitAPIError: LocalizedError {
     case authenticationRequired, invalidURL, emptyResponse
     case requestFailed(statusCode: Int, message: String, code: String? = nil)
+    var isApplicationVersionConflict: Bool {
+        guard case .requestFailed(_, _, let code) = self else { return false }
+        return code == Code.applicationChanged
+    }
     var isCartConflict: Bool {
         guard case .requestFailed(_, _, let code) = self else { return false }
         return code == Code.brand || code == Code.currency
     }
     private enum Code {
+        static let applicationChanged = "application_version_changed"
+        static let applicationPending = "application_already_pending"
+        static let applicationCreator = "application_creator_exists"
+        static let applicationClosed = "application_review_closed"
+        static let applicationCorrection = "application_correction_unavailable"
+        static let applicationReason = "application_reason_required"
+        static let applicationDossier = "application_dossier_incomplete"
+        static let applicationApplicant = "application_applicant_inactive"
         static let brand = "cart_brand_conflict"
         static let currency = "cart_currency_conflict"
         static let stock = "cart_insufficient_stock"
@@ -34,6 +46,15 @@ enum UFitAPIError: LocalizedError {
         static let connectRecipient = "connect_recipient_incomplete"
         static let connectOwner = "connect_owner_required"
         static let refundAttention = "order_refund_requires_attention"
+    }
+    private enum ApplicationCopy {
+        static let changed = String(localized: "Cette candidature a changé. Revenez au dossier et actualisez avant de continuer.")
+        static let pending = String(localized: "Une candidature est déjà en cours. Actualisez son statut.")
+        static let creatorExists = String(localized: "Votre compte possède déjà un profil créateur.")
+        static let closed = String(localized: "Cette candidature ne peut plus être modifiée dans son état actuel.")
+        static let reason = String(localized: "Ajoutez un message pour expliquer cette décision au candidat.")
+        static let dossier = String(localized: "Demandez les compléments du dossier avant de l’accepter.")
+        static let applicant = String(localized: "Le compte candidat doit être actif pour continuer.")
     }
     var errorDescription: String? {
         switch self {
@@ -53,6 +74,13 @@ enum UFitAPIError: LocalizedError {
             else if code == Code.connectOwner { String(localized: "Seul le propriétaire peut configurer ce compte Stripe.") }
             else if code == Code.refundAttention { String(localized: "Le remboursement nécessite une vérification. Votre demande d’annulation reste enregistrée.") }
             else if code == Code.stock { String(localized: "La quantité demandée n’est plus disponible.") }
+            else if code == Code.applicationChanged { ApplicationCopy.changed }
+            else if code == Code.applicationPending { ApplicationCopy.pending }
+            else if code == Code.applicationCreator { ApplicationCopy.creatorExists }
+            else if code == Code.applicationClosed || code == Code.applicationCorrection { ApplicationCopy.closed }
+            else if code == Code.applicationReason { ApplicationCopy.reason }
+            else if code == Code.applicationDossier { ApplicationCopy.dossier }
+            else if code == Code.applicationApplicant { ApplicationCopy.applicant }
             else if status == 401 { String(localized: "Votre session a expiré. Reconnectez-vous.") }
             else if status == 403 { String(localized: "Votre compte ne peut pas effectuer cette action.") }
             else if status == 404 { String(localized: "Cet élément n’est plus disponible.") }

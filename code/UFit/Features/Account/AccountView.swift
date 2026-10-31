@@ -9,9 +9,15 @@ struct UFitAccountView: View {
     let onSignOut: () -> Void
     var onOrders: (() -> Void)?
     var onPayments: (() -> Void)?
+    var onApplications: (() -> Void)?
+    var onAdminApplications: (() -> Void)?
     @State private var editing = false
     @State private var editedName = String()
     private enum Copy {
+        static let applications = String(localized: "Mes candidatures")
+        static let applicationsIcon = "doc.text"
+        static let admin = String(localized: "Administration · candidatures")
+        static let adminIcon = "checkmark.shield"
         static let payments = String(localized: "Paiements et versements")
         static let paymentsIcon = "creditcard"
         static let orders = String(localized: "Mes commandes")
@@ -62,6 +68,8 @@ struct UFitAccountView: View {
                 Divider()
                 if let onOrders { Button(action: onOrders) { Label(Copy.orders, systemImage: Copy.ordersIcon) }.frame(minHeight: Layout.touch) }
                 if let onPayments { Button(action: onPayments) { Label(Copy.payments, systemImage: Copy.paymentsIcon) }.frame(minHeight: Layout.touch) }
+                if let onApplications { Button(action: onApplications) { Label(Copy.applications, systemImage: Copy.applicationsIcon) }.frame(minHeight: Layout.touch) }
+                if let onAdminApplications { Button(action: onAdminApplications) { Label(Copy.admin, systemImage: Copy.adminIcon) }.frame(minHeight: Layout.touch) }
                 Button(action: onSignOut) { Label(Copy.signOut, systemImage: Copy.exitIcon) }.disabled(isBusy)
             }
             .padding(Layout.spacing)

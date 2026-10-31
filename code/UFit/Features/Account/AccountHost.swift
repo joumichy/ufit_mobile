@@ -5,6 +5,8 @@ struct UFitAccountHost: View {
     let onSignedOut: () -> Void
     let onOrders: () -> Void
     let onPayments: () -> Void
+    let onApplications: () -> Void
+    let onAdminApplications: () -> Void
 
     var body: some View {
         Group {
@@ -15,7 +17,8 @@ struct UFitAccountHost: View {
                     onSignOut: { Task {
                         await session.signOut()
                         if !session.isSignedIn { onSignedOut() }
-                    } }, onOrders: onOrders, onPayments: user.isCreator || user.isBrandMember ? onPayments : nil)
+                    } }, onOrders: onOrders, onPayments: user.isCreator || user.isBrandMember ? onPayments : nil,
+                       onApplications: onApplications, onAdminApplications: user.canAdminister ? onAdminApplications : nil)
             } else if let message = session.message {
                 ContentUnavailableView {
                     Label(String(localized: "Compte indisponible"), systemImage: "person.crop.circle.badge.exclamationmark")

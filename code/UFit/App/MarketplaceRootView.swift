@@ -6,6 +6,8 @@ struct MarketplaceRootView: View {
     @State private var store: MarketplaceStore
     @State private var cart: UFitCartStore
     @State private var orders: UFitOrdersStore
+    @State private var applications: UFitApplicationsStore
+    @State private var adminApplications: UFitApplicationQueueStore
     @State private var routeHistory: [AppRoute] = []
     @State private var showAuthentication = false
 
@@ -15,6 +17,8 @@ struct MarketplaceRootView: View {
         _store = State(initialValue: MarketplaceStore.live(client: session.api, session: session))
         _cart = State(initialValue: UFitCartStore(client: session.api, session: session))
         _orders = State(initialValue: UFitOrdersStore(client: session.api, session: session))
+        _applications = State(initialValue: UFitApplicationsStore(client: session.api, session: session))
+        _adminApplications = State(initialValue: UFitApplicationQueueStore(client: session.api, session: session))
     }
     @State private var showOnboarding = !ProcessInfo.processInfo.arguments.contains("--skip-onboarding")
     @State private var activeTab: AppTab = ProcessInfo.processInfo.arguments.contains("--start-profile") ? .profile : .feed
@@ -28,7 +32,7 @@ struct MarketplaceRootView: View {
             } else {
                 ZStack(alignment: .bottom) {
                     routedContent
-                    if !isCheckingOut { BottomNavBar(activeTab: activeTab, onSelect: selectTab) }
+                    if !hidesTabBar { BottomNavBar(activeTab: activeTab, onSelect: selectTab) }
                 }
                 .background(Color.ufitBackground)
             }
@@ -43,6 +47,8 @@ struct MarketplaceRootView: View {
             store.clearAccountData()
             cart.reset()
             orders.reset()
+            applications.reset()
+            adminApplications.reset()
             if userID == nil { returnToFeed() }
             if userID != nil { Task { await store.loadSavedOutfits() } }
         }
@@ -82,7 +88,15 @@ struct MarketplaceRootView: View {
         case .saved:
             SavedOutfitsView(store: store, onOutfitTap: showOutfitDetail)
         case .account:
-            UFitAccountHost(session: session, onSignedOut: returnToFeed, onOrders: showOrders, onPayments: showPayments)
+            UFitAccountHost(session: session, onSignedOut: returnToFeed, onOrders: showOrders, onPayments: showPayments, onApplications: showApplications, onAdminApplications: showAdminApplications)
+        case .applications:
+            UFitApplicationsHost(store: applications, onBack: goBack, onApply: showApplicationForm, onPayments: showPayments)
+        case .applicationForm(let form):
+            UFitApplicationFormHost(store: form, onBack: goBack, onSubmitted: goBack)
+        case .adminApplications:
+            UFitApplicationQueueHost(store: adminApplications, onBack: goBack, onOpen: showAdminApplication)
+        case .adminApplication(let review):
+            UFitApplicationReviewHost(store: review, onBack: goBack)
         case .connect(let connect):
             UFitConnectHost(store: connect, onBack: goBack)
         case .orders:
@@ -143,7 +157,29 @@ private extension MarketplaceRootView {
         activeRoute = .brand
     }
 
-    var isCheckingOut: Bool { if case .checkout = activeRoute { true } else { false } }
+    var hidesTabBar: Bool {
+        switch activeRoute { case .checkout, .applicationForm, .adminApplication: true; default: false }
+    }
+
+    func showApplications() {
+        guard session.user != nil else { showAuthentication = true; return }
+        routeHistory.append(activeRoute)
+        activeRoute = .applications
+    }
+    func showApplicationForm(_ kind: UFitApplicationKind, _ correcting: UFitApplicationDocument?) {
+        routeHistory.append(activeRoute)
+        activeRoute = .applicationForm(UFitApplicationFormStore(kind: kind, correcting: correcting, client: session.api, session: session))
+    }
+    func showAdminApplications() {
+        guard session.user?.canAdminister == true else { return }
+        routeHistory.append(activeRoute)
+        activeRoute = .adminApplications
+    }
+    func showAdminApplication(_ item: UFitApplicationQueueItem) {
+        guard session.user?.canAdminister == true else { return }
+        routeHistory.append(activeRoute)
+        activeRoute = .adminApplication(UFitApplicationReviewStore(kind: item.type, id: item.id, client: session.api, session: session, queue: adminApplications))
+    }
 
     func showCheckout() {
         guard session.user != nil else { showAuthentication = true; return }
@@ -197,6 +233,10 @@ private enum AppRoute {
     case checkout(UFitCheckoutStore)
     case saved
     case account
+    case applications
+    case applicationForm(UFitApplicationFormStore)
+    case adminApplications
+    case adminApplication(UFitApplicationReviewStore)
     case connect(UFitConnectStore)
     case orders
     case order(UFitOrderDetailStore)
