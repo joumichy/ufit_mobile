@@ -19,10 +19,18 @@ enum UFitOrderPresentationAdapter {
         let address = [order.shippingAddress.fullName, order.shippingAddress.line1, order.shippingAddress.line2,
             order.shippingAddress.postalCode + " " + order.shippingAddress.city, country].compactMap { $0 }.filter { !$0.isEmpty }
         let note: String?
-        switch order.cancellation?.outcome {
-        case .refunded: note = String(localized: "\(total) ont été remboursés sur votre moyen de paiement.")
-        case .notCharged: note = String(localized: "Aucun paiement n’a été débité.")
-        case nil: note = nil
+        if order.cancellation?.reason == .stockUnavailable {
+            switch order.cancellation?.outcome {
+            case .refunded: note = String(localized: "Une pièce est devenue indisponible après le paiement. \(total) ont été remboursés sur votre moyen de paiement.")
+            case .notCharged: note = String(localized: "Une pièce n’est plus disponible. Aucun paiement n’a été débité.")
+            case nil: note = String(localized: "Une pièce est devenue indisponible après le paiement. Le remboursement est en cours de traitement.")
+            }
+        } else {
+            switch order.cancellation?.outcome {
+            case .refunded: note = String(localized: "\(total) ont été remboursés sur votre moyen de paiement.")
+            case .notCharged: note = String(localized: "Aucun paiement n’a été débité.")
+            case nil: note = nil
+            }
         }
         return UFitOrderDetailPresentation(reference: order.orderNumber, date: date(order.createdAt), status: order.status.label,
             items: order.items.map { item in UFitOrderPiece(id: item.id, name: item.productSnapshot.name, image: item.productSnapshot.imageUrl,

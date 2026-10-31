@@ -67,3 +67,5 @@ enum UFitShipmentLifecycle: String, Decodable {
     }
 }
 enum UFitCancellationOutcome: String, Decodable { case notCharged = "not_charged", refunded }
+
+enum UFitCancellationReason: String, Decodable { case customer = "customer_requested", stockUnavailable = "stock_unavailable" }

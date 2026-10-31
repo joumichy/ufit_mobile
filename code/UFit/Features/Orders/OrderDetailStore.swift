@@ -37,6 +37,20 @@ final class UFitOrderDetailStore {
             if session.user?.id == userID { message = failure }
         }
     }
+    func followCancellation() async {
+        guard order?.status == .cancelling, let userID = session.user?.id else { return }
+        do {
+            for _ in .zero..<Confirmation.attempts {
+                try await Task.sleep(for: Confirmation.interval)
+                guard session.user?.id == userID, order?.status == .cancelling else { return }
+                let current = try await client.fetchOrder(id: id)
+                guard session.user?.id == userID, order?.status == .cancelling else { return }
+                receive(current)
+                if current.status != .cancelling { return }
+            }
+        } catch is CancellationError { return }
+        catch { if session.user?.id == userID { message = error.localizedDescription } }
+    }
     func resumePayment() async {
         guard !isBusy, let order, order.actions.resumePayment, let userID = session.user?.id else { return }
         isBusy = true; message = nil

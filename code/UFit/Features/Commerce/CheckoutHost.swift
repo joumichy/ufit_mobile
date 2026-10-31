@@ -14,6 +14,7 @@ struct UFitCheckoutHost: View {
             onPay: { Task { _ = await store.preparePayment() } },
             onRefresh: { Task { await store.refreshConfirmation() } }, onFinish: onFinish)
             .task { await store.load() }
+            .onChange(of: store.needsOrderDetails) { _, needed in if needed { onFinish() } }
             .background {
                 if let sheet = store.paymentSheet {
                     UFitStripePaymentPresentation(sheet: sheet) { result in

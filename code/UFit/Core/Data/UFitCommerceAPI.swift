@@ -78,7 +78,7 @@ struct UFitOrdersPageDTO: Decodable {
 }
 struct UFitOrderDTO: Decodable, Identifiable {
     struct Actions: Decodable { let cancel: Bool; let resumePayment: Bool }
-    struct Cancellation: Decodable { let status: String; let outcome: UFitCancellationOutcome? }
+    struct Cancellation: Decodable { let status: String; let reason: UFitCancellationReason; let outcome: UFitCancellationOutcome? }
     struct Shipment: Decodable {
         let id: String
         let status: UFitShipmentLifecycle

@@ -23,6 +23,10 @@ final class UFitCheckoutStore {
     init(client: UFitAPIClient, cart: UFitCartStore, name: String?) {
         self.client = client; self.cart = cart; address.fullName = name ?? String()
     }
+    var needsOrderDetails: Bool {
+        guard let order else { return false }
+        return [.cancelling, .cancelled, .refunded].contains(order.status)
+    }
     var lines: [UFitCartPresentationLine] {
         guard let quote else { return cart.lines }
         return quote.items.compactMap { item in
@@ -118,6 +122,7 @@ final class UFitCheckoutStore {
                 if [.paid, .preparing, .shipped, .delivered].contains(updated.status) {
                     step = .paid; await cart.load(); return
                 }
+                if needsOrderDetails { await cart.load(); return }
                 if updated.status != .pendingPayment {
                     message = String(localized: "Cette commande n’est plus en attente de paiement."); return
                 }
