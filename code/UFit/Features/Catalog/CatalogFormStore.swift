@@ -6,7 +6,7 @@ final class UFitCatalogFormStore {
     let catalog: UFitCatalogStore
     private(set) var original: UFitManagedProduct?
     var draft = UFitCatalogProductDraft() { didSet { if !isBusy { errors = [:]; message = nil } } }
-    private(set) var currencies: [UFitCatalogCurrency] = []
+    private(set) var currencies: [UFitCurrency] = []
     private(set) var errors: [UFitCatalogField: String] = [:]
     private(set) var isLoading = false
     private(set) var isBusy = false
@@ -195,10 +195,10 @@ final class UFitCatalogStockStore {
     init(product: UFitCatalogProductStore, variant: UFitManagedProduct.Variant) {
         self.product = product; self.variant = variant; revision = product.document.revision; quantity = String(variant.stockQuantity)
     }
-    var hasChanges: Bool { UFitCatalogInput.integer(quantity) != variant.stockQuantity }
+    var hasChanges: Bool { UFitDecimalInput.integer(quantity) != variant.stockQuantity }
     func save() async -> Bool {
         guard !isBusy, hasChanges, product.catalog.isCurrentAccount else { return false }
-        guard let amount = UFitCatalogInput.integer(quantity) else { error = UFitCatalogDraftValidation.Copy.stock; return false }
+        guard let amount = UFitDecimalInput.integer(quantity) else { error = UFitCatalogDraftValidation.Copy.stock; return false }
         isBusy = true; message = nil
         defer { isBusy = false }
         do {

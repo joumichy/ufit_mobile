@@ -4,7 +4,7 @@ struct UFitCatalogProductFormContent: View {
     @Binding var draft: UFitCatalogProductDraft
     let isNew: Bool
     let changesPublishedProduct: Bool
-    let currencies: [UFitCatalogCurrency]
+    let currencies: [UFitCurrency]
     let errors: [UFitCatalogField: String]
     let hasChanges: Bool
     let isBusy: Bool
@@ -33,7 +33,7 @@ struct UFitCatalogProductFormContent: View {
     }
     private enum Layout { static let page: CGFloat = 24; static let gap: CGFloat = 16; static let small: CGFloat = 8; static let touch: CGFloat = 44; static let editor: CGFloat = 130; static let radius: CGFloat = 12; static let title: CGFloat = 28 }
     private enum Icon { static let currency = "chevron.right" }
-    private var selectedCurrency: UFitCatalogCurrency? { currencies.first { $0.code == draft.currency } }
+    private var selectedCurrency: UFitCurrency? { currencies.first { $0.code == draft.currency } }
     var body: some View {
         VStack(spacing: .zero) {
             DetailHeader(title: isNew ? Copy.new : Copy.edit, onBack: { if hasChanges { confirmingDiscard = true } else { onBack() } }).disabled(isBusy)
@@ -79,7 +79,7 @@ struct UFitCatalogProductFormContent: View {
                 Button(Copy.discard, role: .destructive, action: onBack)
                 Button(Copy.keep, role: .cancel) {}
             }
-            .sheet(isPresented: $showingCurrencies) { UFitCatalogCurrencyContent(currencies: currencies, selected: draft.currency) { draft.currency = $0.code } }
+            .sheet(isPresented: $showingCurrencies) { UFitCurrencySelectionContent(currencies: currencies, selected: draft.currency) { draft.currency = $0.code } }
             .sheet(item: $editingVariant) { variant in
                 if let currency = selectedCurrency {
                     UFitCatalogVariantFormContent(draft: Binding(get: { editingVariant ?? variant }, set: { editingVariant = $0; variantErrors = [:] }), currency: currency, errors: variantErrors, hasChanges: editingVariant != initialVariant, onBack: { editingVariant = nil }, onSave: { saveVariant(currency: currency) })
@@ -108,7 +108,7 @@ struct UFitCatalogProductFormContent: View {
         }
     }
     private func openVariant(_ variant: UFitCatalogVariantDraft) { initialVariant = variant; variantErrors = [:]; editingVariant = variant }
-    private func saveVariant(currency: UFitCatalogCurrency) {
+    private func saveVariant(currency: UFitCurrency) {
         guard let variant = editingVariant else { return }
         variantErrors = UFitCatalogDraftValidation.variant(variant, currency: currency)
         guard variantErrors.isEmpty else { return }

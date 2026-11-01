@@ -1,7 +1,7 @@
 import Foundation
 
 enum UFitCatalogDraftValidation {
-    static func product(_ draft: UFitCatalogProductDraft, currencies: [UFitCatalogCurrency]) -> [UFitCatalogField: String] {
+    static func product(_ draft: UFitCatalogProductDraft, currencies: [UFitCurrency]) -> [UFitCatalogField: String] {
         var errors: [UFitCatalogField: String] = [:]
         if !UFitCatalogInput.countValid(draft.name, minimum: UFitCatalogInput.nameMin, maximum: UFitCatalogInput.nameMax) { errors[.name] = Copy.name }
         if !UFitCatalogInput.countValid(draft.description, minimum: UFitCatalogInput.descriptionMin, maximum: UFitCatalogInput.descriptionMax) { errors[.description] = Copy.description }
@@ -10,7 +10,7 @@ enum UFitCatalogDraftValidation {
             if !UFitCatalogInput.countValid(text, minimum: UFitCatalogInput.integerMin, maximum: UFitCatalogInput.detailsMax) { errors[field] = Copy.details }
         }
         if let currency = currencies.first(where: { $0.code == draft.currency }) {
-            if UFitCatalogInput.minorUnits(draft.price, currency: currency) == nil { errors[.price] = priceError(currency) }
+            if UFitDecimalInput.scaledAmount(draft.price, fractionalDigits: currency.minorUnitDigits) == nil { errors[.price] = priceError(currency) }
             if draft.variants.contains(where: { !variant($0, currency: currency).isEmpty }) { errors[.variants] = Copy.variants }
         } else { errors[.currency] = Copy.currency }
         if draft.variants.count > UFitCatalogInput.variantsMax { errors[.variants] = Copy.variantsLimit }
@@ -20,17 +20,17 @@ enum UFitCatalogDraftValidation {
         else if draft.photos.contains(where: { $0.transfer != .ready || $0.url == nil }) { errors[.photos] = Copy.photosPending }
         return errors
     }
-    static func variant(_ draft: UFitCatalogVariantDraft, currency: UFitCatalogCurrency) -> [UFitCatalogVariantField: String] {
+    static func variant(_ draft: UFitCatalogVariantDraft, currency: UFitCurrency) -> [UFitCatalogVariantField: String] {
         var errors: [UFitCatalogVariantField: String] = [:]
         if !UFitCatalogInput.countValid(draft.sku, minimum: UFitCatalogInput.skuMin, maximum: UFitCatalogInput.skuMax) { errors[.sku] = Copy.sku }
         for (text, field) in [(draft.size, UFitCatalogVariantField.size), (draft.color, .color)] {
             if !UFitCatalogInput.countValid(text, minimum: UFitCatalogInput.integerMin, maximum: UFitCatalogInput.optionMax) { errors[field] = Copy.option }
         }
-        if UFitCatalogInput.integer(draft.stock) == nil { errors[.stock] = Copy.stock }
-        if !UFitCatalogInput.trimmed(draft.priceOverride).isEmpty && UFitCatalogInput.minorUnits(draft.priceOverride, currency: currency) == nil { errors[.price] = priceError(currency) }
+        if UFitDecimalInput.integer(draft.stock) == nil { errors[.stock] = Copy.stock }
+        if !UFitCatalogInput.trimmed(draft.priceOverride).isEmpty && UFitDecimalInput.scaledAmount(draft.priceOverride, fractionalDigits: currency.minorUnitDigits) == nil { errors[.price] = priceError(currency) }
         return errors
     }
-    static func priceError(_ currency: UFitCatalogCurrency) -> String { String(localized: "Saisissez un montant positif ou nul, avec au plus \(currency.minorUnitDigits) décimale(s), dans la limite autorisée.") }
+    static func priceError(_ currency: UFitCurrency) -> String { String(localized: "Saisissez un montant positif ou nul, avec au plus \(currency.minorUnitDigits) décimale(s), dans la limite autorisée.") }
     enum Copy {
         static let name = String(localized: "Saisissez un nom de 2 à 120 caractères.")
         static let description = String(localized: "Saisissez une description de 1 à 6 000 caractères.")

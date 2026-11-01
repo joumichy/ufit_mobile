@@ -20,13 +20,6 @@ enum UFitOutfitContractError: LocalizedError {
         }
     }
 }
-@propertyWrapper struct UFitRequiredNullable<Value: Decodable>: Decodable {
-    var wrappedValue: Value?
-    init(from decoder: Decoder) throws {
-        let value = try decoder.singleValueContainer()
-        wrappedValue = value.decodeNil() ? nil : try value.decode(Value.self)
-    }
-}
 struct UFitManagedOutfit: Decodable, Identifiable {
     struct Owner: Decodable { let id: String; let kind: OutfitAuthor.Kind; let name: String; let status: UFitProfileStatus }
     struct Photo: Decodable { let id: String; let url: String; let displayUrl: String; let position: Int }

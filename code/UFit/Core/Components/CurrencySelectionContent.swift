@@ -1,14 +1,14 @@
 import SwiftUI
 
-struct UFitCatalogCurrencyContent: View {
-    let currencies: [UFitCatalogCurrency]
+struct UFitCurrencySelectionContent: View {
+    let currencies: [UFitCurrency]
     let selected: String
-    let onSelect: (UFitCatalogCurrency) -> Void
+    let onSelect: (UFitCurrency) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var search = String()
     private enum Copy { static let title = String(localized: "Devise"); static let search = String(localized: "Rechercher une devise"); static let close = String(localized: "Fermer"); static let checkmark = "checkmark"; static let noResults = String(localized: "Aucune devise correspondante") }
     private enum Layout { static let touch: CGFloat = 44 }
-    private var filtered: [UFitCatalogCurrency] { currencies.filter { search.isEmpty || $0.code.localizedCaseInsensitiveContains(search) } }
+    private var filtered: [UFitCurrency] { currencies.filter { search.isEmpty || $0.code.localizedCaseInsensitiveContains(search) } }
     var body: some View {
         NavigationStack {
             List {

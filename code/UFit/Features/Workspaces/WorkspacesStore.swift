@@ -15,6 +15,10 @@ final class UFitWorkspacesStore {
     init(client: UFitAPIClient, session: UFitSessionStore) { self.client = client; self.session = session }
     func reset() { generation = UUID(); spaces = []; hasLoaded = false; isLoading = false; busyIDs = []; message = nil; openingID = nil }
     func cancelOpening() { openingID = nil }
+    func reportOpeningFailure(_ error: Error, space: UFitWorkspaceReference) {
+        guard spaces.contains(space), session.user != nil else { return }
+        message = error.localizedDescription
+    }
     func load() async {
         guard !isLoading, let userID = session.user?.id else { return }
         let request = generation

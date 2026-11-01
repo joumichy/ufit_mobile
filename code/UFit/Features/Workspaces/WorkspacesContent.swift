@@ -13,6 +13,7 @@ struct UFitWorkspacesContent: View {
     let onPayments: () -> Void
     let onAdminApplications: () -> Void
     let onCatalog: (UFitWorkspaceReference) -> Void
+    let onCommercePolicy: (UFitWorkspaceReference) -> Void
     let onAdminProducts: () -> Void
     let onOutfits: (UFitWorkspaceReference) -> Void
     let onAdminOutfits: () -> Void
@@ -28,6 +29,7 @@ struct UFitWorkspacesContent: View {
         static let profile = String(localized: "Modifier le profil")
         static let publicProfile = String(localized: "Voir le profil public")
         static let catalog = String(localized: "Catalogue de produits")
+        static let commercePolicy = String(localized: "Conditions de vente")
         static let outfits = String(localized: "Mes tenues")
         static let adminOutfits = String(localized: "Tenues à examiner")
         static let adminProducts = String(localized: "Produits à examiner")
@@ -77,6 +79,9 @@ struct UFitWorkspacesContent: View {
                                     Button(action: { onCatalog(space) }) {
                                         HStack { Text(Copy.catalog); Spacer(); Image(systemName: Icon.chevron) }.frame(minHeight: Layout.touch).contentShape(Rectangle())
                                     }.disabled(space.status == .suspended)
+                                    Button(action: { onCommercePolicy(space) }) {
+                                        HStack { Text(Copy.commercePolicy); Spacer(); Image(systemName: Icon.chevron) }.frame(minHeight: Layout.touch).contentShape(Rectangle())
+                                    }.disabled(space.status != .active && space.status != .paused)
                                 }
                             }.padding(Layout.gap).frame(maxWidth: .infinity, alignment: .leading)
                                 .overlay { RoundedRectangle(cornerRadius: Layout.radius).stroke(Color.ufitBorder) }

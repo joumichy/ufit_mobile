@@ -9,7 +9,7 @@ final class UFitApplicationFormStore {
     private(set) var errors = [UFitApplicationField: String]()
     private(set) var isBusy = false
     private(set) var message: String?
-    private(set) var countries = [UFitApplicationCountry]()
+    private(set) var countries = [UFitCountry]()
     private(set) var loadingCountries = false
     @ObservationIgnored private let client: UFitAPIClient
     @ObservationIgnored private let session: UFitSessionStore
@@ -35,7 +35,7 @@ final class UFitApplicationFormStore {
         do {
             let codes = try await client.fetchApplicationCountries()
             guard session.user?.id == userID else { return }
-            countries = codes.map { UFitApplicationCountry(id: $0, name: Contract.locale.localizedString(forRegionCode: $0) ?? $0) }.sorted { $0.name.localizedCompare($1.name) == .orderedAscending }
+            countries = codes.map { UFitCountry(id: $0, name: Contract.locale.localizedString(forRegionCode: $0) ?? $0) }.sorted { $0.name.localizedCompare($1.name) == .orderedAscending }
         } catch { if session.user?.id == userID { message = error.localizedDescription } }
     }
     func submit() async -> Bool {

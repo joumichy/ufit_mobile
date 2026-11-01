@@ -3,7 +3,7 @@ import SwiftUI
 struct UFitApplicationFormContent: View {
     let kind: UFitApplicationKind
     @Binding var values: [UFitApplicationField: String]
-    let countries: [UFitApplicationCountry]
+    let countries: [UFitCountry]
     let errors: [UFitApplicationField: String]
     let isBusy: Bool
     var isLoadingCountries = false

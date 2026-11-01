@@ -80,7 +80,7 @@ struct MarketplaceRootView: View {
         case .create:
             UFitWorkspacesHost(store: workspaces, canAdminister: session.user?.canAdminister == true,
                 onOpen: showManagedProfile, onApplications: showApplications, onPayments: showPayments,
-                onAdminApplications: showAdminApplications, onCatalog: showBrandCatalog, onAdminProducts: showAdminProducts,
+                onAdminApplications: showAdminApplications, onCatalog: showBrandCatalog, onCommercePolicy: showBrandCommercePolicy, onAdminProducts: showAdminProducts,
                 onOutfits: showManagedOutfits, onAdminOutfits: showAdminOutfits,
                 onPublicProfile: { space in showPublicProfile(.init(id: space.profileID, kind: space.isCreator ? .creator : .brand)) })
         case .managedOutfits(let outfits):
@@ -89,6 +89,8 @@ struct MarketplaceRootView: View {
             UFitManagedOutfitHost(store: outfit, onBack: goBack, onEdit: showOutfitEditor)
         case .outfitForm(let form):
             UFitOutfitFormHost(store: form, onBack: goBack, onSaved: { finishOutfitForm(form, outfit: $0) })
+        case .brandCommercePolicy(let policy):
+            UFitBrandCommercePolicyHost(store: policy, onBack: goBack)
         case .catalog(let catalog):
             UFitCatalogHost(store: catalog, onBack: goBack, onOpen: showCatalogProduct, onCreate: showCatalogForm)
         case .catalogProduct(let product):
@@ -182,7 +184,15 @@ private extension MarketplaceRootView {
     }
 
     var hidesTabBar: Bool {
-        switch activeRoute { case .checkout, .applicationForm, .adminApplication, .managedProfile, .catalogProduct, .catalogForm, .catalogStock, .managedOutfit, .outfitForm: true; default: false }
+        switch activeRoute { case .checkout, .applicationForm, .adminApplication, .managedProfile, .catalogProduct, .catalogForm, .catalogStock, .managedOutfit, .outfitForm, .brandCommercePolicy: true; default: false }
+    }
+
+    func showBrandCommercePolicy(_ space: UFitWorkspaceReference) {
+        guard case .create = activeRoute, session.user != nil, workspaces.spaces.contains(space), !space.isCreator, space.status == .active || space.status == .paused else { return }
+        do {
+            let policy = try UFitBrandCommercePolicyStore(space: space, session: session)
+            routeHistory.append(activeRoute); activeRoute = .brandCommercePolicy(policy)
+        } catch { workspaces.reportOpeningFailure(error, space: space) }
     }
 
     func showManagedOutfits(_ space: UFitWorkspaceReference) {
@@ -344,6 +354,7 @@ private enum AppRoute {
     case managedOutfits(UFitManagedOutfitsStore)
     case managedOutfit(UFitManagedOutfitStore)
     case outfitForm(UFitOutfitFormStore)
+    case brandCommercePolicy(UFitBrandCommercePolicyStore)
     case catalog(UFitCatalogStore)
     case catalogProduct(UFitCatalogProductStore)
     case catalogForm(UFitCatalogFormStore)

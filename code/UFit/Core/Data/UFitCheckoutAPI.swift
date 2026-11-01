@@ -1,18 +1,5 @@
 import Foundation
 
-struct UFitBrandCommercePolicyDTO: Decodable {
-    struct Rate: Decodable {
-        let country: String
-        let currency: String
-        let amount: Int
-    }
-    let returnWindowDays: Int
-    let returnPolicy: String
-    let pricesIncludeTaxes: Bool
-    let taxNotice: String
-    let customsNotice: String
-    let shippingRates: [Rate]
-}
 struct UFitCartQuoteDTO: Decodable {
     struct Item: Decodable {
         let id: String
@@ -37,7 +24,7 @@ struct UFitCartQuoteDTO: Decodable {
     let customsNotice: String
 }
 extension UFitAPIClient {
-    func fetchCommercePolicy(brandID: String) async throws -> UFitBrandCommercePolicyDTO? {
+    func fetchCommercePolicy(brandID: String) async throws -> UFitBrandCommercePolicy? {
         try await send("GET", path: "public/brands/" + brandID + "/commerce-policy")
     }
     func quoteCart(country: String) async throws -> UFitCartQuoteDTO {

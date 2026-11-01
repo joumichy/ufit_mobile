@@ -9,10 +9,6 @@ struct UFitShippingAddress: Codable, Equatable {
     var country = "CH"
     var phone: String?
 }
-struct UFitShippingDestination: Identifiable {
-    let id: String
-    let name: String
-}
 enum UFitCheckoutStep: Hashable { case address, review, confirming, paid }
 struct UFitCheckoutSummary {
     let subtotal: String

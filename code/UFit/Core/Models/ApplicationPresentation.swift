@@ -200,7 +200,6 @@ enum UFitApplicationField: String, CaseIterable, Identifiable {
     var isLink: Bool { [.instagram, .tiktok, .portfolio, .exampleOne, .exampleTwo, .exampleThree, .website, .lookbook].contains(self) }
     var isMultiline: Bool { [.motivation, .audience, .brandsWorn, .positioning, .shipping, .returns, .commission].contains(self) }
 }
-struct UFitApplicationCountry: Identifiable { let id: String; let name: String }
 struct UFitApplicationQueueItem: Decodable {
     var identity: String { type.rawValue + Wire.separator + id }
     private enum Wire { static let separator = ":" }

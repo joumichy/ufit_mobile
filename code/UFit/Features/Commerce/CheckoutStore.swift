@@ -6,7 +6,7 @@ import StripePaymentSheet
 final class UFitCheckoutStore {
     var address = UFitShippingAddress()
     private(set) var step = UFitCheckoutStep.address
-    private(set) var destinations = [UFitShippingDestination]()
+    private(set) var destinations = [UFitCountry]()
     private(set) var isBusy = false
     private(set) var quote: UFitCartQuoteDTO?
     private(set) var order: UFitOrderDTO?
@@ -56,7 +56,7 @@ final class UFitCheckoutStore {
             }
             let locale = Locale(identifier: "fr")
             destinations = Set(policy.shippingRates.filter { $0.currency == active.currency }.map(\.country))
-                .map { UFitShippingDestination(id: $0, name: locale.localizedString(forRegionCode: $0) ?? $0) }
+                .map { UFitCountry(id: $0, name: locale.localizedString(forRegionCode: $0) ?? $0) }
                 .sorted { $0.name.localizedCompare($1.name) == .orderedAscending }
             if !destinations.contains(where: { $0.id == address.country }), let first = destinations.first { address.country = first.id }
             message = destinations.isEmpty ? String(localized: "La marque ne propose pas de livraison pour cette devise.") : nil

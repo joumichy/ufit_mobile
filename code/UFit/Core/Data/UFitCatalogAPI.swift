@@ -61,9 +61,9 @@ struct UFitCatalogWriteRequest: Codable, Equatable {
     let name: String; let description: String; let category: String; let genderTarget: UFitGenderTarget?
     let basePrice: Int; let currency: String; let material: String?; let careInstructions: String?
     let variants: [Variant]; let images: [Photo]
-    init(draft: UFitCatalogProductDraft, currency: UFitCatalogCurrency, creatingBrandID: String?, requestID: UUID?, editing: UFitCatalogRevision?) throws {
+    init(draft: UFitCatalogProductDraft, currency: UFitCurrency, creatingBrandID: String?, requestID: UUID?, editing: UFitCatalogRevision?) throws {
         guard UFitCatalogDraftValidation.product(draft, currencies: [currency]).isEmpty,
-              let price = UFitCatalogInput.minorUnits(draft.price, currency: currency),
+              let price = UFitDecimalInput.scaledAmount(draft.price, fractionalDigits: currency.minorUnitDigits),
               (creatingBrandID != nil && requestID != nil && editing == nil) || (creatingBrandID == nil && requestID == nil && editing != nil) else { throw UFitCatalogContractError.draft }
         brandId = creatingBrandID; requestId = requestID?.uuidString; expectedVersion = editing?.version
         name = UFitCatalogInput.trimmed(draft.name); description = UFitCatalogInput.trimmed(draft.description); category = UFitCatalogInput.trimmed(draft.category)
@@ -71,9 +71,9 @@ struct UFitCatalogWriteRequest: Codable, Equatable {
         func optional(_ value: String) -> String? { let text = UFitCatalogInput.trimmed(value); return text.isEmpty ? nil : text }
         material = optional(draft.material); careInstructions = optional(draft.care)
         variants = try draft.variants.map { value in
-            guard let stock = UFitCatalogInput.integer(value.stock) else { throw UFitCatalogContractError.draft }
+            guard let stock = UFitDecimalInput.integer(value.stock) else { throw UFitCatalogContractError.draft }
             let override = optional(value.priceOverride)
-            let amount = override.flatMap { UFitCatalogInput.minorUnits($0, currency: currency) }
+            let amount = override.flatMap { UFitDecimalInput.scaledAmount($0, fractionalDigits: currency.minorUnitDigits) }
             guard override == nil || amount != nil, editing == nil || value.serverID == nil || value.expectedStockQuantity != nil else { throw UFitCatalogContractError.draft }
             return Variant(id: editing == nil ? nil : value.serverID, expectedStockQuantity: editing == nil ? nil : value.expectedStockQuantity,
                 size: optional(value.size), color: optional(value.color), sku: UFitCatalogInput.trimmed(value.sku), stockQuantity: stock,
@@ -86,8 +86,8 @@ struct UFitCatalogWriteRequest: Codable, Equatable {
     }
 }
 extension UFitAPIClient {
-    func fetchCatalogCurrencies() async throws -> [UFitCatalogCurrency] {
-        struct Metadata: Decodable { let currencies: [UFitCatalogCurrency] }
+    func fetchCatalogCurrencies() async throws -> [UFitCurrency] {
+        struct Metadata: Decodable { let currencies: [UFitCurrency] }
         let result: Metadata = try await send(UFitCatalogHTTP.get, path: UFitCatalogHTTP.metadata, requiresAuth: true)
         guard !result.currencies.isEmpty, Set(result.currencies.map(\.code)).count == result.currencies.count,
               result.currencies.allSatisfy({ !$0.code.isEmpty && $0.minorUnitDigits >= .zero }) else { throw UFitCatalogContractError.currencies }

@@ -2,7 +2,7 @@ import SwiftUI
 
 struct UFitCatalogVariantFormContent: View {
     @Binding var draft: UFitCatalogVariantDraft
-    let currency: UFitCatalogCurrency
+    let currency: UFitCurrency
     let errors: [UFitCatalogVariantField: String]
     let hasChanges: Bool
     let onBack: () -> Void

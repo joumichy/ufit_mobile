@@ -3,7 +3,7 @@ import SwiftUI
 struct UFitCheckoutContent: View {
     @Binding var address: UFitShippingAddress
     let step: UFitCheckoutStep
-    let destinations: [UFitShippingDestination]
+    let destinations: [UFitCountry]
     let lines: [UFitCartPresentationLine]
     let summary: UFitCheckoutSummary?
     let isBusy: Bool
