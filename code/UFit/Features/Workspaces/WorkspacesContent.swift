@@ -15,6 +15,8 @@ struct UFitWorkspacesContent: View {
     let onCatalog: (UFitWorkspaceReference) -> Void
     let onCommercePolicy: (UFitWorkspaceReference) -> Void
     let onOrders: (UFitWorkspaceReference) -> Void
+    let onReturns: (UFitWorkspaceReference) -> Void
+    let onAdminReturns: () -> Void
     let onAdminProducts: () -> Void
     let onOutfits: (UFitWorkspaceReference) -> Void
     let onAdminOutfits: () -> Void
@@ -32,6 +34,8 @@ struct UFitWorkspacesContent: View {
         static let catalog = String(localized: "Catalogue de produits")
         static let commercePolicy = String(localized: "Conditions de vente")
         static let orders = String(localized: "Commandes")
+        static let returns = String(localized: "Retours à traiter")
+        static let adminReturns = String(localized: "Retours et arbitrages")
         static let outfits = String(localized: "Mes tenues")
         static let adminOutfits = String(localized: "Tenues à examiner")
         static let adminProducts = String(localized: "Produits à examiner")
@@ -84,6 +88,9 @@ struct UFitWorkspacesContent: View {
                                     Button(action: { onOrders(space) }) {
                                         HStack { Text(Copy.orders); Spacer(); Image(systemName: Icon.chevron) }.frame(minHeight: Layout.touch).contentShape(Rectangle())
                                     }.disabled(space.status != .active && space.status != .paused)
+                                    Button(action: { onReturns(space) }) {
+                                        HStack { Text(Copy.returns); Spacer(); Image(systemName: Icon.chevron) }.frame(minHeight: Layout.touch).contentShape(Rectangle())
+                                    }.disabled(space.status != .active && space.status != .paused)
                                     Button(action: { onCommercePolicy(space) }) {
                                         HStack { Text(Copy.commercePolicy); Spacer(); Image(systemName: Icon.chevron) }.frame(minHeight: Layout.touch).contentShape(Rectangle())
                                     }.disabled(space.status != .active && space.status != .paused)
@@ -102,6 +109,7 @@ struct UFitWorkspacesContent: View {
                             Button(Copy.admin, action: onAdminApplications).frame(minHeight: Layout.touch)
                             Button(Copy.adminProducts, action: onAdminProducts).frame(minHeight: Layout.touch)
                             Button(Copy.adminOutfits, action: onAdminOutfits).frame(minHeight: Layout.touch)
+                            Button(Copy.adminReturns, action: onAdminReturns).frame(minHeight: Layout.touch)
                         }
                     }
                 }.padding(Layout.page).padding(.bottom, Layout.bottom).frame(maxWidth: .infinity, alignment: .leading)

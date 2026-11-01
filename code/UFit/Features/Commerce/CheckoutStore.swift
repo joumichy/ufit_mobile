@@ -42,7 +42,7 @@ final class UFitCheckoutStore {
                 shipping: UFitMoney.format(value.shippingAmount, currency: value.currency),
                 taxes: UFitMoney.format(value.taxAmount, currency: value.currency),
                 total: UFitMoney.format(value.totalAmount, currency: value.currency),
-                returnPolicy: value.returnPolicy, taxNotice: value.taxNotice, customsNotice: value.customsNotice)
+                returnPolicy: value.returnPolicy, refundPolicy: value.refundPolicyCode, taxNotice: value.taxNotice, customsNotice: value.customsNotice)
         }
     }
     func load() async {

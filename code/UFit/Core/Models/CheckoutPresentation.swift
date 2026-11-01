@@ -16,6 +16,7 @@ struct UFitCheckoutSummary {
     let taxes: String
     let total: String
     let returnPolicy: String
+    let refundPolicy: UFitRefundPolicy
     let taxNotice: String
     let customsNotice: String
 }

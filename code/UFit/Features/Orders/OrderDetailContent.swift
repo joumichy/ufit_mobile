@@ -8,6 +8,7 @@ struct UFitOrderDetailContent: View {
     let onRefresh: () -> Void
     let onPay: () -> Void
     let onCancel: () -> Void
+    let onReturns: () -> Void
     @State private var confirmingCancellation = false
     private enum Copy {
         static let title = String(localized: "Ma commande")
@@ -20,6 +21,7 @@ struct UFitOrderDetailContent: View {
         static let unavailable = String(localized: "Commande indisponible")
         static let bag = "bag"
         static let returns = String(localized: "Retours")
+        static let returnDossiers = String(localized: "Retours et remboursements")
     }
     private enum Layout { static let spacing: CGFloat = 24; static let rowSpacing: CGFloat = 16; static let bottom: CGFloat = 110; static let touch: CGFloat = 44; static let inline: CGFloat = 8 }
     var body: some View {
@@ -61,6 +63,7 @@ struct UFitOrderDetailContent: View {
             if let policy = order.returnPolicy {
                 VStack(alignment: .leading, spacing: Layout.inline) { Text(Copy.returns).font(.headline); Text(policy).font(.callout).foregroundStyle(Color.ufitMuted) }
             }
+            Button(Copy.returnDossiers, action: onReturns).frame(minHeight: Layout.touch).disabled(isBusy)
             if order.canCancel {
                 Button(order.cancellationPending ? Copy.continueCancel : Copy.cancel, role: .destructive) {
                     if order.cancellationPending { onCancel() } else { confirmingCancellation = true }

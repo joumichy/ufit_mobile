@@ -92,6 +92,7 @@ struct UFitCheckoutContent: View {
                 Text(summary.customsNotice)
                 Text(String(localized: "Retours")).fontWeight(.semibold)
                 Text(summary.returnPolicy)
+                Text(summary.refundPolicy.explanation)
             }.font(.callout).foregroundStyle(Color.ufitMuted)
             Button(action: onPay) { Text(String(localized: "Payer \(summary.total)")).frame(maxWidth: .infinity) }
                 .buttonStyle(PrimaryButtonStyle()).disabled(isBusy)

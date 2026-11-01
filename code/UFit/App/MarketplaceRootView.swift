@@ -80,7 +80,7 @@ struct MarketplaceRootView: View {
         case .create:
             UFitWorkspacesHost(store: workspaces, canAdminister: session.user?.canAdminister == true,
                 onOpen: showManagedProfile, onApplications: showApplications, onPayments: showPayments,
-                onAdminApplications: showAdminApplications, onCatalog: showBrandCatalog, onCommercePolicy: showBrandCommercePolicy, onOrders: showBrandOrders, onAdminProducts: showAdminProducts,
+                onAdminApplications: showAdminApplications, onCatalog: showBrandCatalog, onCommercePolicy: showBrandCommercePolicy, onOrders: showBrandOrders, onReturns: showBrandReturns, onAdminReturns: showAdminReturns, onAdminProducts: showAdminProducts,
                 onOutfits: showManagedOutfits, onAdminOutfits: showAdminOutfits,
                 onPublicProfile: { space in showPublicProfile(.init(id: space.profileID, kind: space.isCreator ? .creator : .brand)) })
         case .managedOutfits(let outfits):
@@ -89,6 +89,14 @@ struct MarketplaceRootView: View {
             UFitManagedOutfitHost(store: outfit, onBack: goBack, onEdit: showOutfitEditor)
         case .outfitForm(let form):
             UFitOutfitFormHost(store: form, onBack: goBack, onSaved: { finishOutfitForm(form, outfit: $0) })
+        case .returns(let list):
+            UFitReturnsHost(store: list, onBack: goBack, onOpen: showReturnDetail, onCreate: showReturnCreation)
+        case .returnDetail(let detail):
+            UFitReturnDetailHost(store: detail, onBack: goBack)
+        case .returnCreation(let form, let list):
+            UFitReturnCreationHost(store: form, onClose: goBack, onCreated: { result in
+                list.receive(result.summary); openReturnFromCreation(result.id)
+            }, onOpenExisting: openReturnFromCreation)
         case .brandOrders(let list):
             UFitBrandOrdersHost(store: list, onBack: goBack, onOpen: showBrandOrder)
         case .brandOrder(let order):
@@ -130,7 +138,7 @@ struct MarketplaceRootView: View {
         case .orders:
             UFitOrdersHost(store: orders, onBack: goBack, onSelect: showOrder)
         case .order(let order):
-            UFitOrderDetailHost(store: order, onBack: goBack)
+            UFitOrderDetailHost(store: order, onBack: goBack, onReturns: showCustomerReturns)
         case .publicProfile(let profile):
             UFitPublicProfileHost(store: profile, session: session, onBack: goBack, onSignIn: { showAuthentication = true }, onOpen: showOutfitDetail)
         }
@@ -188,9 +196,54 @@ private extension MarketplaceRootView {
     }
 
     var hidesTabBar: Bool {
-        switch activeRoute { case .checkout, .applicationForm, .adminApplication, .managedProfile, .catalogProduct, .catalogForm, .catalogStock, .managedOutfit, .outfitForm, .brandCommercePolicy, .brandOrders, .brandOrder: true; default: false }
+        switch activeRoute { case .checkout, .applicationForm, .adminApplication, .managedProfile, .catalogProduct, .catalogForm, .catalogStock, .managedOutfit, .outfitForm, .brandCommercePolicy, .brandOrders, .brandOrder, .returns, .returnDetail, .returnCreation: true; default: false }
     }
 
+    func showCustomerReturns() {
+        guard case .order(let detail) = activeRoute, !detail.isBusy, let order = detail.order, session.user != nil else { return }
+        do {
+            let list = try UFitReturnsStore(scope: .customer(orderID: order.id), context: order.orderNumber, session: session)
+            routeHistory.append(activeRoute); activeRoute = .returns(list)
+        } catch { detail.message = error.localizedDescription }
+    }
+    func showBrandReturns(_ space: UFitWorkspaceReference) {
+        guard case .create = activeRoute, session.user != nil, workspaces.spaces.contains(space), !space.isCreator,
+              space.status == .active || space.status == .paused else { return }
+        do {
+            let list = try UFitReturnsStore(scope: .brand(brandID: space.profileID), context: space.name, session: session)
+            routeHistory.append(activeRoute); activeRoute = .returns(list)
+        } catch { workspaces.reportOpeningFailure(error, space: space) }
+    }
+    func showAdminReturns() {
+        guard case .create = activeRoute, session.user?.canAdminister == true else { return }
+        do {
+            let list = try UFitReturnsStore(scope: .administrator, context: String(localized: "Retours et arbitrages"), session: session)
+            routeHistory.append(activeRoute); activeRoute = .returns(list)
+        } catch { workspaces.reportOpeningFailure(error) }
+    }
+    func showReturnDetail(_ id: String) {
+        guard case .returns(let list) = activeRoute, list.isCurrentAccount else { return }
+        do {
+            let detail = try UFitReturnDetailStore(id: id, list: list)
+            routeHistory.append(activeRoute); activeRoute = .returnDetail(detail)
+        } catch { list.reportOpeningFailure(error) }
+    }
+    func showReturnCreation() {
+        guard case .returns(let list) = activeRoute, list.isCurrentAccount, case .customer(let orderID) = list.scope else { return }
+        do {
+            let form = try UFitReturnCreationStore(orderID: orderID, orderNumber: list.context, session: session)
+            routeHistory.append(activeRoute); activeRoute = .returnCreation(form, list)
+        } catch { list.reportOpeningFailure(error) }
+    }
+    func openReturnFromCreation(_ id: String) {
+        guard case .returnCreation(let form, let list) = activeRoute, form.isCurrentAccount, list.isCurrentAccount,
+              id == form.created?.id || id == form.options?.openReturnId else { return }
+        do {
+            let detail = try UFitReturnDetailStore(id: id, list: list)
+            if let result = form.created, result.id == id { detail.receive(result) }
+            activeRoute = .returnDetail(detail)
+        } catch { list.reportOpeningFailure(error) }
+    }
     func showBrandOrders(_ space: UFitWorkspaceReference) {
         guard case .create = activeRoute, session.user != nil, workspaces.spaces.contains(space), !space.isCreator, space.status == .active || space.status == .paused else { return }
         do {
@@ -374,6 +427,9 @@ private enum AppRoute {
     case managedOutfit(UFitManagedOutfitStore)
     case outfitForm(UFitOutfitFormStore)
     case brandCommercePolicy(UFitBrandCommercePolicyStore)
+    case returns(UFitReturnsStore)
+    case returnDetail(UFitReturnDetailStore)
+    case returnCreation(UFitReturnCreationStore, UFitReturnsStore)
     case brandOrders(UFitBrandOrdersStore)
     case brandOrder(UFitBrandOrderStore)
     case catalog(UFitCatalogStore)

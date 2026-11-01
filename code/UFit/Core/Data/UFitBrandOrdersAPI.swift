@@ -39,7 +39,7 @@ struct UFitBrandOrderSummaryDTO: Decodable, Identifiable {
     @UFitRequiredNullable var shipmentStatus: UFitShipmentLifecycle?
     func validate(brandID: String) throws {
         guard UUID(uuidString: id) != nil, UUID(uuidString: brandId) != nil, brandId == brandID,
-              !UFitShipmentInput.trimmed(orderNumber).isEmpty, UFitBrandOrderInput.statuses.contains(status),
+              !UFitServerTextInput.trimmed(orderNumber).isEmpty, UFitBrandOrderInput.statuses.contains(status),
               BrandOrderContract.money(totalAmount), itemCount >= .zero,
               currency.range(of: UFitCurrency.codePattern, options: .regularExpression) != nil else { throw UFitBrandOrderContractError.document }
     }
@@ -59,12 +59,12 @@ struct UFitManagedShipment: Decodable, Identifiable {
               (UFitShipmentInput.initialVersion...UFitShipmentInput.maximumVersion).contains(version),
               (incidentReason == nil) == (incidentAt == nil),
               status != .failed || incidentReason != nil else { throw UFitBrandOrderContractError.document }
-        if let trackingUrl, UFitShipmentInput.trackingURL(trackingUrl) == nil { throw UFitBrandOrderContractError.document }
-        if let incidentReason, !UFitShipmentInput.validText(incidentReason, maximum: UFitShipmentInput.incidentMaximum) { throw UFitBrandOrderContractError.document }
+        if let trackingUrl, UFitParcelTracking.url(trackingUrl) == nil { throw UFitBrandOrderContractError.document }
+        if let incidentReason, !UFitServerTextInput.valid(incidentReason, maximum: UFitShipmentInput.incidentMaximum) { throw UFitBrandOrderContractError.document }
         if status == .shipped || status == .delivered {
             guard let carrier, let trackingNumber, shippedAt != nil,
-                  UFitShipmentInput.validText(carrier, maximum: UFitShipmentInput.carrierMaximum),
-                  UFitShipmentInput.validText(trackingNumber, maximum: UFitShipmentInput.trackingMaximum) else { throw UFitBrandOrderContractError.document }
+                  UFitServerTextInput.valid(carrier, maximum: UFitParcelTracking.carrierMaximum),
+                  UFitServerTextInput.valid(trackingNumber, maximum: UFitParcelTracking.numberMaximum) else { throw UFitBrandOrderContractError.document }
         }
         if status == .delivered && deliveredAt == nil { throw UFitBrandOrderContractError.document }
     }
@@ -78,7 +78,7 @@ struct UFitBrandOrderItemDTO: Decodable, Identifiable {
     func validate() throws {
         let product = quantity.multipliedReportingOverflow(by: unitPrice)
         guard UUID(uuidString: id) != nil, UUID(uuidString: productId) != nil, UUID(uuidString: productVariantId) != nil,
-              !UFitShipmentInput.trimmed(name).isEmpty, !UFitShipmentInput.trimmed(sku).isEmpty, quantity > .zero,
+              !UFitServerTextInput.trimmed(name).isEmpty, !UFitServerTextInput.trimmed(sku).isEmpty, quantity > .zero,
               BrandOrderContract.money(unitPrice), BrandOrderContract.money(totalPrice),
               !product.overflow, product.partialValue == totalPrice else { throw UFitBrandOrderContractError.document }
     }
@@ -109,8 +109,8 @@ struct UFitBrandOrderDetailDTO: Decodable {
               BrandOrderContract.sum(items.map(\.totalPrice)) == subtotalAmount,
               BrandOrderContract.sum(items.map(\.quantity)) == summary.itemCount, Set(items.map(\.id)).count == items.count,
               summary.shipmentStatus == shipment?.status, BrandOrderContract.commands(actions), shipment != nil || actions.isEmpty,
-              !UFitShipmentInput.trimmed(shippingAddress.fullName).isEmpty, !UFitShipmentInput.trimmed(shippingAddress.line1).isEmpty,
-              !UFitShipmentInput.trimmed(shippingAddress.postalCode).isEmpty, !UFitShipmentInput.trimmed(shippingAddress.city).isEmpty,
+              !UFitServerTextInput.trimmed(shippingAddress.fullName).isEmpty, !UFitServerTextInput.trimmed(shippingAddress.line1).isEmpty,
+              !UFitServerTextInput.trimmed(shippingAddress.postalCode).isEmpty, !UFitServerTextInput.trimmed(shippingAddress.city).isEmpty,
               shippingAddress.country.range(of: UFitCountry.codePattern, options: .regularExpression) != nil else { throw UFitBrandOrderContractError.document }
         try items.forEach { try $0.validate() }
         try shipment?.validate(brandID: brandID, orderID: orderID)
@@ -151,11 +151,11 @@ struct UFitShipmentActionRequest: Encodable {
         var values = encoder.container(keyedBy: CodingKeys.self)
         try values.encode(command.action, forKey: .action); try values.encode(command.expectedVersion, forKey: .expectedVersion)
         if let draft {
-            if command.action == .reportIncident { try values.encode(UFitShipmentInput.trimmed(draft.incidentReason), forKey: .incidentReason) }
+            if command.action == .reportIncident { try values.encode(UFitServerTextInput.trimmed(draft.incidentReason), forKey: .incidentReason) }
             else {
-                try values.encode(UFitShipmentInput.trimmed(draft.carrier), forKey: .carrier)
-                try values.encode(UFitShipmentInput.trimmed(draft.trackingNumber), forKey: .trackingNumber)
-                let link = UFitShipmentInput.trimmed(draft.trackingURL)
+                try values.encode(UFitServerTextInput.trimmed(draft.carrier), forKey: .carrier)
+                try values.encode(UFitServerTextInput.trimmed(draft.trackingNumber), forKey: .trackingNumber)
+                let link = UFitServerTextInput.trimmed(draft.trackingURL)
                 if link.isEmpty { try values.encodeNil(forKey: .trackingUrl) } else { try values.encode(link, forKey: .trackingUrl) }
             }
         }

@@ -20,6 +20,7 @@ struct UFitCartQuoteDTO: Decodable {
     let totalAmount: Int
     let returnWindowDays: Int
     let returnPolicy: String
+    let refundPolicyCode: UFitRefundPolicy
     let taxNotice: String
     let customsNotice: String
 }

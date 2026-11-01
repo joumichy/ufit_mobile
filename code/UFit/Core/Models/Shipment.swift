@@ -61,24 +61,17 @@ struct UFitShipmentFormDraft: Equatable {
 }
 enum UFitShipmentFormField: Hashable { case carrier, trackingNumber, trackingURL, incidentReason }
 enum UFitShipmentInput {
-    static let minimumText = 1; static let carrierMaximum = 120; static let trackingMaximum = 160; static let incidentMaximum = 2000
+    static let incidentMaximum = 2000
     static let maximumPrimaryActions = 1
     static let initialVersion = 1; static let versionStep = 1; static let maximumVersion = UFitDecimalInput.maximumInteger
-    static let https = "https"
-    static func trimmed(_ value: String) -> String { value.trimmingCharacters(in: .whitespacesAndNewlines) }
-    static func validText(_ value: String, maximum: Int) -> Bool { (minimumText...maximum).contains(trimmed(value).utf16.count) }
-    static func trackingURL(_ value: String) -> URL? {
-        guard let url = URL(string: trimmed(value)), url.scheme?.lowercased() == https, let host = url.host, !host.isEmpty else { return nil }
-        return url
-    }
     static func errors(_ draft: UFitShipmentFormDraft, action: UFitShipmentAction) -> [UFitShipmentFormField: String] {
         var errors: [UFitShipmentFormField: String] = [:]
         if action == .reportIncident {
-            if !validText(draft.incidentReason, maximum: incidentMaximum) { errors[.incidentReason] = String(localized: "Précisez l’incident, jusqu’à 2 000 caractères.") }
+            if !UFitServerTextInput.valid(draft.incidentReason, maximum: incidentMaximum) { errors[.incidentReason] = String(localized: "Précisez l’incident, jusqu’à 2 000 caractères.") }
         } else if action == .ship || action == .updateTracking {
-            if !validText(draft.carrier, maximum: carrierMaximum) { errors[.carrier] = String(localized: "Indiquez le transporteur, jusqu’à 120 caractères.") }
-            if !validText(draft.trackingNumber, maximum: trackingMaximum) { errors[.trackingNumber] = String(localized: "Indiquez le numéro de suivi, jusqu’à 160 caractères.") }
-            if !trimmed(draft.trackingURL).isEmpty && trackingURL(draft.trackingURL) == nil { errors[.trackingURL] = String(localized: "Saisissez un lien de suivi HTTPS valide ou laissez ce champ vide.") }
+            if !UFitServerTextInput.valid(draft.carrier, maximum: UFitParcelTracking.carrierMaximum) { errors[.carrier] = String(localized: "Indiquez le transporteur, jusqu’à 120 caractères.") }
+            if !UFitServerTextInput.valid(draft.trackingNumber, maximum: UFitParcelTracking.numberMaximum) { errors[.trackingNumber] = String(localized: "Indiquez le numéro de suivi, jusqu’à 160 caractères.") }
+            if !UFitServerTextInput.trimmed(draft.trackingURL).isEmpty && UFitParcelTracking.url(draft.trackingURL) == nil { errors[.trackingURL] = String(localized: "Saisissez un lien de suivi HTTPS valide ou laissez ce champ vide.") }
         }
         return errors
     }

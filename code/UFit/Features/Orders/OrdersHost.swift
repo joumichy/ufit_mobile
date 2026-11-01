@@ -13,9 +13,10 @@ struct UFitOrdersHost: View {
 struct UFitOrderDetailHost: View {
     let store: UFitOrderDetailStore
     let onBack: () -> Void
+    let onReturns: () -> Void
     var body: some View {
         UFitOrderDetailContent(order: store.presentation, isBusy: store.isBusy, message: store.message, onBack: onBack,
-            onRefresh: {Task {await store.load()}}, onPay: {Task {await store.resumePayment()}}, onCancel: {Task {await store.cancel()}})
+            onRefresh: {Task {await store.load()}}, onPay: {Task {await store.resumePayment()}}, onCancel: {Task {await store.cancel()}}, onReturns: onReturns)
             .task {await store.load()}
             .task(id: store.order?.status) { await store.followCancellation() }
             .background {
