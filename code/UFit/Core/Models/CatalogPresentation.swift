@@ -44,6 +44,8 @@ struct UFitCatalogRevision: Hashable { let id: String; let version: Int }
 struct UFitCatalogProductPresentation: Identifiable {
     let id: String
     let version: Int
+    let brandName: String
+    let brandStatus: UFitProfileStatus
     let name: String
     let description: String
     let category: String

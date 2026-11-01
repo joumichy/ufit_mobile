@@ -30,6 +30,7 @@ struct UFitCatalogProductContent: View {
         static let discard = String(localized: "Abandonner")
         static let keepEditing = String(localized: "Continuer la saisie")
         static let refresh = String(localized: "Actualiser la fiche")
+        static let brand = String(localized: "Marque")
         static let title = String(localized: "Produit"); static let edit = String(localized: "Modifier"); static let retry = String(localized: "Réessayer")
         static let stock = String(localized: "Variantes et stock"); static let changeStock = String(localized: "Modifier le stock")
         static let stockLabel = String(localized: "Stock"); static let description = String(localized: "Description")
@@ -65,6 +66,12 @@ struct UFitCatalogProductContent: View {
                     VStack(alignment: .leading, spacing: Layout.page) {
                         photos(product)
                         VStack(alignment: .leading, spacing: Layout.small) {
+                            LabeledContent(Copy.brand) {
+                                VStack(alignment: .trailing, spacing: Layout.small) {
+                                    Text(product.brandName)
+                                    Text(product.brandStatus.label).foregroundStyle(Color.ufitMuted)
+                                }
+                            }.font(.callout)
                             Text(product.status.label).font(.caption.weight(.semibold)).foregroundStyle(Color.ufitMuted)
                             Text(product.name).font(.system(size: Layout.title, design: .serif))
                             Text(product.price).font(.title3.weight(.medium))

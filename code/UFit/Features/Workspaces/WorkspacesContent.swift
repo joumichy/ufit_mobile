@@ -12,6 +12,8 @@ struct UFitWorkspacesContent: View {
     let onApplications: () -> Void
     let onPayments: () -> Void
     let onAdminApplications: () -> Void
+    let onCatalog: (UFitWorkspaceReference) -> Void
+    let onAdminProducts: () -> Void
     private enum Copy {
         static let title = String(localized: "Mes espaces")
         static let refresh = String(localized: "Actualiser")
@@ -21,6 +23,8 @@ struct UFitWorkspacesContent: View {
         static let payments = String(localized: "Paiements et versements")
         static let admin = String(localized: "Candidatures à examiner")
         static let profile = String(localized: "Modifier le profil")
+        static let catalog = String(localized: "Catalogue de produits")
+        static let adminProducts = String(localized: "Produits à examiner")
     }
     private enum Layout {
         static let page: CGFloat = 24; static let gap: CGFloat = 16; static let small: CGFloat = 8
@@ -55,6 +59,11 @@ struct UFitWorkspacesContent: View {
                                     HStack { Text(Copy.profile); Spacer(); if busyIDs.contains(space.id) { ProgressView() } else { Image(systemName: Icon.chevron) } }
                                         .frame(minHeight: Layout.touch).contentShape(Rectangle())
                                 }.disabled(busyIDs.contains(space.id))
+                                if !space.isCreator {
+                                    Button(action: { onCatalog(space) }) {
+                                        HStack { Text(Copy.catalog); Spacer(); Image(systemName: Icon.chevron) }.frame(minHeight: Layout.touch).contentShape(Rectangle())
+                                    }.disabled(space.status == .suspended)
+                                }
                             }.padding(Layout.gap).frame(maxWidth: .infinity, alignment: .leading)
                                 .overlay { RoundedRectangle(cornerRadius: Layout.radius).stroke(Color.ufitBorder) }
                         }
@@ -63,7 +72,13 @@ struct UFitWorkspacesContent: View {
                             Button(Copy.apply, action: onApplications).frame(minHeight: Layout.touch)
                         }
                     }
-                    if canAdminister { Divider(); Button(Copy.admin, action: onAdminApplications).frame(minHeight: Layout.touch) }
+                    if canAdminister {
+                        Divider()
+                        VStack(alignment: .leading, spacing: Layout.small) {
+                            Button(Copy.admin, action: onAdminApplications).frame(minHeight: Layout.touch)
+                            Button(Copy.adminProducts, action: onAdminProducts).frame(minHeight: Layout.touch)
+                        }
+                    }
                 }.padding(Layout.page).padding(.bottom, Layout.bottom).frame(maxWidth: .infinity, alignment: .leading)
             }
         }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.white)

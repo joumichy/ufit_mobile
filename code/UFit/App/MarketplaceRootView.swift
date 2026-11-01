@@ -45,14 +45,14 @@ struct MarketplaceRootView: View {
             if case .connect(let connect) = activeRoute { Task { await connect.handleCallback(url) } }
             if !StripeAPI.handleURLCallback(with: url), url.host == "auth" { Task { await session.handle(url) } }
         }
-        .onChange(of: session.user?.id) { _, userID in
+        .onChange(of: session.user?.id) { previousUserID, userID in
             store.clearAccountData()
             cart.reset()
             orders.reset()
             workspaces.reset()
             applications.reset()
             adminApplications.reset()
-            if userID == nil { returnToFeed() }
+            if previousUserID != nil { returnToFeed() }
             if userID != nil { Task { await store.loadSavedOutfits() } }
         }
         .onChange(of: session.needsNewPassword) { _, needed in
@@ -78,7 +78,15 @@ struct MarketplaceRootView: View {
         case .create:
             UFitWorkspacesHost(store: workspaces, canAdminister: session.user?.canAdminister == true,
                 onOpen: showManagedProfile, onApplications: showApplications, onPayments: showPayments,
-                onAdminApplications: showAdminApplications)
+                onAdminApplications: showAdminApplications, onCatalog: showBrandCatalog, onAdminProducts: showAdminProducts)
+        case .catalog(let catalog):
+            UFitCatalogHost(store: catalog, onBack: goBack, onOpen: showCatalogProduct, onCreate: showCatalogForm)
+        case .catalogProduct(let product):
+            UFitCatalogProductHost(store: product, onBack: goBack, onEdit: showProductEditor, onStock: showCatalogStock)
+        case .catalogForm(let form):
+            UFitCatalogFormHost(store: form, onBack: goBack, onSaved: { finishCatalogForm(form, product: $0) })
+        case .catalogStock(let stock):
+            UFitCatalogStockHost(store: stock, onBack: goBack)
         case .managedProfile(let profile):
             UFitManagedProfileHost(store: profile, onBack: goBack)
         case .outfit(let outfit, let shopping):
@@ -165,7 +173,49 @@ private extension MarketplaceRootView {
     }
 
     var hidesTabBar: Bool {
-        switch activeRoute { case .checkout, .applicationForm, .adminApplication, .managedProfile: true; default: false }
+        switch activeRoute { case .checkout, .applicationForm, .adminApplication, .managedProfile, .catalogProduct, .catalogForm, .catalogStock: true; default: false }
+    }
+
+    func showBrandCatalog(_ space: UFitWorkspaceReference) {
+        guard case .brand = space, space.status != .suspended, session.user != nil else { return }
+        routeHistory.append(activeRoute)
+        activeRoute = .catalog(UFitCatalogStore(brandID: space.profileID, title: CatalogCopy.title, subtitle: space.name, access: .member, client: session.api, session: session))
+    }
+    func showAdminProducts() {
+        guard session.user?.canAdminister == true else { return }
+        routeHistory.append(activeRoute)
+        activeRoute = .catalog(UFitCatalogStore(brandID: nil, title: CatalogCopy.moderation, subtitle: CatalogCopy.allBrands, access: .moderator, client: session.api, session: session))
+    }
+    func showCatalogProduct(_ product: UFitCatalogProductStore) {
+        guard product.catalog.isCurrentAccount, case .catalog(let current) = activeRoute, current === product.catalog else { return }
+        routeHistory.append(activeRoute); activeRoute = .catalogProduct(product)
+    }
+    func showCatalogForm(_ catalog: UFitCatalogStore) {
+        guard catalog.isCurrentAccount, case .catalog(let current) = activeRoute, current === catalog else { return }
+        do { let form = try UFitCatalogFormStore(catalog: catalog, original: nil); routeHistory.append(activeRoute); activeRoute = .catalogForm(form) }
+        catch { catalog.report(error) }
+    }
+    func showProductEditor(_ product: UFitCatalogProductStore) {
+        guard product.catalog.isCurrentAccount else { return }
+        do { let form = try UFitCatalogFormStore(catalog: product.catalog, original: product.document); routeHistory.append(activeRoute); activeRoute = .catalogForm(form) }
+        catch { product.report(error) }
+    }
+    func showCatalogStock(_ product: UFitCatalogProductStore, variantID: String) {
+        guard product.catalog.isCurrentAccount, product.catalog.access == .member, product.document.product.status != .archived,
+              let variant = product.document.variants.first(where: { $0.id == variantID && $0.status != .archived }) else { return }
+        routeHistory.append(activeRoute); activeRoute = .catalogStock(UFitCatalogStockStore(product: product, variant: variant))
+    }
+    func finishCatalogForm(_ form: UFitCatalogFormStore, product: UFitManagedProduct) {
+        guard form.catalog.isCurrentAccount, case .catalogForm(let current) = activeRoute, current === form else { return }
+        if form.isNew {
+            form.cancelPhotoUploads(); activeRoute = .catalogProduct(UFitCatalogProductStore(document: product, catalog: form.catalog))
+        } else if let prior = routeHistory.last, case .catalogProduct(let previous) = prior {
+            do { try previous.receive(product); goBack() }
+            catch { previous.report(error) }
+        }
+    }
+    private enum CatalogCopy {
+        static let title = String(localized: "Catalogue"); static let moderation = String(localized: "Modération produits"); static let allBrands = String(localized: "Toutes les marques")
     }
 
     func showApplications() {
@@ -222,9 +272,13 @@ private extension MarketplaceRootView {
         activeRoute = .cart
     }
 
-    func goBack() { activeRoute = routeHistory.popLast() ?? .feed }
+    func goBack() {
+        if case .catalogForm(let form) = activeRoute { form.cancelPhotoUploads() }
+        activeRoute = routeHistory.popLast() ?? .feed
+    }
 
     func returnToFeed() {
+        if case .catalogForm(let form) = activeRoute { form.cancelPhotoUploads() }
         routeHistory = []
         activeRoute = .feed
         activeTab = .feed
@@ -236,6 +290,10 @@ private enum AppRoute {
     case search
     case create
     case managedProfile(UFitManagedProfileStore)
+    case catalog(UFitCatalogStore)
+    case catalogProduct(UFitCatalogProductStore)
+    case catalogForm(UFitCatalogFormStore)
+    case catalogStock(UFitCatalogStockStore)
     case outfit(Outfit, UFitOutfitShoppingStore)
     case cart
     case checkout(UFitCheckoutStore)

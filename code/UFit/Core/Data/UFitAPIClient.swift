@@ -1,5 +1,10 @@
 import Foundation
 
+private enum UFitHTTPBodyContent {
+    static let json = "application/json"
+    static let contentTypeHeader = "Content-Type"
+}
+
 struct UFitAPIConfiguration {
     let baseURL: URL
     let bearerToken: String?
@@ -62,7 +67,8 @@ enum UFitAPIError: LocalizedError {
         case .authenticationRequired: String(localized: "Connectez-vous pour continuer.")
         case .invalidURL, .emptyResponse: String(localized: "Le service est momentanément indisponible.")
         case .requestFailed(let status, _, let code):
-            if code == Code.brand || code == Code.currency { String(localized: "Votre panier contient une autre marque ou devise.") }
+            if let catalog = catalogFailureDescription { catalog }
+            else if code == Code.brand || code == Code.currency { String(localized: "Votre panier contient une autre marque ou devise.") }
             else if code == "checkout_quote_changed" || code == "cart_changed" { String(localized: "Le panier ou les frais ont changé. Vérifiez le nouveau montant.") }
             else if code == "shipping_unavailable" { String(localized: "La marque ne livre pas dans ce pays pour cette devise.") }
             else if code == "brand_policy_missing" || code == "brand_policy_invalid" { String(localized: "Les conditions de livraison de la marque ne sont pas encore disponibles.") }
@@ -208,12 +214,17 @@ struct UFitAPIClient {
         try await send(method, path: path, query: query, bodyData: nil, requiresAuth: requiresAuth)
     }
 
+    func send<Response: Decodable>(_ method: String, path: String, multipart: UFitMultipartBody, requiresAuth: Bool) async throws -> Response {
+        try await send(method, path: path, query: [], bodyData: multipart.data, requiresAuth: requiresAuth, bodyContentType: multipart.contentType)
+    }
+
     private func send<Response: Decodable>(
         _ method: String,
         path: String,
         query: [URLQueryItem],
         bodyData: Data?,
-        requiresAuth: Bool
+        requiresAuth: Bool,
+        bodyContentType: String = UFitHTTPBodyContent.json
     ) async throws -> Response {
         let token: String?
         if let tokenProvider {
@@ -232,7 +243,7 @@ struct UFitAPIClient {
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         if let bodyData {
             request.httpBody = bodyData
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.setValue(bodyContentType, forHTTPHeaderField: UFitHTTPBodyContent.contentTypeHeader)
         }
         if let token {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")

@@ -26,18 +26,13 @@ struct UFitCatalogProductFormContent: View {
         static let category = String(localized: "Catégorie"); static let gender = String(localized: "Public (facultatif)"); static let unspecified = String(localized: "Non précisé")
         static let price = String(localized: "Prix du produit"); static let currency = String(localized: "Devise"); static let reloadCurrencies = String(localized: "Recharger les devises")
         static let changesPublication = String(localized: "Enregistrer ces modifications remettra le produit en brouillon. Une nouvelle validation sera nécessaire.")
-        static let photos = String(localized: "Photos"); static let addPhoto = String(localized: "Ajouter des photos"); static let photoKind = String(localized: "Type de photo")
-        static let emptyPhotos = String(localized: "Aucune photo"); static let sendingPhoto = String(localized: "Envoi de la photo"); static let retryPhoto = String(localized: "Réessayer l’envoi")
-        static let moveUp = String(localized: "Déplacer avant"); static let moveDown = String(localized: "Déplacer après"); static let remove = String(localized: "Retirer")
         static let variants = String(localized: "Variantes"); static let addVariant = String(localized: "Ajouter une variante"); static let editVariant = String(localized: "Modifier la variante")
-        static let emptyVariants = String(localized: "Aucune variante"); static let stock = String(localized: "Stock"); static let details = String(localized: "Détails facultatifs")
+        static let remove = String(localized: "Retirer"); static let emptyVariants = String(localized: "Aucune variante"); static let stock = String(localized: "Stock"); static let details = String(localized: "Détails facultatifs")
         static let material = String(localized: "Matière"); static let care = String(localized: "Entretien")
         static let discardTitle = String(localized: "Abandonner les modifications ?"); static let discard = String(localized: "Abandonner"); static let keep = String(localized: "Continuer la saisie")
-        static let firstPhoto = String(localized: "Photo principale"); static let photo = String(localized: "Photo"); static let space = " "
     }
-    private enum Layout { static let page: CGFloat = 24; static let gap: CGFloat = 16; static let small: CGFloat = 8; static let touch: CGFloat = 44; static let editor: CGFloat = 130; static let thumbnail: CGFloat = 96; static let radius: CGFloat = 12; static let title: CGFloat = 28 }
-    private enum Position { static let first = 0; static let step = 1 }
-    private enum Icon { static let photo = "photo"; static let up = "arrow.up"; static let down = "arrow.down"; static let currency = "chevron.right" }
+    private enum Layout { static let page: CGFloat = 24; static let gap: CGFloat = 16; static let small: CGFloat = 8; static let touch: CGFloat = 44; static let editor: CGFloat = 130; static let radius: CGFloat = 12; static let title: CGFloat = 28 }
+    private enum Icon { static let currency = "chevron.right" }
     private var selectedCurrency: UFitCatalogCurrency? { currencies.first { $0.code == draft.currency } }
     var body: some View {
         VStack(spacing: .zero) {
@@ -66,7 +61,7 @@ struct UFitCatalogProductFormContent: View {
                         if currencies.isEmpty { Button(Copy.reloadCurrencies, action: onReloadCurrencies).frame(minHeight: Layout.touch) }
                         UFitCatalogTextField(label: Copy.price, text: $draft.price, error: errors[.price], keyboard: .decimalPad, isIdentifier: true)
                     }
-                    photos
+                    UFitCatalogPhotosContent(photos: $draft.photos, error: errors[.photos], onAdd: onAddPhotos, onRetry: onRetryPhoto, onRemove: onRemovePhoto)
                     variants
                     DisclosureGroup(Copy.details) {
                         VStack(spacing: Layout.gap) {
@@ -91,41 +86,6 @@ struct UFitCatalogProductFormContent: View {
                         .interactiveDismissDisabled(editingVariant != initialVariant)
                 }
             }
-    }
-    private var photos: some View {
-        VStack(alignment: .leading, spacing: Layout.gap) {
-            Text(Copy.photos).font(.title2.weight(.medium))
-            if draft.photos.isEmpty { Text(Copy.emptyPhotos).font(.callout).foregroundStyle(Color.ufitMuted) }
-            ForEach(Array(draft.photos.enumerated()), id: \.element.id) { index, photo in
-                VStack(alignment: .leading, spacing: Layout.small) {
-                    HStack(alignment: .top, spacing: Layout.gap) {
-                        Group { if let source = photo.source { FashionImage(source: source) } else { Image(systemName: Icon.photo).frame(maxWidth: .infinity, maxHeight: .infinity).background(Color.ufitBackground) } }
-                            .frame(width: Layout.thumbnail, height: Layout.thumbnail).clipped().clipShape(RoundedRectangle(cornerRadius: Layout.radius))
-                        VStack(alignment: .leading, spacing: Layout.small) {
-                            Text(index == Position.first ? Copy.firstPhoto : Copy.photo + Copy.space + String(index + Position.step)).font(.subheadline.weight(.medium))
-                            Text(Copy.photoKind).font(.caption).foregroundStyle(Color.ufitMuted)
-                            Picker(Copy.photoKind, selection: Binding(get: { photo.kind }, set: { kind in if let position = draft.photos.firstIndex(where: { $0.id == photo.id }) { draft.photos[position].kind = kind } })) {
-                                ForEach(UFitCatalogImageKind.allCases) { Text($0.label).tag($0) }
-                            }.pickerStyle(.menu).frame(minHeight: Layout.touch)
-                        }
-                    }
-                    switch photo.transfer {
-                    case .ready: EmptyView()
-                    case .uploading: ProgressView(Copy.sendingPhoto)
-                    case .failed(let error): Text(error).font(.caption); Button(Copy.retryPhoto) { onRetryPhoto(photo.id) }.frame(minHeight: Layout.touch)
-                    }
-                    HStack {
-                        Button { draft.photos.swapAt(index, index - Position.step) } label: { Image(systemName: Icon.up).frame(minWidth: Layout.touch, minHeight: Layout.touch) }.accessibilityLabel(Copy.moveUp).disabled(index == Position.first)
-                        Button { draft.photos.swapAt(index, index + Position.step) } label: { Image(systemName: Icon.down).frame(minWidth: Layout.touch, minHeight: Layout.touch) }.accessibilityLabel(Copy.moveDown).disabled(index == draft.photos.count - Position.step)
-                        Spacer()
-                        Button(Copy.remove) { onRemovePhoto(photo.id) }.frame(minHeight: Layout.touch)
-                    }
-                    Divider()
-                }
-            }
-            if draft.photos.count < UFitCatalogInput.photosMax { Button(Copy.addPhoto, action: onAddPhotos).frame(minHeight: Layout.touch) }
-            errorText(errors[.photos])
-        }
     }
     private var variants: some View {
         VStack(alignment: .leading, spacing: Layout.gap) {
