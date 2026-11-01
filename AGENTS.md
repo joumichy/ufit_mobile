@@ -8,6 +8,17 @@ Avant une modification substantielle, lire les documents locaux sous `docs/`,
 en commençant par `docs/operations/codex_execution_rules_ufit.md`,
 `docs/ufit_execution_action_plan.md` et `docs/ufit_design_system.md`.
 
+## Branche de travail
+
+Travailler par défaut sur `charlie` pour le code de l’application et le backend.
+Vérifier la branche avant toute modification de ces dépôts. Les branches
+techniques existantes ne sont pas la cible de travail par défaut ; une autre
+branche nécessite une demande explicite de l’utilisateur. Préserver les
+modifications locales et l’index pendant toute bascule ou intégration.
+Le Design Lab est un atelier de conception, pas une cible de version ou de
+livraison produit. Son organisation ne doit pas retarder le développement de
+l’application sur `charlie`.
+
 ## Cycle de conception
 
 Pour une nouvelle interface ou une modification visuelle :
@@ -28,7 +39,7 @@ reste une surface secondaire et ne sert pas de source de conception iOS.
 Les écrans appartiennent à `Features`, les composants à `Core/Components`, les
 tokens et styles à `Core/DesignSystem`.
 
-`npm run lab` lance l’atelier navigateur sur `127.0.0.1:6010`. `npm run lab:open` ouvre le projet
+`npm run lab` lance l’atelier navigateur sur `127.0.0.1:6011`. `npm run lab:open` ouvre le projet
 Lab et les `#Preview` dans Xcode. `npm run lab:design -- ...` gère les reworks
 et promotions ; `npm run lab:native -- --candidate <id>` prévisualise une copie ciblée.
 `npm run lab:web` conserve le prototype Storybook React sur le port 6007.
