@@ -30,16 +30,7 @@ enum UFitWorkspaceFinanceContract {
         }
         return total
     }
-    private struct Key: CodingKey {
-        let stringValue: String
-        let intValue: Int? = nil
-        init?(stringValue: String) { self.stringValue = stringValue }
-        init?(intValue: Int) { return nil }
-    }
-    static func keys<K: CodingKey & CaseIterable>(_ decoder: Decoder, _ expected: K.Type) throws {
-        let actual = try decoder.container(keyedBy: Key.self)
-        guard Set(actual.allKeys.map(\.stringValue)) == Set(expected.allCases.map(\.stringValue)) else { throw UFitWorkspaceFinanceFailure.document }
-    }
+
 }
 struct UFitWorkspaceSalesCurrencyDTO: Decodable {
     let currency: String
@@ -50,7 +41,7 @@ struct UFitWorkspaceSalesCurrencyDTO: Decodable {
     let netAmount: Int
     private enum CodingKeys: String, CodingKey, CaseIterable { case currency, capturedOrderCount, capturedAmount, refundedAmount, refundInProgressAmount, netAmount }
     init(from decoder: Decoder) throws {
-        try UFitWorkspaceFinanceContract.keys(decoder, CodingKeys.self)
+        try UFitStrictDecoding.keys(decoder, CodingKeys.self, failure: UFitWorkspaceFinanceFailure.document)
         let value = try decoder.container(keyedBy: CodingKeys.self)
         currency = try value.decode(String.self, forKey: .currency)
         capturedOrderCount = try value.decode(Int.self, forKey: .capturedOrderCount)
@@ -69,7 +60,7 @@ struct UFitWorkspaceSalesDTO: Decodable {
     let currencies: [UFitWorkspaceSalesCurrencyDTO]
     private enum CodingKeys: String, CodingKey, CaseIterable { case basis, currencies }
     init(from decoder: Decoder) throws {
-        try UFitWorkspaceFinanceContract.keys(decoder, CodingKeys.self)
+        try UFitStrictDecoding.keys(decoder, CodingKeys.self, failure: UFitWorkspaceFinanceFailure.document)
         let value = try decoder.container(keyedBy: CodingKeys.self)
         basis = try value.decode(UFitWorkspaceSalesBasis.self, forKey: .basis)
         currencies = try value.decode([UFitWorkspaceSalesCurrencyDTO].self, forKey: .currencies)
@@ -86,7 +77,7 @@ struct UFitWorkspaceCommissionCurrencyDTO: Decodable {
         case estimatedCount, pendingCount, validatedCount, paidCount, cancelledCount
     }
     init(from decoder: Decoder) throws {
-        try UFitWorkspaceFinanceContract.keys(decoder, CodingKeys.self)
+        try UFitStrictDecoding.keys(decoder, CodingKeys.self, failure: UFitWorkspaceFinanceFailure.document)
         let value = try decoder.container(keyedBy: CodingKeys.self)
         currency = try value.decode(String.self, forKey: .currency)
         originalAmount = try value.decode(Int.self, forKey: .originalAmount); adjustedAmount = try value.decode(Int.self, forKey: .adjustedAmount); netAmount = try value.decode(Int.self, forKey: .netAmount)
@@ -110,7 +101,7 @@ struct UFitWorkspaceCommissionDTO: Decodable, Identifiable {
         case id, orderItemId, brandId, sourceOutfitId, status, currency, baseAmount, rateBps, originalAmount, adjustedAmount, netAmount, paidAdjustmentAmount, createdAt
     }
     init(from decoder: Decoder) throws {
-        try UFitWorkspaceFinanceContract.keys(decoder, CodingKeys.self)
+        try UFitStrictDecoding.keys(decoder, CodingKeys.self, failure: UFitWorkspaceFinanceFailure.document)
         let value = try decoder.container(keyedBy: CodingKeys.self)
         id = try value.decode(String.self, forKey: .id); orderItemId = try value.decode(String.self, forKey: .orderItemId)
         brandId = try value.decode(String.self, forKey: .brandId); sourceOutfitId = try value.decode(String.self, forKey: .sourceOutfitId)
