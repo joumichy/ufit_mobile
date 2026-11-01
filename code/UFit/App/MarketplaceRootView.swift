@@ -24,8 +24,7 @@ struct MarketplaceRootView: View {
     }
     @State private var showOnboarding = !ProcessInfo.processInfo.arguments.contains("--skip-onboarding")
     @State private var activeTab: AppTab = ProcessInfo.processInfo.arguments.contains("--start-profile") ? .profile : .feed
-    @State private var activeRoute: AppRoute = ProcessInfo.processInfo.arguments.contains("--start-profile") ? .creator : .feed
-    @State private var creatorProfileViewID = UUID()
+    @State private var activeRoute: AppRoute = ProcessInfo.processInfo.arguments.contains("--start-profile") ? .account : .feed
 
     var body: some View {
         ZStack {
@@ -58,6 +57,9 @@ struct MarketplaceRootView: View {
         .onChange(of: session.needsNewPassword) { _, needed in
             if needed { showAuthentication = true }
         }
+        .onChange(of: showAuthentication) { _, showing in
+            if !showing, case .publicProfile(let profile) = activeRoute { Task { await profile.loadFollow(refreshProfile: true) } }
+        }
         .sheet(isPresented: $showAuthentication) {
             UFitAuthenticationHost(session: session, onBrowse: { showAuthentication = false })
         }
@@ -70,7 +72,7 @@ struct MarketplaceRootView: View {
             HomeFeedView(
                 store: store,
                 onOutfitTap: showOutfitDetail,
-                onCreatorTap: showCreatorProfile,
+                onAuthorTap: { author in showPublicProfile(.init(id: author.id, kind: author.kind)) },
                 onSignIn: { showAuthentication = true }
             )
         case .search:
@@ -78,7 +80,8 @@ struct MarketplaceRootView: View {
         case .create:
             UFitWorkspacesHost(store: workspaces, canAdminister: session.user?.canAdminister == true,
                 onOpen: showManagedProfile, onApplications: showApplications, onPayments: showPayments,
-                onAdminApplications: showAdminApplications, onCatalog: showBrandCatalog, onAdminProducts: showAdminProducts)
+                onAdminApplications: showAdminApplications, onCatalog: showBrandCatalog, onAdminProducts: showAdminProducts,
+                onPublicProfile: { space in showPublicProfile(.init(id: space.profileID, kind: space.isCreator ? .creator : .brand)) })
         case .catalog(let catalog):
             UFitCatalogHost(store: catalog, onBack: goBack, onOpen: showCatalogProduct, onCreate: showCatalogForm)
         case .catalogProduct(let product):
@@ -91,7 +94,8 @@ struct MarketplaceRootView: View {
             UFitManagedProfileHost(store: profile, onBack: goBack)
         case .outfit(let outfit, let shopping):
             OutfitDetailView(outfit: outfit, shopping: shopping, session: session, cart: cart,
-                onBack: goBack, onCart: showCart, onSignIn: { showAuthentication = true })
+                onAuthor: { author in showPublicProfile(.init(id: author.id, kind: author.kind)) },
+                onBrand: { id in showPublicProfile(.init(id: id, kind: .brand)) }, onBack: goBack, onCart: showCart, onSignIn: { showAuthentication = true })
         case .cart:
             UFitCartHost(store: cart, onBack: goBack, onCheckout: showCheckout)
         case .checkout(let checkout):
@@ -114,9 +118,8 @@ struct MarketplaceRootView: View {
             UFitOrdersHost(store: orders, onBack: goBack, onSelect: showOrder)
         case .order(let order):
             UFitOrderDetailHost(store: order, onBack: goBack)
-        case .creator:
-            CreatorProfileView(store: store, onBack: returnToFeed)
-                .id(creatorProfileViewID)
+        case .publicProfile(let profile):
+            UFitPublicProfileHost(store: profile, session: session, onBack: goBack, onSignIn: { showAuthentication = true }, onOpen: showOutfitDetail)
         }
     }
 }
@@ -147,7 +150,6 @@ private extension MarketplaceRootView {
             activeRoute = .saved
         case .profile:
             activeRoute = .account
-            creatorProfileViewID = UUID()
         }
     }
 
@@ -156,10 +158,10 @@ private extension MarketplaceRootView {
         activeRoute = .outfit(outfit, UFitOutfitShoppingStore(client: session.api))
     }
 
-    func showCreatorProfile() {
-        activeRoute = .creator
-        activeTab = .profile
-        creatorProfileViewID = UUID()
+    func showPublicProfile(_ reference: UFitPublicProfileReference) {
+        guard UUID(uuidString: reference.id) != nil else { return }
+        routeHistory.append(activeRoute)
+        activeRoute = .publicProfile(UFitPublicProfileStore(reference: reference, client: session.api, session: session))
     }
 
     func showManagedProfile(_ space: UFitWorkspaceReference) {
@@ -306,7 +308,7 @@ private enum AppRoute {
     case connect(UFitConnectStore)
     case orders
     case order(UFitOrderDetailStore)
-    case creator
+    case publicProfile(UFitPublicProfileStore)
 }
 
 private struct RootScreenHeader: View {

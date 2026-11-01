@@ -13,11 +13,13 @@ private enum CommerceHTTP {
 }
 
 struct UFitPublicBrandDTO: Decodable {
+    struct Stats: Decodable { let publishedOutfits: Int; let activeProducts: Int }
     let id: String
     let brandName: String
     let slug: String
     let bio: String?
     let websiteUrl: String?
+    let stats: Stats
 }
 
 extension UFitAPIClient {

@@ -14,6 +14,7 @@ struct UFitWorkspacesContent: View {
     let onAdminApplications: () -> Void
     let onCatalog: (UFitWorkspaceReference) -> Void
     let onAdminProducts: () -> Void
+    let onPublicProfile: (UFitWorkspaceReference) -> Void
     private enum Copy {
         static let title = String(localized: "Mes espaces")
         static let refresh = String(localized: "Actualiser")
@@ -23,6 +24,7 @@ struct UFitWorkspacesContent: View {
         static let payments = String(localized: "Paiements et versements")
         static let admin = String(localized: "Candidatures à examiner")
         static let profile = String(localized: "Modifier le profil")
+        static let publicProfile = String(localized: "Voir le profil public")
         static let catalog = String(localized: "Catalogue de produits")
         static let adminProducts = String(localized: "Produits à examiner")
     }
@@ -59,6 +61,11 @@ struct UFitWorkspacesContent: View {
                                     HStack { Text(Copy.profile); Spacer(); if busyIDs.contains(space.id) { ProgressView() } else { Image(systemName: Icon.chevron) } }
                                         .frame(minHeight: Layout.touch).contentShape(Rectangle())
                                 }.disabled(busyIDs.contains(space.id))
+                                if space.status == .active {
+                                    Button(action: { onPublicProfile(space) }) {
+                                        HStack { Text(Copy.publicProfile); Spacer(); Image(systemName: Icon.chevron) }.frame(minHeight: Layout.touch).contentShape(Rectangle())
+                                    }
+                                }
                                 if !space.isCreator {
                                     Button(action: { onCatalog(space) }) {
                                         HStack { Text(Copy.catalog); Spacer(); Image(systemName: Icon.chevron) }.frame(minHeight: Layout.touch).contentShape(Rectangle())

@@ -12,6 +12,7 @@ struct Outfit: Identifiable {
     let imageName: String
     let creator: String
     let creatorAvatar: String
+    let author: OutfitAuthor?
     let price: String
     let title: String
     let description: String
@@ -22,7 +23,7 @@ struct Outfit: Identifiable {
 }
 
 struct OutfitAuthor: Decodable {
-    enum Kind: String, Decodable { case creator, brand }
+    enum Kind: String, Codable, Hashable { case creator, brand }
     let id: String
     let kind: Kind
     let name: String

@@ -9,6 +9,7 @@ struct UFitShoppingPiece: Identifiable {
     let id: String
     let name: String
     let brand: String?
+    let brandID: String?
     let image: String?
     let price: String
     let variants: [UFitVariantChoice]

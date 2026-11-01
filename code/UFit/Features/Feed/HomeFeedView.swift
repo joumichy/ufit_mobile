@@ -1,9 +1,9 @@
 import SwiftUI
 
 struct HomeFeedView: View {
-    let store: MarketplaceStore
+    @Bindable var store: MarketplaceStore
     let onOutfitTap: (Outfit) -> Void
-    let onCreatorTap: () -> Void
+    let onAuthorTap: (OutfitAuthor) -> Void
     var onSignIn: () -> Void = {}
 
     var body: some View {
@@ -15,7 +15,7 @@ struct HomeFeedView: View {
                         isLiked: store.savedOutfitIDs.contains(outfit.id),
                         onLike: { toggleLike(outfit) },
                         onOutfitTap: { onOutfitTap(outfit) },
-                        onCreatorTap: onCreatorTap,
+                        onAuthorTap: { if let author = outfit.author { onAuthorTap(author) } },
                         isSaving: store.savingOutfitIDs.contains(outfit.id)
                     )
                     .containerRelativeFrame([.horizontal, .vertical])
@@ -25,6 +25,7 @@ struct HomeFeedView: View {
         }
         .scrollIndicators(.hidden)
         .scrollTargetBehavior(.paging)
+        .scrollPosition(id: $store.visibleFeedOutfitID)
         .background(Color.black)
         .ignoresSafeArea()
         .task {
@@ -58,5 +59,5 @@ private extension HomeFeedView {
 }
 
 #Preview {
-    HomeFeedView(store: MarketplaceStore.live(), onOutfitTap: { _ in }, onCreatorTap: {})
+    HomeFeedView(store: MarketplaceStore.live(), onOutfitTap: { _ in }, onAuthorTap: {_ in})
 }

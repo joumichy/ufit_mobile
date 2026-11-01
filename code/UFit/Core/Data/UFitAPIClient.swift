@@ -5,6 +5,12 @@ private enum UFitHTTPBodyContent {
     static let contentTypeHeader = "Content-Type"
 }
 
+private enum UFitOutfitPublicHTTP {
+    static let get = "GET"; static let root = "outfits"; static let separator = "/"
+    static let defaultLimit = 20
+    static let limit = "limit"; static let cursor = "cursor"; static let creator = "creatorId"; static let brand = "brandId"
+}
+
 struct UFitAPIConfiguration {
     let baseURL: URL
     let bearerToken: String?
@@ -139,16 +145,29 @@ struct UFitAPIClient {
         try await send("GET", path: "me", requiresAuth: true)
     }
 
-    func fetchOutfitFeed(limit: Int = 20, cursor: String? = nil) async throws -> UFitFeedResponseDTO {
-        var query = [URLQueryItem(name: "limit", value: String(limit))]
-        if let cursor {
-            query.append(URLQueryItem(name: "cursor", value: cursor))
+    func fetchOutfitFeed(limit: Int = UFitOutfitPublicHTTP.defaultLimit, cursor: String? = nil, author: UFitPublicProfileReference? = nil) async throws -> UFitFeedResponseDTO {
+        var query = [URLQueryItem(name: UFitOutfitPublicHTTP.limit, value: String(limit))]
+        if let cursor { query.append(URLQueryItem(name: UFitOutfitPublicHTTP.cursor, value: cursor)) }
+        if let author { query.append(URLQueryItem(name: author.kind == .creator ? UFitOutfitPublicHTTP.creator : UFitOutfitPublicHTTP.brand, value: author.id)) }
+        let page: UFitFeedResponseDTO
+        do { page = try await send(UFitOutfitPublicHTTP.get, path: UFitOutfitPublicHTTP.root, query: query) }
+        catch is DecodingError { throw UFitPublicProfileContractError.outfits }
+        for item in page.items {
+            try UFitPublicOutfitIdentity.validate(id: item.id, author: item.author, creatorID: item.creatorId, brandID: item.brandId)
         }
-        return try await send("GET", path: "outfits", query: query)
+        guard Set(page.items.map(\.id)).count == page.items.count,
+              author == nil || page.items.allSatisfy({ $0.author?.id == author?.id && $0.author?.kind == author?.kind }),
+              page.nextCursor == nil || (page.nextCursor == page.items.last?.id && page.nextCursor != cursor && UUID(uuidString: page.nextCursor!) != nil) else { throw UFitPublicProfileContractError.outfits }
+        return page
     }
 
     func fetchOutfitDetail(id: String) async throws -> UFitOutfitDetailDTO {
-        try await send("GET", path: "outfits/\(id)")
+        let detail: UFitOutfitDetailDTO
+        do { detail = try await send(UFitOutfitPublicHTTP.get, path: UFitOutfitPublicHTTP.root + UFitOutfitPublicHTTP.separator + id) }
+        catch is DecodingError { throw UFitPublicProfileContractError.outfits }
+        guard detail.id == id else { throw UFitPublicProfileContractError.outfits }
+        try UFitPublicOutfitIdentity.validate(id: detail.id, author: detail.author, creatorID: detail.creatorId, brandID: detail.brandId)
+        return detail
     }
 
     func saveOutfit(id: String) async throws -> UFitSavedActionDTO {
@@ -282,12 +301,21 @@ struct UFitFeedResponseDTO: Decodable {
     let nextCursor: String?
 }
 
+@propertyWrapper
+struct UFitRequiredOutfitAuthor: Decodable {
+    var wrappedValue: OutfitAuthor?
+    init(from decoder: Decoder) throws {
+        let value = try decoder.singleValueContainer()
+        wrappedValue = value.decodeNil() ? nil : try value.decode(OutfitAuthor.self)
+    }
+}
+
 struct UFitOutfitCardDTO: Decodable {
     let id: String
     let title: String
     let coverImageUrl: String
     let prices: [UFitProductPriceDTO]
-    let author: OutfitAuthor?
+    @UFitRequiredOutfitAuthor var author: OutfitAuthor?
     let creatorId: String?
     let brandId: String?
     let publishedAt: String?
@@ -298,7 +326,7 @@ struct UFitOutfitDetailDTO: Decodable {
     let title: String
     let coverImageUrl: String
     let prices: [UFitProductPriceDTO]
-    let author: OutfitAuthor?
+    @UFitRequiredOutfitAuthor var author: OutfitAuthor?
     let creatorId: String?
     let brandId: String?
     let publishedAt: String?

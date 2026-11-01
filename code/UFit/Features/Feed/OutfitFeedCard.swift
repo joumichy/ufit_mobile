@@ -5,7 +5,7 @@ struct OutfitFeedCard: View {
     let isLiked: Bool
     let onLike: () -> Void
     let onOutfitTap: () -> Void
-    let onCreatorTap: () -> Void
+    let onAuthorTap: () -> Void
     var isSaving = false
 
     private enum Copy {
@@ -37,8 +37,8 @@ struct OutfitFeedCard: View {
                 LinearGradient(colors: [.clear, .clear, .black.opacity(Layout.overlayOpacity)], startPoint: .top, endPoint: .bottom)
                 HStack(alignment: .bottom, spacing: Layout.spacing) {
                     VStack(alignment: .leading, spacing: Layout.captionSpacing) {
-                        if outfit.sourceCreatorId != nil {
-                            Button(action: onCreatorTap) { author }.buttonStyle(.plain)
+                        if outfit.author != nil {
+                            Button(action: onAuthorTap) { author }.buttonStyle(.plain)
                         } else { author }
                         Button(action: onOutfitTap) {
                             Text(outfit.title).font(.system(size: Layout.title, weight: .medium)).multilineTextAlignment(.leading)
@@ -69,9 +69,10 @@ struct OutfitFeedCard: View {
 
     private var author: some View {
         HStack(spacing: Layout.captionSpacing) {
-            Text(outfit.creatorAvatar).font(.system(size: Layout.initials, weight: .semibold))
-                .frame(width: Layout.avatar, height: Layout.avatar)
-                .background(.white.opacity(Layout.avatarOpacity), in: Circle())
+            Group {
+                if let avatar = outfit.author?.avatarUrl { FashionImage(source: avatar) }
+                else { Text(outfit.creatorAvatar).font(.system(size: Layout.initials, weight: .semibold)).frame(maxWidth: .infinity, maxHeight: .infinity).background(.white.opacity(Layout.avatarOpacity)) }
+            }.frame(width: Layout.avatar, height: Layout.avatar).clipShape(Circle()).accessibilityHidden(true)
             Text(outfit.creator).font(.body.weight(.medium))
         }
     }

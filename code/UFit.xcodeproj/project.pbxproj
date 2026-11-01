@@ -102,6 +102,11 @@
 		7BEEE877CF2B35196B8807BD = {isa = PBXBuildFile; fileRef = F9A0F0A4D44758C8B246BF26; };
 		706957D74896706FEC752FEC = {isa = PBXBuildFile; fileRef = 05D965F2DA7850B95FEBFDDE; };
 		026508E6E2B4E27D5CF4BAC3 = {isa = PBXBuildFile; fileRef = 901144D1984E288A36C915A4; };
+		9011B25541170507F1C7DB44 = {isa = PBXBuildFile; fileRef = 2B648B3B0462AF66D56F6888; };
+		E3C5BC2DE1FA8CA3FDACD78B = {isa = PBXBuildFile; fileRef = 4826C4A653D9C65DB81CDA3A; };
+		A0CD9204F7B986DE2089D5A2 = {isa = PBXBuildFile; fileRef = 45BB7428F211DF0BBBAE02CD; };
+		B8CE364757727BC55A3FDDB0 = {isa = PBXBuildFile; fileRef = 8C6DF1BFCC209433E33D8CA9; };
+		D59E7CDFCE36568A2F3F91A8 = {isa = PBXBuildFile; fileRef = 6F8D4C0794024E838A1DC7CC; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -201,6 +206,11 @@
 		F9A0F0A4D44758C8B246BF26 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Core/Data/UFitMediaAPI.swift"; sourceTree = SOURCE_ROOT; };
 		05D965F2DA7850B95FEBFDDE = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Catalog/CatalogPhotoEncoding.swift"; sourceTree = SOURCE_ROOT; };
 		901144D1984E288A36C915A4 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Catalog/CatalogHost.swift"; sourceTree = SOURCE_ROOT; };
+		2B648B3B0462AF66D56F6888 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Core/Models/PublicProfilePresentation.swift"; sourceTree = SOURCE_ROOT; };
+		4826C4A653D9C65DB81CDA3A = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/PublicProfiles/PublicProfileContent.swift"; sourceTree = SOURCE_ROOT; };
+		45BB7428F211DF0BBBAE02CD = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Core/Data/UFitPublicProfilesAPI.swift"; sourceTree = SOURCE_ROOT; };
+		8C6DF1BFCC209433E33D8CA9 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/PublicProfiles/PublicProfileStore.swift"; sourceTree = SOURCE_ROOT; };
+		6F8D4C0794024E838A1DC7CC = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/PublicProfiles/PublicProfileHost.swift"; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -219,6 +229,11 @@
 		1A2B3C4D5E6F700000000030 = {
 			isa = PBXGroup;
 			children = (
+				6F8D4C0794024E838A1DC7CC,
+				8C6DF1BFCC209433E33D8CA9,
+				45BB7428F211DF0BBBAE02CD,
+				4826C4A653D9C65DB81CDA3A,
+				2B648B3B0462AF66D56F6888,
 				901144D1984E288A36C915A4,
 				05D965F2DA7850B95FEBFDDE,
 				F9A0F0A4D44758C8B246BF26,
@@ -508,6 +523,11 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				D59E7CDFCE36568A2F3F91A8,
+				B8CE364757727BC55A3FDDB0,
+				A0CD9204F7B986DE2089D5A2,
+				E3C5BC2DE1FA8CA3FDACD78B,
+				9011B25541170507F1C7DB44,
 				026508E6E2B4E27D5CF4BAC3,
 				706957D74896706FEC752FEC,
 				7BEEE877CF2B35196B8807BD,

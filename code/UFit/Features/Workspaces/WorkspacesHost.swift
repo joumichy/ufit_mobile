@@ -9,11 +9,12 @@ struct UFitWorkspacesHost: View {
     let onAdminApplications: () -> Void
     let onCatalog: (UFitWorkspaceReference) -> Void
     let onAdminProducts: () -> Void
+    let onPublicProfile: (UFitWorkspaceReference) -> Void
     var body: some View {
         UFitWorkspacesContent(spaces: store.spaces, hasLoaded: store.hasLoaded, isLoading: store.isLoading,
             busyIDs: store.busyIDs, message: store.message, canAdminister: canAdminister,
             onRefresh: { Task { await store.load() } }, onOpen: onOpen, onApplications: onApplications,
-            onPayments: onPayments, onAdminApplications: onAdminApplications, onCatalog: onCatalog, onAdminProducts: onAdminProducts)
+            onPayments: onPayments, onAdminApplications: onAdminApplications, onCatalog: onCatalog, onAdminProducts: onAdminProducts, onPublicProfile: onPublicProfile)
             .task { await store.load() }
             .onDisappear { store.cancelOpening() }
     }

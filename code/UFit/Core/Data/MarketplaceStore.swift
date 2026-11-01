@@ -5,6 +5,7 @@ import Observation
 @Observable
 final class MarketplaceStore {
     var outfits: [Outfit]
+    var visibleFeedOutfitID: String?
     var savedOutfitIDs = Set<String>()
     var savedOutfits: [Outfit] = []
     private(set) var savingOutfitIDs = Set<String>()
@@ -56,6 +57,7 @@ final class MarketplaceStore {
             let remoteOutfits = response.items.map { $0.toOutfit() }
             feedErrorMessage = nil
             outfits = remoteOutfits
+            if let visibleFeedOutfitID, !remoteOutfits.contains(where: { $0.id == visibleFeedOutfitID }) { self.visibleFeedOutfitID = nil }
         } catch {
             feedErrorMessage = friendlyMessage(for: error)
         }
@@ -186,7 +188,7 @@ extension UFitOutfitCardDTO {
     func toOutfit() -> Outfit {
         Outfit(id: id, imageName: coverImageUrl,
             creator: author?.name ?? OutfitPresentation.editorial,
-            creatorAvatar: OutfitPresentation.initials(for: author),
+            creatorAvatar: OutfitPresentation.initials(for: author), author: author,
             price: UFitMoney.ranges(prices), title: title, description: OutfitPresentation.empty,
             sourceCreatorId: creatorId, sourceOutfitId: id, products: [], pieces: [])
     }
@@ -206,7 +208,7 @@ extension UFitOutfitDetailDTO {
         }
         return Outfit(id: id, imageName: coverImageUrl,
             creator: author?.name ?? OutfitPresentation.editorial,
-            creatorAvatar: OutfitPresentation.initials(for: author),
+            creatorAvatar: OutfitPresentation.initials(for: author), author: author,
             price: UFitMoney.ranges(prices), title: title, description: description,
             sourceCreatorId: creatorId, sourceOutfitId: id, products: products, pieces: pieces)
     }

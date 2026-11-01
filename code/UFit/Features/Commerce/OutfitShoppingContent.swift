@@ -4,12 +4,15 @@ struct UFitOutfitShoppingContent: View {
     let title: String
     let image: String
     let description: String
+    let author: OutfitAuthor?
     let prices: String
     let pieces: [UFitShoppingPiece]
     let cartCount: Int
     let isLoading: Bool
     let message: String?
     let onBack: () -> Void
+    let onAuthor: () -> Void
+    let onBrand: (String) -> Void
     let onCart: () -> Void
     let onRetry: () -> Void
     let onSelect: (String, String) -> Void
@@ -20,6 +23,7 @@ struct UFitOutfitShoppingContent: View {
         static let pieces = String(localized: "Les pièces")
         static let retry = String(localized: "Réessayer")
         static let cartIcon = "bag"
+        static let authorChevron = "chevron.right"
     }
     private enum Layout {
         static let spacing: CGFloat = 24
@@ -27,6 +31,7 @@ struct UFitOutfitShoppingContent: View {
         static let title: CGFloat = 32
         static let bottom: CGFloat = 112
     }
+    private enum AuthorLayout { static let touch: CGFloat = 44 }
     var body: some View {
         GeometryReader { geometry in
         VStack(spacing: .zero) {
@@ -40,6 +45,9 @@ struct UFitOutfitShoppingContent: View {
                     FashionImage(source: image).frame(width: geometry.size.width, height: Layout.hero).clipped()
                     VStack(alignment: .leading, spacing: Layout.spacing) {
                         Text(title).font(.system(size: Layout.title, weight: .regular, design: .serif)).fixedSize(horizontal: false, vertical: true)
+                        if let author {
+                            Button(action: onAuthor) { HStack { Text(author.name); Spacer(); Image(systemName: Copy.authorChevron) }.frame(minHeight: AuthorLayout.touch) }.font(.subheadline)
+                        }
                         if !description.isEmpty { Text(description).font(.body).foregroundStyle(Color.ufitMuted) }
                         Text(prices).font(.title3.weight(.semibold))
                         if let message { Text(message).font(.callout).foregroundStyle(Color.ufitInk) }
@@ -50,6 +58,7 @@ struct UFitOutfitShoppingContent: View {
                             Text(Copy.pieces).font(.title2.weight(.semibold))
                             ForEach(pieces) { piece in
                                 UFitShoppingPieceCard(piece: piece,
+                                    onBrand: { if let brandID = piece.brandID { onBrand(brandID) } },
                                     onSelect: { onSelect(piece.id, $0) },
                                     onQuantity: { onQuantity(piece.id, $0) }, onAdd: { onAdd(piece.id) })
                             }
@@ -66,6 +75,7 @@ struct UFitOutfitShoppingContent: View {
 
 private struct UFitShoppingPieceCard: View {
     let piece: UFitShoppingPiece
+    let onBrand: () -> Void
     let onSelect: (String) -> Void
     let onQuantity: (Int) -> Void
     let onAdd: () -> Void
@@ -77,6 +87,7 @@ private struct UFitShoppingPieceCard: View {
         static let add = String(localized: "Ajouter au panier")
         static let added = String(localized: "Ajouté · Ajouter à nouveau")
         static let photo = "photo"
+        static let brandChevron = "chevron.right"
     }
     private enum Layout {
         static let spacing: CGFloat = 16
@@ -84,6 +95,7 @@ private struct UFitShoppingPieceCard: View {
         static let radius: CGFloat = 16
         static let minimum = 1
     }
+    private enum BrandLayout { static let touch: CGFloat = 44 }
     var body: some View {
         VStack(alignment: .leading, spacing: Layout.spacing) {
             HStack(alignment: .top, spacing: Layout.spacing) {
@@ -92,7 +104,9 @@ private struct UFitShoppingPieceCard: View {
                     else { Color.ufitBackground.overlay(Image(systemName: Copy.photo).foregroundStyle(Color.ufitMuted)) }
                 }.frame(width: Layout.image, height: Layout.image).clipped().clipShape(RoundedRectangle(cornerRadius: Layout.radius))
                 VStack(alignment: .leading, spacing: Layout.spacing) {
-                    if let brand = piece.brand { Text(brand).font(.caption).foregroundStyle(Color.ufitMuted) }
+                    if let brand = piece.brand, piece.brandID != nil {
+                        Button(action: onBrand) { HStack { Text(brand); Image(systemName: Copy.brandChevron) }.frame(minHeight: BrandLayout.touch) }.font(.caption).foregroundStyle(Color.ufitMuted)
+                    }
                     Text(piece.name).font(.headline)
                     Text(piece.price).font(.subheadline.weight(.medium))
                 }.frame(maxWidth: .infinity, alignment: .leading)

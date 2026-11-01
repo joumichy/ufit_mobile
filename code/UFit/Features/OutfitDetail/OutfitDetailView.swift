@@ -5,6 +5,8 @@ struct OutfitDetailView: View {
     let shopping: UFitOutfitShoppingStore
     let session: UFitSessionStore
     let cart: UFitCartStore
+    let onAuthor: (OutfitAuthor) -> Void
+    let onBrand: (String) -> Void
     let onBack: () -> Void
     let onCart: () -> Void
     let onSignIn: () -> Void
@@ -17,10 +19,10 @@ struct OutfitDetailView: View {
     var body: some View {
         UFitOutfitShoppingContent(title: shopping.detail?.title ?? outfit.title,
             image: shopping.detail?.coverImageUrl ?? outfit.imageName,
-            description: shopping.detail?.description ?? outfit.description,
+            description: shopping.detail?.description ?? outfit.description, author: presentedAuthor,
             prices: shopping.detail.map { UFitMoney.ranges($0.prices) } ?? outfit.price,
             pieces: shopping.pieces, cartCount: cart.count, isLoading: shopping.isLoading,
-            message: shopping.message, onBack: onBack, onCart: onCart,
+            message: shopping.message, onBack: onBack, onAuthor: { if let author = presentedAuthor { onAuthor(author) } }, onBrand: onBrand, onCart: onCart,
             onRetry: { Task { await shopping.load(id: outfit.id) } },
             onSelect: shopping.choose, onQuantity: shopping.setQuantity,
             onAdd: { id in add(id: id) })
@@ -35,6 +37,7 @@ struct OutfitDetailView: View {
                 Button(Copy.cancel, role: .cancel) { shopping.pendingReplacementItemID = nil }
             } message: { Text(Copy.consequence) }
     }
+    private var presentedAuthor: OutfitAuthor? { if let detail = shopping.detail { detail.author } else { outfit.author } }
     private func add(id: String, replacing: Bool = false) {
         guard session.user != nil else { onSignIn(); return }
         Task {
