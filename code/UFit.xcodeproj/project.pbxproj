@@ -3,110 +3,14 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 56;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXBuildFile section */
 		1A2B3C4D5E6F700000000001 /* UFitApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000011 /* UFitApp.swift */; };
 		1A2B3C4D5E6F700000000003 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000013 /* Assets.xcassets */; };
-		2A2B3C4D5E6F000000000100 /* MarketplaceRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2B3C4D5E6F000000000100 /* MarketplaceRootView.swift */; };
-		2A2B3C4D5E6F000000000101 /* AppTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2B3C4D5E6F000000000101 /* AppTab.swift */; };
-		2A2B3C4D5E6F000000000102 /* MarketplaceModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2B3C4D5E6F000000000102 /* MarketplaceModels.swift */; };
-		2A2B3C4D5E6F000000000103 /* SampleData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2B3C4D5E6F000000000103 /* SampleData.swift */; };
-		2A2B3C4D5E6F000000000104 /* Colors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2B3C4D5E6F000000000104 /* Colors.swift */; };
-		2A2B3C4D5E6F000000000105 /* ButtonStyles.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2B3C4D5E6F000000000105 /* ButtonStyles.swift */; };
-		2A2B3C4D5E6F000000000106 /* BottomNavBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2B3C4D5E6F000000000106 /* BottomNavBar.swift */; };
-		2A2B3C4D5E6F000000000107 /* DetailHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2B3C4D5E6F000000000107 /* DetailHeader.swift */; };
-		2A2B3C4D5E6F000000000108 /* CircularIconButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2B3C4D5E6F000000000108 /* CircularIconButton.swift */; };
-		2A2B3C4D5E6F000000000109 /* FlowLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2B3C4D5E6F000000000109 /* FlowLayout.swift */; };
-		2A2B3C4D5E6F00000000010A /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2B3C4D5E6F00000000010A /* OnboardingView.swift */; };
-		2A2B3C4D5E6F00000000010B /* HomeFeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2B3C4D5E6F00000000010B /* HomeFeedView.swift */; };
-		2A2B3C4D5E6F00000000010C /* OutfitFeedCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2B3C4D5E6F00000000010C /* OutfitFeedCard.swift */; };
-		2A2B3C4D5E6F00000000010D /* OutfitDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2B3C4D5E6F00000000010D /* OutfitDetailView.swift */; };
-		2A2B3C4D5E6F00000000010E /* OutfitPieceCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2B3C4D5E6F00000000010E /* OutfitPieceCard.swift */; };
-		2A2B3C4D5E6F00000000010F /* CreatorProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2B3C4D5E6F00000000010F /* CreatorProfileView.swift */; };
-		2A2B3C4D5E6F000000000110 /* CreatorStatCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2B3C4D5E6F000000000110 /* CreatorStatCard.swift */; };
-		2A2B3C4D5E6F000000000111 /* BrandDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2B3C4D5E6F000000000111 /* BrandDashboardView.swift */; };
-		2A2B3C4D5E6F000000000112 /* BrandDashboardComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2B3C4D5E6F000000000112 /* BrandDashboardComponents.swift */; };
-		2A2B3C4D5E6F000000000113 /* UFitAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2B3C4D5E6F000000000113 /* UFitAPIClient.swift */; };
-		2A2B3C4D5E6F000000000114 /* MarketplaceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2B3C4D5E6F000000000114 /* MarketplaceStore.swift */; };
-		2A2B3C4D5E6F000000000115 /* FashionImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2B3C4D5E6F000000000115 /* FashionImage.swift */; };
 		F10000000000000000000001 = {isa = PBXBuildFile; productRef = F10000000000000000000002; };
-		04906FE3CA129284C3C09510 = {isa = PBXBuildFile; fileRef = F51114A9CC93F64B93ADBD5F; };
-		1BE7CD2A2E1A3DAFC785063E = {isa = PBXBuildFile; fileRef = AE3276149FA2E5E38DD147B6; };
-		1F521D1D3B0E596CAD910A9A = {isa = PBXBuildFile; fileRef = DA8600D187AF26DA3324B042; };
-		7CA5AA005E2EEB4EEED44693 = {isa = PBXBuildFile; fileRef = 1E87431FA4AFDF35E63D9966; };
-		EC336B96C6F0D608D71D6573 = {isa = PBXBuildFile; fileRef = 43F28D9391FBD672FAF1516F; };
-		18A5822F5D3B64D6F02DA46C = {isa = PBXBuildFile; fileRef = 4DB14335AB79E4E407704909; };
-		0F4A769B0E76A99525A5ADE1 = {isa = PBXBuildFile; fileRef = 2AA20D242BCED2B056F894C0; };
-		7ED13B4467C4A2D6E9562BE0 = {isa = PBXBuildFile; fileRef = 3959A02237D9BC335EFBA4A6; };
-		1A74C898EB4F43E280FC6289 = {isa = PBXBuildFile; fileRef = 649F56F37F2FBC525A571FB4; };
-		F26BD3F2474F1AE783971E7B = {isa = PBXBuildFile; fileRef = 979103AF5BFDAFA3D7B88AC4; };
-		FA474C7B6F39282471A1F794 = {isa = PBXBuildFile; fileRef = 49255C9BDCCD71EC5090FAA4; };
-		B1E71FA9F07F7DB9D9B8D481 = {isa = PBXBuildFile; fileRef = 70F2ED68E0B73643775A7B9C; };
-		12885148CCFF4E5D4AE2F7F7 = {isa = PBXBuildFile; fileRef = 3BDB6A011CBFFA6839769A4A; };
         F20000000000000000000001 = {isa = PBXBuildFile; productRef = F20000000000000000000002; };
-		A1809D943635F46A4607D525 = {isa = PBXBuildFile; fileRef = BBB321E5E409FB65B5E5FC5A; };
-		6AA58F30C57B51D8D8B4A347 = {isa = PBXBuildFile; fileRef = E48EE2D615976E0E88410CB5; };
-		EE0DC5CBF7DDA65650F7A0DF = {isa = PBXBuildFile; fileRef = C09E17D6CF3B9DA1EF014C03; };
-		4851558855D236C4B7B5C047 = {isa = PBXBuildFile; fileRef = 2474FAB574E60FD03E579412; };
-		C4B67F77FBE44FF986273E39 = {isa = PBXBuildFile; fileRef = FEA37F9258714EB702D4FE2E; };
-		DE0D5ABAC29066FEF3135F85 = {isa = PBXBuildFile; fileRef = BE6D24C7A7592D03DF70C97D; };
-		46A9E6E1F51F6C7CA0F3875A = {isa = PBXBuildFile; fileRef = F0605C64B1826F652F35AD47; };
-		DC5BF7896DB632D5C44622B7 = {isa = PBXBuildFile; fileRef = A639B70C43B72FAA9DC95CB0; };
-		442F7A11383739D9F6524DE7 = {isa = PBXBuildFile; fileRef = A9F9AEB125C3749AD16549F5; };
-		1A428C6EA67EDD50B52EAC80 = {isa = PBXBuildFile; fileRef = 3B9A5821C950C20FD2348177; };
-		721202BACD4090F6F2D0814E = {isa = PBXBuildFile; fileRef = 540C8495DD19B9605BFA79B0; };
-		58B2BFAD0D6FA971E5F23E0D = {isa = PBXBuildFile; fileRef = 88DDAD5B93BEA4C077680E8D; };
-		7E5907C99A632805B36F82E9 = {isa = PBXBuildFile; fileRef = 3849881BF53F05D04941BA59; };
-		5059186C4487F07D25DDE1D9 = {isa = PBXBuildFile; fileRef = 503C354CF8F140F61B46D9DA; };
-		C198A167E1CB8DBCB24DBB71 = {isa = PBXBuildFile; fileRef = DD04D1522C7753F73F436D54; };
-		76B36DC87FF6ED7539613688 = {isa = PBXBuildFile; fileRef = F76A8E19BDAB97DF275E9739; };
-		0AEB35ED4445D7191733FEA6 = {isa = PBXBuildFile; fileRef = 22FF9099EF32FEFA25D0B609; };
-		290DDDA0B7788C4CBC13291E = {isa = PBXBuildFile; fileRef = DA95BB8CAC648E2FE2ED9110; };
-		968597EB4327BD4772AD6BDE = {isa = PBXBuildFile; fileRef = C64CFB5436F8BFF343BE004C; };
-		40A29273886D2F2C5DAA05AE = {isa = PBXBuildFile; fileRef = F0F0BE2EDF7BB7A3D665F6CC; };
-		B71E28A6C9BEC501142E59B9 = {isa = PBXBuildFile; fileRef = 4945E3767969AA2D8F2E9522; };
-		0244F40A89932097B856B24B = {isa = PBXBuildFile; fileRef = 1DC3F141A9479B67A8D69DA7; };
-		FB8C7E4B4F8C7646BB1F45AB = {isa = PBXBuildFile; fileRef = A31F97A689BF650D38389528; };
-		BBFFCA33CAEA804E74CE649F = {isa = PBXBuildFile; fileRef = 013EB71BDEAB5AF974E7A327; };
-		2F2395EF469DB6D0838C222C = {isa = PBXBuildFile; fileRef = EF13BFE3FB4CD2B64B1CD35E; };
-		526AE017C3605B1CBF6F9263 = {isa = PBXBuildFile; fileRef = 88B6D0F23D61171D43242E86; };
-		FCBC0C6EEF6F44C4FFF1679B = {isa = PBXBuildFile; fileRef = D0273E1B7AD3FE33E711A3AE; };
-		50870C7713AD83A044FFB920 = {isa = PBXBuildFile; fileRef = F46AF452AC6D7DD176C6F970; };
-		C49B079935771061F9227792 = {isa = PBXBuildFile; fileRef = B73D12D9881E875B497C61F8; };
-		4504ED4E0677CEEAA6DC5E09 = {isa = PBXBuildFile; fileRef = DA99F9AFC26A9E355060E22B; };
-		209C260A5A6B65725F621BE2 = {isa = PBXBuildFile; fileRef = A51C2FC228F1E9A45612F366; };
-		42F1304B4AE1619F64F525DE = {isa = PBXBuildFile; fileRef = 63D846BF6B38FB94EAF8F003; };
-		5DB244B63CFB61181797E4B6 = {isa = PBXBuildFile; fileRef = 4E74B17861E0DADC0D261FDD; };
-		ABC57C9A9F1920B973C90F4F = {isa = PBXBuildFile; fileRef = 35E7982F16AC85D88DB56983; };
-		363AF890D0E147544EC5761E = {isa = PBXBuildFile; fileRef = 13E4799558AC96267E2991C5; };
-		EB216F545828FA771DD87B0B = {isa = PBXBuildFile; fileRef = C1DB1B4BED2F9E8034E4800A; };
-		86E7D69D660B821AF7A280BF = {isa = PBXBuildFile; fileRef = 901D63EAA897E0A40654602A; };
-		946B788EB6C5C2513CA43B37 = {isa = PBXBuildFile; fileRef = D2FFE136600BB0CE0D5A1B0A; };
-		EC3F94A545F2820CB583A44D = {isa = PBXBuildFile; fileRef = EF83A582C99B1D881AC54E3A; };
-		5EFACDFB1A5D342A82A3871D = {isa = PBXBuildFile; fileRef = B429A5EE3FDD0252DE0A0581; };
-		9D398F6DABF79A6949D8CFE5 = {isa = PBXBuildFile; fileRef = C3F2B4D22F09E1B5C463B226; };
-		F03C33710BA13F64CCD514EB = {isa = PBXBuildFile; fileRef = 63617AE04354CB7402B6F160; };
-		102BFA754D4FDCD9DA719607 = {isa = PBXBuildFile; fileRef = D4E56AE88AE7E0BF51E25EBE; };
-		696A54D8912FBD6C8E97E193 = {isa = PBXBuildFile; fileRef = 06FEC7E7972D549C47D1F9CC; };
-		E88848B9701892ECA4338E63 = {isa = PBXBuildFile; fileRef = BD9A7CDA9E91ED924DE423ED; };
-		445D95FAB7F938191DF31488 = {isa = PBXBuildFile; fileRef = 47E932659CA978CE2C0BAA8C; };
-		69E8780F7F1DBFF12F448ACB = {isa = PBXBuildFile; fileRef = F05981CA42C44C8B37B7D919; };
-		C74553D63CC59AC2B45D79A9 = {isa = PBXBuildFile; fileRef = 5B883378BD45BA7F732776BE; };
-		A603AF2D95D8502EAF32972F = {isa = PBXBuildFile; fileRef = 0B84C68CE8F7DDEE15E04AB4; };
-		5E4F4C00DEB65981E77E1CB7 = {isa = PBXBuildFile; fileRef = 2AB780EA39FDA9B2F0F47CB4; };
-		63948FE297EEA9FDDC860D6F = {isa = PBXBuildFile; fileRef = A53653771CA80831DAEE0EAE; };
-		15F935BA741CF7CDB7777ECC = {isa = PBXBuildFile; fileRef = D57987C52D31E3AD3A3AAB1C; };
-		0720797274E0A55E617F9250 = {isa = PBXBuildFile; fileRef = FD5EF0D6D84B3BC4BB51AA2B; };
-		7BEEE877CF2B35196B8807BD = {isa = PBXBuildFile; fileRef = F9A0F0A4D44758C8B246BF26; };
-		706957D74896706FEC752FEC = {isa = PBXBuildFile; fileRef = 05D965F2DA7850B95FEBFDDE; };
-		026508E6E2B4E27D5CF4BAC3 = {isa = PBXBuildFile; fileRef = 901144D1984E288A36C915A4; };
-		9011B25541170507F1C7DB44 = {isa = PBXBuildFile; fileRef = 2B648B3B0462AF66D56F6888; };
-		E3C5BC2DE1FA8CA3FDACD78B = {isa = PBXBuildFile; fileRef = 4826C4A653D9C65DB81CDA3A; };
-		A0CD9204F7B986DE2089D5A2 = {isa = PBXBuildFile; fileRef = 45BB7428F211DF0BBBAE02CD; };
-		B8CE364757727BC55A3FDDB0 = {isa = PBXBuildFile; fileRef = 8C6DF1BFCC209433E33D8CA9; };
-		D59E7CDFCE36568A2F3F91A8 = {isa = PBXBuildFile; fileRef = 6F8D4C0794024E838A1DC7CC; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -114,103 +18,7 @@
 		1A2B3C4D5E6F700000000011 /* UFitApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UFitApp.swift; sourceTree = "<group>"; };
 		1A2B3C4D5E6F700000000013 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		1A2B3C4D5E6F700000000014 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
-		3A2B3C4D5E6F000000000100 /* MarketplaceRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarketplaceRootView.swift; sourceTree = "<group>"; };
-		3A2B3C4D5E6F000000000101 /* AppTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTab.swift; sourceTree = "<group>"; };
-		3A2B3C4D5E6F000000000102 /* MarketplaceModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarketplaceModels.swift; sourceTree = "<group>"; };
-		3A2B3C4D5E6F000000000103 /* SampleData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleData.swift; sourceTree = "<group>"; };
-		3A2B3C4D5E6F000000000104 /* Colors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Colors.swift; sourceTree = "<group>"; };
-		3A2B3C4D5E6F000000000105 /* ButtonStyles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonStyles.swift; sourceTree = "<group>"; };
-		3A2B3C4D5E6F000000000106 /* BottomNavBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomNavBar.swift; sourceTree = "<group>"; };
-		3A2B3C4D5E6F000000000107 /* DetailHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailHeader.swift; sourceTree = "<group>"; };
-		3A2B3C4D5E6F000000000108 /* CircularIconButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CircularIconButton.swift; sourceTree = "<group>"; };
-		3A2B3C4D5E6F000000000109 /* FlowLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowLayout.swift; sourceTree = "<group>"; };
-		3A2B3C4D5E6F00000000010A /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
-		3A2B3C4D5E6F00000000010B /* HomeFeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeFeedView.swift; sourceTree = "<group>"; };
-		3A2B3C4D5E6F00000000010C /* OutfitFeedCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutfitFeedCard.swift; sourceTree = "<group>"; };
-		3A2B3C4D5E6F00000000010D /* OutfitDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutfitDetailView.swift; sourceTree = "<group>"; };
-		3A2B3C4D5E6F00000000010E /* OutfitPieceCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutfitPieceCard.swift; sourceTree = "<group>"; };
-		3A2B3C4D5E6F00000000010F /* CreatorProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatorProfileView.swift; sourceTree = "<group>"; };
-		3A2B3C4D5E6F000000000110 /* CreatorStatCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatorStatCard.swift; sourceTree = "<group>"; };
-		3A2B3C4D5E6F000000000111 /* BrandDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrandDashboardView.swift; sourceTree = "<group>"; };
-		3A2B3C4D5E6F000000000112 /* BrandDashboardComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrandDashboardComponents.swift; sourceTree = "<group>"; };
-		3A2B3C4D5E6F000000000113 /* UFitAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UFitAPIClient.swift; sourceTree = "<group>"; };
-		3A2B3C4D5E6F000000000114 /* MarketplaceStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarketplaceStore.swift; sourceTree = "<group>"; };
-		3A2B3C4D5E6F000000000115 /* FashionImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FashionImage.swift; sourceTree = "<group>"; };
-		F51114A9CC93F64B93ADBD5F = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Core/Auth/UFitSessionStore.swift"; sourceTree = SOURCE_ROOT; };
-		AE3276149FA2E5E38DD147B6 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Account/AuthenticationView.swift"; sourceTree = SOURCE_ROOT; };
 		F10000000000000000000004 = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/UFit.xcconfig; sourceTree = SOURCE_ROOT; };
-		DA8600D187AF26DA3324B042 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Account/AuthenticationHost.swift"; sourceTree = SOURCE_ROOT; };
-		1E87431FA4AFDF35E63D9966 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Account/AccountView.swift"; sourceTree = SOURCE_ROOT; };
-		43F28D9391FBD672FAF1516F = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Account/AccountHost.swift"; sourceTree = SOURCE_ROOT; };
-		4DB14335AB79E4E407704909 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Feed/FeedStatusView.swift"; sourceTree = SOURCE_ROOT; };
-		2AA20D242BCED2B056F894C0 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Core/Data/UFitCommerceAPI.swift"; sourceTree = SOURCE_ROOT; };
-		3959A02237D9BC335EFBA4A6 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Commerce/OutfitShoppingContent.swift"; sourceTree = SOURCE_ROOT; };
-		649F56F37F2FBC525A571FB4 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Commerce/CartContent.swift"; sourceTree = SOURCE_ROOT; };
-		979103AF5BFDAFA3D7B88AC4 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Core/Models/ShoppingPresentation.swift"; sourceTree = SOURCE_ROOT; };
-		49255C9BDCCD71EC5090FAA4 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Commerce/CartStore.swift"; sourceTree = SOURCE_ROOT; };
-		70F2ED68E0B73643775A7B9C = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Commerce/CartHost.swift"; sourceTree = SOURCE_ROOT; };
-		3BDB6A011CBFFA6839769A4A = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Commerce/OutfitShoppingStore.swift"; sourceTree = SOURCE_ROOT; };
-		BBB321E5E409FB65B5E5FC5A = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Core/Models/CheckoutPresentation.swift"; sourceTree = SOURCE_ROOT; };
-		E48EE2D615976E0E88410CB5 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Commerce/CheckoutContent.swift"; sourceTree = SOURCE_ROOT; };
-		C09E17D6CF3B9DA1EF014C03 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Core/Data/UFitCheckoutAPI.swift"; sourceTree = SOURCE_ROOT; };
-		2474FAB574E60FD03E579412 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Commerce/CheckoutStore.swift"; sourceTree = SOURCE_ROOT; };
-		FEA37F9258714EB702D4FE2E = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Commerce/CheckoutHost.swift"; sourceTree = SOURCE_ROOT; };
-		BE6D24C7A7592D03DF70C97D = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Core/Models/OrderPresentation.swift"; sourceTree = SOURCE_ROOT; };
-		F0605C64B1826F652F35AD47 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Orders/OrdersContent.swift"; sourceTree = SOURCE_ROOT; };
-		A639B70C43B72FAA9DC95CB0 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Orders/OrderDetailContent.swift"; sourceTree = SOURCE_ROOT; };
-		A9F9AEB125C3749AD16549F5 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Core/Payments/UFitPaymentSheet.swift"; sourceTree = SOURCE_ROOT; };
-		3B9A5821C950C20FD2348177 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Orders/OrderPresentationAdapter.swift"; sourceTree = SOURCE_ROOT; };
-		540C8495DD19B9605BFA79B0 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Orders/OrdersStore.swift"; sourceTree = SOURCE_ROOT; };
-		88DDAD5B93BEA4C077680E8D = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Orders/OrderDetailStore.swift"; sourceTree = SOURCE_ROOT; };
-		3849881BF53F05D04941BA59 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Orders/OrdersHost.swift"; sourceTree = SOURCE_ROOT; };
-		503C354CF8F140F61B46D9DA = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Core/Models/ConnectPresentation.swift"; sourceTree = SOURCE_ROOT; };
-		DD04D1522C7753F73F436D54 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Payments/ConnectContent.swift"; sourceTree = SOURCE_ROOT; };
-		F76A8E19BDAB97DF275E9739 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Core/Data/UFitConnectAPI.swift"; sourceTree = SOURCE_ROOT; };
-		22FF9099EF32FEFA25D0B609 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Payments/ConnectStore.swift"; sourceTree = SOURCE_ROOT; };
-		DA95BB8CAC648E2FE2ED9110 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Payments/ConnectHost.swift"; sourceTree = SOURCE_ROOT; };
-		C64CFB5436F8BFF343BE004C = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Core/Models/ApplicationPresentation.swift"; sourceTree = SOURCE_ROOT; };
-		F0F0BE2EDF7BB7A3D665F6CC = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Applications/ApplicationsContent.swift"; sourceTree = SOURCE_ROOT; };
-		4945E3767969AA2D8F2E9522 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Applications/ApplicationFormContent.swift"; sourceTree = SOURCE_ROOT; };
-		1DC3F141A9479B67A8D69DA7 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Admin/ApplicationReviewContent.swift"; sourceTree = SOURCE_ROOT; };
-		A31F97A689BF650D38389528 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Admin/ApplicationQueueContent.swift"; sourceTree = SOURCE_ROOT; };
-		013EB71BDEAB5AF974E7A327 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Core/Data/UFitApplicationsAPI.swift"; sourceTree = SOURCE_ROOT; };
-		EF13BFE3FB4CD2B64B1CD35E = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Applications/ApplicationsStore.swift"; sourceTree = SOURCE_ROOT; };
-		88B6D0F23D61171D43242E86 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Applications/ApplicationFormStore.swift"; sourceTree = SOURCE_ROOT; };
-		D0273E1B7AD3FE33E711A3AE = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Applications/ApplicationsHost.swift"; sourceTree = SOURCE_ROOT; };
-		F46AF452AC6D7DD176C6F970 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Admin/ApplicationQueueStore.swift"; sourceTree = SOURCE_ROOT; };
-		B73D12D9881E875B497C61F8 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Admin/ApplicationReviewStore.swift"; sourceTree = SOURCE_ROOT; };
-		DA99F9AFC26A9E355060E22B = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Admin/ApplicationsAdminHost.swift"; sourceTree = SOURCE_ROOT; };
-		A51C2FC228F1E9A45612F366 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Core/Models/WorkspacePresentation.swift"; sourceTree = SOURCE_ROOT; };
-		63D846BF6B38FB94EAF8F003 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Workspaces/WorkspacesContent.swift"; sourceTree = SOURCE_ROOT; };
-		4E74B17861E0DADC0D261FDD = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Workspaces/ManagedProfileContent.swift"; sourceTree = SOURCE_ROOT; };
-		35E7982F16AC85D88DB56983 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Core/Data/UFitWorkspacesAPI.swift"; sourceTree = SOURCE_ROOT; };
-		13E4799558AC96267E2991C5 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Workspaces/WorkspacesStore.swift"; sourceTree = SOURCE_ROOT; };
-		C1DB1B4BED2F9E8034E4800A = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Workspaces/ManagedProfileStore.swift"; sourceTree = SOURCE_ROOT; };
-		901D63EAA897E0A40654602A = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Workspaces/WorkspacesHost.swift"; sourceTree = SOURCE_ROOT; };
-		D2FFE136600BB0CE0D5A1B0A = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Core/Models/CatalogPresentation.swift"; sourceTree = SOURCE_ROOT; };
-		EF83A582C99B1D881AC54E3A = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Catalog/CatalogListContent.swift"; sourceTree = SOURCE_ROOT; };
-		B429A5EE3FDD0252DE0A0581 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Catalog/ProductDetailContent.swift"; sourceTree = SOURCE_ROOT; };
-		C3F2B4D22F09E1B5C463B226 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Core/Models/CatalogDraft.swift"; sourceTree = SOURCE_ROOT; };
-		63617AE04354CB7402B6F160 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Core/Models/CatalogDraftValidation.swift"; sourceTree = SOURCE_ROOT; };
-		D4E56AE88AE7E0BF51E25EBE = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Catalog/CatalogFormField.swift"; sourceTree = SOURCE_ROOT; };
-		06FEC7E7972D549C47D1F9CC = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Catalog/VariantFormContent.swift"; sourceTree = SOURCE_ROOT; };
-		BD9A7CDA9E91ED924DE423ED = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Catalog/ProductFormContent.swift"; sourceTree = SOURCE_ROOT; };
-		47E932659CA978CE2C0BAA8C = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Core/Data/UFitCatalogAPI.swift"; sourceTree = SOURCE_ROOT; };
-		F05981CA42C44C8B37B7D919 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Core/Data/UFitCatalogFailure.swift"; sourceTree = SOURCE_ROOT; };
-		5B883378BD45BA7F732776BE = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Catalog/CatalogMapping.swift"; sourceTree = SOURCE_ROOT; };
-		0B84C68CE8F7DDEE15E04AB4 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Catalog/CatalogStore.swift"; sourceTree = SOURCE_ROOT; };
-		2AB780EA39FDA9B2F0F47CB4 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Catalog/CatalogCreationJournal.swift"; sourceTree = SOURCE_ROOT; };
-		A53653771CA80831DAEE0EAE = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Catalog/CatalogFormStore.swift"; sourceTree = SOURCE_ROOT; };
-		D57987C52D31E3AD3A3AAB1C = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Catalog/CatalogPreparationContent.swift"; sourceTree = SOURCE_ROOT; };
-		FD5EF0D6D84B3BC4BB51AA2B = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Catalog/CatalogPhotosContent.swift"; sourceTree = SOURCE_ROOT; };
-		F9A0F0A4D44758C8B246BF26 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Core/Data/UFitMediaAPI.swift"; sourceTree = SOURCE_ROOT; };
-		05D965F2DA7850B95FEBFDDE = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Catalog/CatalogPhotoEncoding.swift"; sourceTree = SOURCE_ROOT; };
-		901144D1984E288A36C915A4 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Catalog/CatalogHost.swift"; sourceTree = SOURCE_ROOT; };
-		2B648B3B0462AF66D56F6888 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Core/Models/PublicProfilePresentation.swift"; sourceTree = SOURCE_ROOT; };
-		4826C4A653D9C65DB81CDA3A = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/PublicProfiles/PublicProfileContent.swift"; sourceTree = SOURCE_ROOT; };
-		45BB7428F211DF0BBBAE02CD = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Core/Data/UFitPublicProfilesAPI.swift"; sourceTree = SOURCE_ROOT; };
-		8C6DF1BFCC209433E33D8CA9 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/PublicProfiles/PublicProfileStore.swift"; sourceTree = SOURCE_ROOT; };
-		6F8D4C0794024E838A1DC7CC = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/PublicProfiles/PublicProfileHost.swift"; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -225,86 +33,19 @@
 		};
 /* End PBXFrameworksBuildPhase section */
 
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		4A2B3C4D5E6F000000000001 /* App */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = App; sourceTree = "<group>"; };
+		4A2B3C4D5E6F000000000002 /* Core */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Core; sourceTree = "<group>"; };
+		4A2B3C4D5E6F000000000007 /* Features */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Features; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
+
 /* Begin PBXGroup section */
 		1A2B3C4D5E6F700000000030 = {
 			isa = PBXGroup;
 			children = (
-				6F8D4C0794024E838A1DC7CC,
-				8C6DF1BFCC209433E33D8CA9,
-				45BB7428F211DF0BBBAE02CD,
-				4826C4A653D9C65DB81CDA3A,
-				2B648B3B0462AF66D56F6888,
-				901144D1984E288A36C915A4,
-				05D965F2DA7850B95FEBFDDE,
-				F9A0F0A4D44758C8B246BF26,
-				FD5EF0D6D84B3BC4BB51AA2B,
-				D57987C52D31E3AD3A3AAB1C,
-				A53653771CA80831DAEE0EAE,
-				2AB780EA39FDA9B2F0F47CB4,
-				0B84C68CE8F7DDEE15E04AB4,
-				5B883378BD45BA7F732776BE,
-				F05981CA42C44C8B37B7D919,
-				47E932659CA978CE2C0BAA8C,
-				BD9A7CDA9E91ED924DE423ED,
-				06FEC7E7972D549C47D1F9CC,
-				D4E56AE88AE7E0BF51E25EBE,
-				63617AE04354CB7402B6F160,
-				C3F2B4D22F09E1B5C463B226,
-				B429A5EE3FDD0252DE0A0581,
-				EF83A582C99B1D881AC54E3A,
-				D2FFE136600BB0CE0D5A1B0A,
-				901D63EAA897E0A40654602A,
-				C1DB1B4BED2F9E8034E4800A,
-				13E4799558AC96267E2991C5,
-				35E7982F16AC85D88DB56983,
-				4E74B17861E0DADC0D261FDD,
-				63D846BF6B38FB94EAF8F003,
-				A51C2FC228F1E9A45612F366,
-				DA99F9AFC26A9E355060E22B,
-				B73D12D9881E875B497C61F8,
-				F46AF452AC6D7DD176C6F970,
-				D0273E1B7AD3FE33E711A3AE,
-				88B6D0F23D61171D43242E86,
-				EF13BFE3FB4CD2B64B1CD35E,
-				013EB71BDEAB5AF974E7A327,
-				A31F97A689BF650D38389528,
-				1DC3F141A9479B67A8D69DA7,
-				4945E3767969AA2D8F2E9522,
-				F0F0BE2EDF7BB7A3D665F6CC,
-				C64CFB5436F8BFF343BE004C,
-				DA95BB8CAC648E2FE2ED9110,
-				22FF9099EF32FEFA25D0B609,
-				F76A8E19BDAB97DF275E9739,
-				DD04D1522C7753F73F436D54,
-				503C354CF8F140F61B46D9DA,
-				3849881BF53F05D04941BA59,
-				88DDAD5B93BEA4C077680E8D,
-				540C8495DD19B9605BFA79B0,
-				3B9A5821C950C20FD2348177,
-				A9F9AEB125C3749AD16549F5,
-				A639B70C43B72FAA9DC95CB0,
-				F0605C64B1826F652F35AD47,
-				BE6D24C7A7592D03DF70C97D,
-				FEA37F9258714EB702D4FE2E,
-				2474FAB574E60FD03E579412,
-				C09E17D6CF3B9DA1EF014C03,
-				E48EE2D615976E0E88410CB5,
-				BBB321E5E409FB65B5E5FC5A,
-				3BDB6A011CBFFA6839769A4A,
-				70F2ED68E0B73643775A7B9C,
-				49255C9BDCCD71EC5090FAA4,
-				979103AF5BFDAFA3D7B88AC4,
-				649F56F37F2FBC525A571FB4,
-				3959A02237D9BC335EFBA4A6,
-				2AA20D242BCED2B056F894C0,
-				4DB14335AB79E4E407704909,
-				43F28D9391FBD672FAF1516F,
-				1E87431FA4AFDF35E63D9966,
-				DA8600D187AF26DA3324B042,
-				AE3276149FA2E5E38DD147B6,
-				F51114A9CC93F64B93ADBD5F,
-				1A2B3C4D5E6F700000000031 /* UFit */,
-				1A2B3C4D5E6F700000000035 /* Products */,
+				1A2B3C4D5E6F700000000031,
+				1A2B3C4D5E6F700000000035,
+
 			);
 			sourceTree = "<group>";
 		};
@@ -337,126 +78,16 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		4A2B3C4D5E6F000000000001 /* App */ = {
-			isa = PBXGroup;
-			children = (
-				3A2B3C4D5E6F000000000100 /* MarketplaceRootView.swift */,
-			);
-			path = App;
-			sourceTree = "<group>";
-		};
-		4A2B3C4D5E6F000000000002 /* Core */ = {
-			isa = PBXGroup;
-			children = (
-				4A2B3C4D5E6F000000000003 /* Models */,
-				4A2B3C4D5E6F000000000004 /* Data */,
-				4A2B3C4D5E6F000000000005 /* DesignSystem */,
-				4A2B3C4D5E6F000000000006 /* Components */,
-			);
-			path = Core;
-			sourceTree = "<group>";
-		};
-		4A2B3C4D5E6F000000000003 /* Models */ = {
-			isa = PBXGroup;
-			children = (
-				3A2B3C4D5E6F000000000101 /* AppTab.swift */,
-				3A2B3C4D5E6F000000000102 /* MarketplaceModels.swift */,
-			);
-			path = Models;
-			sourceTree = "<group>";
-		};
-		4A2B3C4D5E6F000000000004 /* Data */ = {
-			isa = PBXGroup;
-			children = (
-				3A2B3C4D5E6F000000000103 /* SampleData.swift */,
-				3A2B3C4D5E6F000000000113 /* UFitAPIClient.swift */,
-				3A2B3C4D5E6F000000000114 /* MarketplaceStore.swift */,
-			);
-			path = Data;
-			sourceTree = "<group>";
-		};
-		4A2B3C4D5E6F000000000005 /* DesignSystem */ = {
-			isa = PBXGroup;
-			children = (
-				3A2B3C4D5E6F000000000104 /* Colors.swift */,
-				3A2B3C4D5E6F000000000105 /* ButtonStyles.swift */,
-			);
-			path = DesignSystem;
-			sourceTree = "<group>";
-		};
-		4A2B3C4D5E6F000000000006 /* Components */ = {
-			isa = PBXGroup;
-			children = (
-				3A2B3C4D5E6F000000000106 /* BottomNavBar.swift */,
-				3A2B3C4D5E6F000000000107 /* DetailHeader.swift */,
-				3A2B3C4D5E6F000000000108 /* CircularIconButton.swift */,
-				3A2B3C4D5E6F000000000115 /* FashionImage.swift */,
-				3A2B3C4D5E6F000000000109 /* FlowLayout.swift */,
-			);
-			path = Components;
-			sourceTree = "<group>";
-		};
-		4A2B3C4D5E6F000000000007 /* Features */ = {
-			isa = PBXGroup;
-			children = (
-				4A2B3C4D5E6F000000000008 /* Onboarding */,
-				4A2B3C4D5E6F000000000009 /* Feed */,
-				4A2B3C4D5E6F00000000000A /* OutfitDetail */,
-				4A2B3C4D5E6F00000000000B /* CreatorProfile */,
-				4A2B3C4D5E6F00000000000C /* BrandDashboard */,
-			);
-			path = Features;
-			sourceTree = "<group>";
-		};
-		4A2B3C4D5E6F000000000008 /* Onboarding */ = {
-			isa = PBXGroup;
-			children = (
-				3A2B3C4D5E6F00000000010A /* OnboardingView.swift */,
-			);
-			path = Onboarding;
-			sourceTree = "<group>";
-		};
-		4A2B3C4D5E6F000000000009 /* Feed */ = {
-			isa = PBXGroup;
-			children = (
-				3A2B3C4D5E6F00000000010B /* HomeFeedView.swift */,
-				3A2B3C4D5E6F00000000010C /* OutfitFeedCard.swift */,
-			);
-			path = Feed;
-			sourceTree = "<group>";
-		};
-		4A2B3C4D5E6F00000000000A /* OutfitDetail */ = {
-			isa = PBXGroup;
-			children = (
-				3A2B3C4D5E6F00000000010D /* OutfitDetailView.swift */,
-				3A2B3C4D5E6F00000000010E /* OutfitPieceCard.swift */,
-			);
-			path = OutfitDetail;
-			sourceTree = "<group>";
-		};
-		4A2B3C4D5E6F00000000000B /* CreatorProfile */ = {
-			isa = PBXGroup;
-			children = (
-				3A2B3C4D5E6F00000000010F /* CreatorProfileView.swift */,
-				3A2B3C4D5E6F000000000110 /* CreatorStatCard.swift */,
-			);
-			path = CreatorProfile;
-			sourceTree = "<group>";
-		};
-		4A2B3C4D5E6F00000000000C /* BrandDashboard */ = {
-			isa = PBXGroup;
-			children = (
-				3A2B3C4D5E6F000000000111 /* BrandDashboardView.swift */,
-				3A2B3C4D5E6F000000000112 /* BrandDashboardComponents.swift */,
-			);
-			path = BrandDashboard;
-			sourceTree = "<group>";
-		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
 		1A2B3C4D5E6F700000000040 /* UFit */ = {
 			isa = PBXNativeTarget;
+			fileSystemSynchronizedGroups = (
+				4A2B3C4D5E6F000000000001,
+				4A2B3C4D5E6F000000000002,
+				4A2B3C4D5E6F000000000007,
+			);
 			buildConfigurationList = 1A2B3C4D5E6F700000000080 /* Build configuration list for PBXNativeTarget "UFit" */;
 			buildPhases = (
 				1A2B3C4D5E6F700000000050 /* Sources */,
@@ -523,103 +154,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				D59E7CDFCE36568A2F3F91A8,
-				B8CE364757727BC55A3FDDB0,
-				A0CD9204F7B986DE2089D5A2,
-				E3C5BC2DE1FA8CA3FDACD78B,
-				9011B25541170507F1C7DB44,
-				026508E6E2B4E27D5CF4BAC3,
-				706957D74896706FEC752FEC,
-				7BEEE877CF2B35196B8807BD,
-				0720797274E0A55E617F9250,
-				15F935BA741CF7CDB7777ECC,
-				63948FE297EEA9FDDC860D6F,
-				5E4F4C00DEB65981E77E1CB7,
-				A603AF2D95D8502EAF32972F,
-				C74553D63CC59AC2B45D79A9,
-				69E8780F7F1DBFF12F448ACB,
-				445D95FAB7F938191DF31488,
-				E88848B9701892ECA4338E63,
-				696A54D8912FBD6C8E97E193,
-				102BFA754D4FDCD9DA719607,
-				F03C33710BA13F64CCD514EB,
-				9D398F6DABF79A6949D8CFE5,
-				5EFACDFB1A5D342A82A3871D,
-				EC3F94A545F2820CB583A44D,
-				946B788EB6C5C2513CA43B37,
-				86E7D69D660B821AF7A280BF,
-				EB216F545828FA771DD87B0B,
-				363AF890D0E147544EC5761E,
-				ABC57C9A9F1920B973C90F4F,
-				5DB244B63CFB61181797E4B6,
-				42F1304B4AE1619F64F525DE,
-				209C260A5A6B65725F621BE2,
-				4504ED4E0677CEEAA6DC5E09,
-				C49B079935771061F9227792,
-				50870C7713AD83A044FFB920,
-				FCBC0C6EEF6F44C4FFF1679B,
-				526AE017C3605B1CBF6F9263,
-				2F2395EF469DB6D0838C222C,
-				BBFFCA33CAEA804E74CE649F,
-				FB8C7E4B4F8C7646BB1F45AB,
-				0244F40A89932097B856B24B,
-				B71E28A6C9BEC501142E59B9,
-				40A29273886D2F2C5DAA05AE,
-				968597EB4327BD4772AD6BDE,
-				290DDDA0B7788C4CBC13291E,
-				0AEB35ED4445D7191733FEA6,
-				76B36DC87FF6ED7539613688,
-				C198A167E1CB8DBCB24DBB71,
-				5059186C4487F07D25DDE1D9,
-				7E5907C99A632805B36F82E9,
-				58B2BFAD0D6FA971E5F23E0D,
-				721202BACD4090F6F2D0814E,
-				1A428C6EA67EDD50B52EAC80,
-				442F7A11383739D9F6524DE7,
-				DC5BF7896DB632D5C44622B7,
-				46A9E6E1F51F6C7CA0F3875A,
-				DE0D5ABAC29066FEF3135F85,
-				C4B67F77FBE44FF986273E39,
-				4851558855D236C4B7B5C047,
-				EE0DC5CBF7DDA65650F7A0DF,
-				6AA58F30C57B51D8D8B4A347,
-				A1809D943635F46A4607D525,
-				12885148CCFF4E5D4AE2F7F7,
-				B1E71FA9F07F7DB9D9B8D481,
-				FA474C7B6F39282471A1F794,
-				F26BD3F2474F1AE783971E7B,
-				1A74C898EB4F43E280FC6289,
-				7ED13B4467C4A2D6E9562BE0,
-				0F4A769B0E76A99525A5ADE1,
-				18A5822F5D3B64D6F02DA46C,
-				EC336B96C6F0D608D71D6573,
-				7CA5AA005E2EEB4EEED44693,
-				1F521D1D3B0E596CAD910A9A,
-				1BE7CD2A2E1A3DAFC785063E,
-				04906FE3CA129284C3C09510,
 				1A2B3C4D5E6F700000000001 /* UFitApp.swift in Sources */,
-				2A2B3C4D5E6F000000000100 /* MarketplaceRootView.swift in Sources */,
-				2A2B3C4D5E6F000000000101 /* AppTab.swift in Sources */,
-				2A2B3C4D5E6F000000000102 /* MarketplaceModels.swift in Sources */,
-				2A2B3C4D5E6F000000000103 /* SampleData.swift in Sources */,
-				2A2B3C4D5E6F000000000104 /* Colors.swift in Sources */,
-				2A2B3C4D5E6F000000000105 /* ButtonStyles.swift in Sources */,
-				2A2B3C4D5E6F000000000106 /* BottomNavBar.swift in Sources */,
-				2A2B3C4D5E6F000000000107 /* DetailHeader.swift in Sources */,
-				2A2B3C4D5E6F000000000108 /* CircularIconButton.swift in Sources */,
-				2A2B3C4D5E6F000000000109 /* FlowLayout.swift in Sources */,
-				2A2B3C4D5E6F00000000010A /* OnboardingView.swift in Sources */,
-				2A2B3C4D5E6F00000000010B /* HomeFeedView.swift in Sources */,
-				2A2B3C4D5E6F00000000010C /* OutfitFeedCard.swift in Sources */,
-				2A2B3C4D5E6F00000000010D /* OutfitDetailView.swift in Sources */,
-				2A2B3C4D5E6F00000000010E /* OutfitPieceCard.swift in Sources */,
-				2A2B3C4D5E6F00000000010F /* CreatorProfileView.swift in Sources */,
-				2A2B3C4D5E6F000000000110 /* CreatorStatCard.swift in Sources */,
-				2A2B3C4D5E6F000000000111 /* BrandDashboardView.swift in Sources */,
-				2A2B3C4D5E6F000000000112 /* BrandDashboardComponents.swift in Sources */,
-				2A2B3C4D5E6F000000000113 /* UFitAPIClient.swift in Sources */,
-				2A2B3C4D5E6F000000000114 /* MarketplaceStore.swift in Sources */,
-				2A2B3C4D5E6F000000000115 /* FashionImage.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
