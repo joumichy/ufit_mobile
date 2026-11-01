@@ -22,6 +22,7 @@ final class UFitCatalogFormStore {
     private enum Copy {
         static let invalid = String(localized: "Corrigez les champs indiqués avant l’enregistrement.")
         static let photosLimit = String(localized: "Un produit peut contenir au plus 12 photos.")
+        static let photoUnavailable = String(localized: "Cette photo n’est plus disponible. Retirez-la et choisissez-la à nouveau.")
     }
     init(catalog: UFitCatalogStore, original: UFitManagedProduct?) throws {
         guard catalog.access == .member, let brandID = catalog.brandID, let userID = catalog.session.user?.id, catalog.isCurrentAccount,
@@ -97,10 +98,33 @@ final class UFitCatalogFormStore {
             let result: UFitManagedProduct
             do { result = try await catalog.client.recoverCatalogCreation(brandID: brandID, requestID: requestID) }
             catch let error as UFitAPIError where error.isMissingCatalogResource {
-                result = try await catalog.client.writeCatalogProduct(pendingCreation, editingID: nil, brandID: brandID)
+                do { result = try await catalog.client.writeCatalogProduct(pendingCreation, editingID: nil, brandID: brandID) }
+                catch let error as UFitAPIError where error.isDefinitiveCatalogCreationFailure {
+                    try await restoreRejectedCreation(pendingCreation, brandID: brandID)
+                    if catalog.isCurrentAccount { message = error.localizedDescription }
+                    return nil
+                }
             }
             return try accept(result)
         } catch { if catalog.isCurrentAccount { message = error.localizedDescription }; return nil }
+    }
+    private func restoreRejectedCreation(_ request: UFitCatalogWriteRequest, brandID: String) async throws {
+        let currencies = try await catalog.client.fetchCatalogCurrencies()
+        var photos = [UFitCatalogPhotoDraft]()
+        for image in request.images.sorted(by: { $0.position < $1.position }) {
+            guard catalog.isCurrentAccount else { throw CancellationError() }
+            do {
+                let photo = try await catalog.client.fetchOwnedProductPhoto(brandID: brandID, url: image.url)
+                photos.append(.init(id: UUID(), serverID: nil, source: photo.displayUrl, url: photo.url, kind: image.kind, transfer: .ready))
+            } catch let error as UFitAPIError where error.isMissingCatalogResource {
+                photos.append(.init(id: UUID(), serverID: nil, source: nil, url: image.url, kind: image.kind, transfer: .failed(Copy.photoUnavailable)))
+            }
+        }
+        let restored = try request.creationDraft(currencies: currencies, photos: photos)
+        guard catalog.isCurrentAccount else { throw CancellationError() }
+        try journal.resolve()
+        self.currencies = currencies; baseline = UFitCatalogProductDraft(); draft = restored
+        hasPrepared = true; creationAttempt = .idle
     }
     private func accept(_ result: UFitManagedProduct) throws -> UFitManagedProduct? {
         guard catalog.isCurrentAccount else { return nil }
@@ -117,7 +141,7 @@ final class UFitCatalogFormStore {
         sendPhoto(id)
     }
     func retryPhoto(_ id: UUID) {
-        guard !isBusy, catalog.isCurrentAccount, let photo = draft.photos.first(where: { $0.id == id }), case .failed = photo.transfer else { return }
+        guard !isBusy, catalog.isCurrentAccount, let photo = draft.photos.first(where: { $0.id == id }), photo.canRetryUpload else { return }
         updatePhoto(id) { $0.transfer = .uploading }
         sendPhoto(id)
     }

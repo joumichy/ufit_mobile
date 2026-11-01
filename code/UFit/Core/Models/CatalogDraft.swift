@@ -84,6 +84,7 @@ struct UFitCatalogPhotoDraft: Identifiable, Equatable {
     var kind: UFitCatalogImageKind
     var transfer: UFitCatalogPhotoTransfer
     var previewData: Data? = nil
+    var canRetryUpload: Bool { if case .failed = transfer { url == nil } else { false } }
 }
 struct UFitCatalogProductDraft: Equatable {
     var name = String(); var description = String(); var category = String(); var gender: UFitCatalogGender?

@@ -39,7 +39,9 @@ struct UFitCatalogPhotosContent: View {
                     switch photo.transfer {
                     case .ready: EmptyView()
                     case .uploading: ProgressView(Copy.sendingPhoto)
-                    case .failed(let error): Text(error).font(.caption); Button(Copy.retryPhoto) { onRetry(photo.id) }.frame(minHeight: Layout.touch)
+                    case .failed(let error):
+                        Text(error).font(.caption)
+                        if photo.canRetryUpload { Button(Copy.retryPhoto) { onRetry(photo.id) }.frame(minHeight: Layout.touch) }
                     }
                     HStack {
                         Button { photos.swapAt(index, index - Position.step) } label: { Image(systemName: Icon.up).frame(minWidth: Layout.touch, minHeight: Layout.touch) }.accessibilityLabel(Copy.moveUp).disabled(index == Position.first)

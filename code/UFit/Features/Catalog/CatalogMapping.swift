@@ -1,5 +1,24 @@
 import Foundation
 
+extension UFitCatalogWriteRequest {
+    func creationDraft(currencies: [UFitCatalogCurrency], photos: [UFitCatalogPhotoDraft]) throws -> UFitCatalogProductDraft {
+        guard let currency = currencies.first(where: { $0.code == self.currency }), expectedVersion == nil,
+              variants.allSatisfy({ $0.id == nil && $0.expectedStockQuantity == nil && $0.status == nil }),
+              images.allSatisfy({ $0.id == nil }), images.map(\.position).sorted() == Array(images.indices), photos.count == images.count,
+              zip(images.sorted(by: { $0.position < $1.position }), photos).allSatisfy({ $0.url == $1.url && $0.kind == $1.kind && $1.serverID == nil }) else { throw UFitCatalogContractError.draft }
+        var value = UFitCatalogProductDraft()
+        value.name = name; value.description = description; value.category = category; value.gender = genderTarget
+        value.currency = currency.code; value.price = UFitCatalogInput.amountText(basePrice, currency: currency)
+        value.material = material ?? String(); value.care = careInstructions ?? String()
+        value.variants = variants.map { variant in
+            .init(sku: variant.sku, size: variant.size ?? String(), color: variant.color ?? String(), stock: String(variant.stockQuantity),
+                priceOverride: variant.priceOverride.map { UFitCatalogInput.amountText($0, currency: currency) } ?? String())
+        }
+        value.photos = photos
+        return value
+    }
+}
+
 extension UFitManagedProduct {
     func row() -> UFitCatalogRow {
         .init(id: id, name: product.name, status: product.status, price: UFitMoney.format(product.basePrice, currency: product.currency), image: images.first?.displayUrl)
