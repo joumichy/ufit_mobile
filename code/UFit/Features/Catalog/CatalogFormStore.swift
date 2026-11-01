@@ -166,9 +166,9 @@ final class UFitCatalogFormStore {
                 let jpeg: Data
                 if let payload = self.photoPayloads[id] { jpeg = payload }
                 else {
-                    guard let loader = self.photoLoaders[id] else { throw UFitProductPhotoError.invalidImage }
+                    guard let loader = self.photoLoaders[id] else { throw UFitPhotoError.invalidImage }
                     let bytes = try await loader(); try Task.checkCancellation()
-                    jpeg = try UFitCatalogPhotoEncoding.jpeg(bytes)
+                    jpeg = try UFitPhotoEncoding.jpeg(bytes)
                     self.photoPayloads[id] = jpeg
                     self.updatePhoto(id) { $0.previewData = jpeg }
                 }

@@ -67,7 +67,7 @@ struct UFitCatalogFormHost: View {
         let selection = selectedPhotos; selectedPhotos = []
         for item in selection {
             store.addPhoto {
-                guard let data = try await item.loadTransferable(type: Data.self) else { throw UFitProductPhotoError.invalidImage }
+                guard let data = try await item.loadTransferable(type: Data.self) else { throw UFitPhotoError.invalidImage }
                 return data
             }
         }

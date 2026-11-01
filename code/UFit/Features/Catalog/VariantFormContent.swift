@@ -21,12 +21,12 @@ struct UFitCatalogVariantFormContent: View {
             DetailHeader(title: Copy.title, onBack: { if hasChanges { confirmingDiscard = true } else { onBack() } })
             ScrollView {
                 VStack(alignment: .leading, spacing: Layout.page) {
-                    UFitCatalogTextField(label: Copy.sku, text: $draft.sku, error: errors[.sku], isIdentifier: true)
-                    UFitCatalogTextField(label: Copy.size, text: $draft.size, error: errors[.size])
-                    UFitCatalogTextField(label: Copy.color, text: $draft.color, error: errors[.color])
-                    UFitCatalogTextField(label: Copy.stock, text: $draft.stock, error: errors[.stock], keyboard: .numberPad, isIdentifier: true)
+                    UFitTextField(label: Copy.sku, text: $draft.sku, error: errors[.sku], isIdentifier: true)
+                    UFitTextField(label: Copy.size, text: $draft.size, error: errors[.size])
+                    UFitTextField(label: Copy.color, text: $draft.color, error: errors[.color])
+                    UFitTextField(label: Copy.stock, text: $draft.stock, error: errors[.stock], keyboard: .numberPad, isIdentifier: true)
                     VStack(alignment: .leading, spacing: Layout.small) {
-                        UFitCatalogTextField(label: Copy.price, text: $draft.priceOverride, error: errors[.price], keyboard: .decimalPad, isIdentifier: true)
+                        UFitTextField(label: Copy.price, text: $draft.priceOverride, error: errors[.price], keyboard: .decimalPad, isIdentifier: true)
                         Text(currency.code).font(.caption.weight(.semibold))
                         Text(Copy.basePrice).font(.caption).foregroundStyle(Color.ufitMuted)
                     }
@@ -71,7 +71,7 @@ struct UFitCatalogStockContent: View {
                 VStack(alignment: .leading, spacing: Layout.page) {
                     VStack(alignment: .leading, spacing: Layout.small) { Text(variant.title).font(.system(size: Layout.title, design: .serif)); Text(variant.sku).font(.caption).foregroundStyle(Color.ufitMuted) }
                     LabeledContent(Copy.current, value: variant.stockQuantity.formatted())
-                    UFitCatalogTextField(label: Copy.quantity, text: $quantity, error: error, keyboard: .numberPad, isIdentifier: true)
+                    UFitTextField(label: Copy.quantity, text: $quantity, error: error, keyboard: .numberPad, isIdentifier: true)
                     if let message { Text(message).font(.callout) }
                     if isBusy { ProgressView(Copy.saving) }
                     else { Button(action: onSave) { Text(Copy.save).frame(maxWidth: .infinity) }.buttonStyle(PrimaryButtonStyle()).disabled(!hasChanges) }

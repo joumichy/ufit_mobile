@@ -1,11 +1,5 @@
 import Foundation
 
-enum UFitCatalogGender: String, Codable, CaseIterable, Identifiable {
-    case male, female, unisex
-    var id: String { rawValue }
-    var label: String { switch self { case .male: Copy.male; case .female: Copy.female; case .unisex: Copy.unisex } }
-    private enum Copy { static let male = String(localized: "Homme"); static let female = String(localized: "Femme"); static let unisex = String(localized: "Unisexe") }
-}
 enum UFitCatalogImageKind: String, Codable, CaseIterable, Identifiable {
     case product, worn, detail, lookbook
     var id: String { rawValue }
@@ -75,19 +69,18 @@ struct UFitCatalogVariantDraft: Identifiable, Equatable {
     var title: String { let parts = [size, color].map(UFitCatalogInput.trimmed).filter { !$0.isEmpty }; return parts.isEmpty ? sku : parts.joined(separator: Copy.separator) }
     private enum Copy { static let separator = " · " }
 }
-enum UFitCatalogPhotoTransfer: Equatable { case ready, uploading, failed(String) }
 struct UFitCatalogPhotoDraft: Identifiable, Equatable {
     let id: UUID
     let serverID: String?
     var source: String?
     var url: String?
     var kind: UFitCatalogImageKind
-    var transfer: UFitCatalogPhotoTransfer
+    var transfer: UFitPhotoTransfer
     var previewData: Data? = nil
     var canRetryUpload: Bool { if case .failed = transfer { url == nil } else { false } }
 }
 struct UFitCatalogProductDraft: Equatable {
-    var name = String(); var description = String(); var category = String(); var gender: UFitCatalogGender?
+    var name = String(); var description = String(); var category = String(); var gender: UFitGenderTarget?
     var price = String(); var currency = UFitCatalogInput.defaultCurrency; var material = String(); var care = String()
     var variants: [UFitCatalogVariantDraft] = []; var photos: [UFitCatalogPhotoDraft] = []
 }

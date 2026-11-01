@@ -40,33 +40,33 @@ struct UFitCatalogProductFormContent: View {
             if let message { Text(message).font(.callout).padding(Layout.gap).frame(maxWidth: .infinity, alignment: .leading).background(Color.ufitBackground) }
             ScrollView {
                 VStack(alignment: .leading, spacing: Layout.page) {
-                    UFitCatalogTextField(label: Copy.name, text: $draft.name, error: errors[.name])
+                    UFitTextField(label: Copy.name, text: $draft.name, error: errors[.name])
                     VStack(alignment: .leading, spacing: Layout.small) {
                         Text(Copy.description).font(.subheadline.weight(.medium))
                         TextEditor(text: $draft.description).frame(minHeight: Layout.editor).padding(Layout.small)
                             .overlay { RoundedRectangle(cornerRadius: Layout.radius).stroke(Color.ufitBorder) }.accessibilityLabel(Copy.description)
                         errorText(errors[.description])
                     }
-                    UFitCatalogTextField(label: Copy.category, text: $draft.category, error: errors[.category])
+                    UFitTextField(label: Copy.category, text: $draft.category, error: errors[.category])
                     VStack(alignment: .leading, spacing: Layout.small) {
                         Text(Copy.gender).font(.subheadline.weight(.medium))
                         Picker(Copy.gender, selection: $draft.gender) {
-                            Text(Copy.unspecified).tag(Optional<UFitCatalogGender>.none)
-                            ForEach(UFitCatalogGender.allCases) { Text($0.label).tag(Optional($0)) }
+                            Text(Copy.unspecified).tag(Optional<UFitGenderTarget>.none)
+                            ForEach(UFitGenderTarget.allCases) { Text($0.label).tag(Optional($0)) }
                         }.pickerStyle(.menu).frame(minHeight: Layout.touch)
                     }
                     VStack(alignment: .leading, spacing: Layout.small) {
                         Button { showingCurrencies = true } label: { HStack { Text(Copy.currency); Spacer(); Text(draft.currency); Image(systemName: Icon.currency) }.frame(minHeight: Layout.touch) }.disabled(currencies.isEmpty)
                         errorText(errors[.currency])
                         if currencies.isEmpty { Button(Copy.reloadCurrencies, action: onReloadCurrencies).frame(minHeight: Layout.touch) }
-                        UFitCatalogTextField(label: Copy.price, text: $draft.price, error: errors[.price], keyboard: .decimalPad, isIdentifier: true)
+                        UFitTextField(label: Copy.price, text: $draft.price, error: errors[.price], keyboard: .decimalPad, isIdentifier: true)
                     }
                     UFitCatalogPhotosContent(photos: $draft.photos, error: errors[.photos], onAdd: onAddPhotos, onRetry: onRetryPhoto, onRemove: onRemovePhoto)
                     variants
                     DisclosureGroup(Copy.details) {
                         VStack(spacing: Layout.gap) {
-                            UFitCatalogTextField(label: Copy.material, text: $draft.material, error: errors[.material])
-                            UFitCatalogTextField(label: Copy.care, text: $draft.care, error: errors[.care])
+                            UFitTextField(label: Copy.material, text: $draft.material, error: errors[.material])
+                            UFitTextField(label: Copy.care, text: $draft.care, error: errors[.care])
                         }.padding(.top, Layout.gap)
                     }
                     if changesPublishedProduct { Text(Copy.changesPublication).font(.callout).foregroundStyle(Color.ufitMuted) }

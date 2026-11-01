@@ -25,7 +25,7 @@ struct UFitManagedProduct: Decodable, Identifiable {
     struct Brand: Decodable { let id: String; let brandName: String; let status: UFitProfileStatus }
     struct Product: Decodable {
         let id: String; let brandId: String; let version: Int; let name: String; let description: String; let category: String
-        let genderTarget: UFitCatalogGender?; let status: UFitCatalogStatus; let basePrice: Int; let currency: String
+        let genderTarget: UFitGenderTarget?; let status: UFitCatalogStatus; let basePrice: Int; let currency: String
         let material: String?; let careInstructions: String?; let rejectionReason: String?
     }
     struct Variant: Decodable {
@@ -58,7 +58,7 @@ struct UFitCatalogWriteRequest: Codable, Equatable {
     }
     struct Photo: Codable, Equatable { let id: String?; let url: String; let position: Int; let kind: UFitCatalogImageKind }
     let brandId: String?; let requestId: String?; let expectedVersion: Int?
-    let name: String; let description: String; let category: String; let genderTarget: UFitCatalogGender?
+    let name: String; let description: String; let category: String; let genderTarget: UFitGenderTarget?
     let basePrice: Int; let currency: String; let material: String?; let careInstructions: String?
     let variants: [Variant]; let images: [Photo]
     init(draft: UFitCatalogProductDraft, currency: UFitCatalogCurrency, creatingBrandID: String?, requestID: UUID?, editing: UFitCatalogRevision?) throws {

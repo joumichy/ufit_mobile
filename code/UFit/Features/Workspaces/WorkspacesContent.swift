@@ -14,6 +14,8 @@ struct UFitWorkspacesContent: View {
     let onAdminApplications: () -> Void
     let onCatalog: (UFitWorkspaceReference) -> Void
     let onAdminProducts: () -> Void
+    let onOutfits: (UFitWorkspaceReference) -> Void
+    let onAdminOutfits: () -> Void
     let onPublicProfile: (UFitWorkspaceReference) -> Void
     private enum Copy {
         static let title = String(localized: "Mes espaces")
@@ -26,6 +28,8 @@ struct UFitWorkspacesContent: View {
         static let profile = String(localized: "Modifier le profil")
         static let publicProfile = String(localized: "Voir le profil public")
         static let catalog = String(localized: "Catalogue de produits")
+        static let outfits = String(localized: "Mes tenues")
+        static let adminOutfits = String(localized: "Tenues à examiner")
         static let adminProducts = String(localized: "Produits à examiner")
     }
     private enum Layout {
@@ -66,6 +70,9 @@ struct UFitWorkspacesContent: View {
                                         HStack { Text(Copy.publicProfile); Spacer(); Image(systemName: Icon.chevron) }.frame(minHeight: Layout.touch).contentShape(Rectangle())
                                     }
                                 }
+                                Button(action: { onOutfits(space) }) {
+                                    HStack { Text(Copy.outfits); Spacer(); Image(systemName: Icon.chevron) }.frame(minHeight: Layout.touch).contentShape(Rectangle())
+                                }.disabled(space.status != .active && space.status != .paused)
                                 if !space.isCreator {
                                     Button(action: { onCatalog(space) }) {
                                         HStack { Text(Copy.catalog); Spacer(); Image(systemName: Icon.chevron) }.frame(minHeight: Layout.touch).contentShape(Rectangle())
@@ -84,6 +91,7 @@ struct UFitWorkspacesContent: View {
                         VStack(alignment: .leading, spacing: Layout.small) {
                             Button(Copy.admin, action: onAdminApplications).frame(minHeight: Layout.touch)
                             Button(Copy.adminProducts, action: onAdminProducts).frame(minHeight: Layout.touch)
+                            Button(Copy.adminOutfits, action: onAdminOutfits).frame(minHeight: Layout.touch)
                         }
                     }
                 }.padding(Layout.page).padding(.bottom, Layout.bottom).frame(maxWidth: .infinity, alignment: .leading)

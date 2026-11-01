@@ -81,7 +81,14 @@ struct MarketplaceRootView: View {
             UFitWorkspacesHost(store: workspaces, canAdminister: session.user?.canAdminister == true,
                 onOpen: showManagedProfile, onApplications: showApplications, onPayments: showPayments,
                 onAdminApplications: showAdminApplications, onCatalog: showBrandCatalog, onAdminProducts: showAdminProducts,
+                onOutfits: showManagedOutfits, onAdminOutfits: showAdminOutfits,
                 onPublicProfile: { space in showPublicProfile(.init(id: space.profileID, kind: space.isCreator ? .creator : .brand)) })
+        case .managedOutfits(let outfits):
+            UFitManagedOutfitsHost(store: outfits, onBack: goBack, onOpen: showManagedOutfit, onCreate: showOutfitForm)
+        case .managedOutfit(let outfit):
+            UFitManagedOutfitHost(store: outfit, onBack: goBack, onEdit: showOutfitEditor)
+        case .outfitForm(let form):
+            UFitOutfitFormHost(store: form, onBack: goBack, onSaved: { finishOutfitForm(form, outfit: $0) })
         case .catalog(let catalog):
             UFitCatalogHost(store: catalog, onBack: goBack, onOpen: showCatalogProduct, onCreate: showCatalogForm)
         case .catalogProduct(let product):
@@ -175,7 +182,47 @@ private extension MarketplaceRootView {
     }
 
     var hidesTabBar: Bool {
-        switch activeRoute { case .checkout, .applicationForm, .adminApplication, .managedProfile, .catalogProduct, .catalogForm, .catalogStock: true; default: false }
+        switch activeRoute { case .checkout, .applicationForm, .adminApplication, .managedProfile, .catalogProduct, .catalogForm, .catalogStock, .managedOutfit, .outfitForm: true; default: false }
+    }
+
+    func showManagedOutfits(_ space: UFitWorkspaceReference) {
+        guard session.user != nil, space.status == .active || space.status == .paused else { return }
+        routeHistory.append(activeRoute)
+        activeRoute = .managedOutfits(UFitManagedOutfitsStore(scope: .init(workspace: space), title: OutfitCopy.title,
+            subtitle: space.name, access: .author, client: session.api, session: session))
+    }
+    func showAdminOutfits() {
+        guard session.user?.canAdminister == true else { return }
+        routeHistory.append(activeRoute)
+        activeRoute = .managedOutfits(UFitManagedOutfitsStore(scope: nil, title: OutfitCopy.moderation,
+            subtitle: OutfitCopy.allAuthors, access: .moderator, client: session.api, session: session))
+    }
+    func showManagedOutfit(_ outfit: UFitManagedOutfitStore) {
+        guard outfit.collection.isCurrentAccount, case .managedOutfits(let current) = activeRoute, current === outfit.collection else { return }
+        routeHistory.append(activeRoute); activeRoute = .managedOutfit(outfit)
+    }
+    func showOutfitForm(_ outfits: UFitManagedOutfitsStore) {
+        guard outfits.isCurrentAccount, case .managedOutfits(let current) = activeRoute, current === outfits else { return }
+        do { let form = try UFitOutfitFormStore(collection: outfits, original: nil); routeHistory.append(activeRoute); activeRoute = .outfitForm(form) }
+        catch { outfits.report(error) }
+    }
+    func showOutfitEditor(_ outfit: UFitManagedOutfitStore) {
+        guard outfit.collection.isCurrentAccount, case .managedOutfit(let current) = activeRoute, current === outfit else { return }
+        do { let form = try UFitOutfitFormStore(collection: outfit.collection, original: outfit.document); routeHistory.append(activeRoute); activeRoute = .outfitForm(form) }
+        catch { outfit.report(error) }
+    }
+    func finishOutfitForm(_ form: UFitOutfitFormStore, outfit: UFitManagedOutfit) {
+        guard form.collection.isCurrentAccount, case .outfitForm(let current) = activeRoute, current === form else { return }
+        if form.isNew {
+            form.cancelPhotoUploads(); activeRoute = .managedOutfit(UFitManagedOutfitStore(document: outfit, collection: form.collection))
+        } else if let prior = routeHistory.last, case .managedOutfit(let previous) = prior {
+            do { try previous.receive(outfit); goBack() }
+            catch { previous.report(error) }
+        }
+    }
+    private enum OutfitCopy {
+        static let title = String(localized: "Mes tenues"); static let moderation = String(localized: "Modération des tenues")
+        static let allAuthors = String(localized: "Créateurs et marques")
     }
 
     func showBrandCatalog(_ space: UFitWorkspaceReference) {
@@ -276,11 +323,13 @@ private extension MarketplaceRootView {
 
     func goBack() {
         if case .catalogForm(let form) = activeRoute { form.cancelPhotoUploads() }
+        if case .outfitForm(let form) = activeRoute { form.cancelPhotoUploads() }
         activeRoute = routeHistory.popLast() ?? .feed
     }
 
     func returnToFeed() {
         if case .catalogForm(let form) = activeRoute { form.cancelPhotoUploads() }
+        if case .outfitForm(let form) = activeRoute { form.cancelPhotoUploads() }
         routeHistory = []
         activeRoute = .feed
         activeTab = .feed
@@ -292,6 +341,9 @@ private enum AppRoute {
     case search
     case create
     case managedProfile(UFitManagedProfileStore)
+    case managedOutfits(UFitManagedOutfitsStore)
+    case managedOutfit(UFitManagedOutfitStore)
+    case outfitForm(UFitOutfitFormStore)
     case catalog(UFitCatalogStore)
     case catalogProduct(UFitCatalogProductStore)
     case catalogForm(UFitCatalogFormStore)
