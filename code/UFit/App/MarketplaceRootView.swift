@@ -82,7 +82,11 @@ struct MarketplaceRootView: View {
                 onOpen: showManagedProfile, onApplications: showApplications, onPayments: showPayments,
                 onAdminApplications: showAdminApplications, onCatalog: showBrandCatalog, onCommercePolicy: showBrandCommercePolicy, onOrders: showBrandOrders, onReturns: showBrandReturns, onAdminReturns: showAdminReturns, onAdminProducts: showAdminProducts,
                 onOutfits: showManagedOutfits, onAdminOutfits: showAdminOutfits,
-                onPublicProfile: { space in showPublicProfile(.init(id: space.profileID, kind: space.isCreator ? .creator : .brand)) })
+                onPublicProfile: { space in showPublicProfile(.init(id: space.profileID, kind: space.isCreator ? .creator : .brand)) }, onDashboard: showWorkspaceDashboard)
+        case .workspaceDashboard(let dashboard):
+            UFitWorkspaceDashboardHost(store: dashboard, onBack: goBack, onCommissions: showWorkspaceCommissions)
+        case .workspaceCommissions(let commissions):
+            UFitWorkspaceCommissionsHost(store: commissions, onBack: goBack)
         case .managedOutfits(let outfits):
             UFitManagedOutfitsHost(store: outfits, onBack: goBack, onOpen: showManagedOutfit, onCreate: showOutfitForm)
         case .managedOutfit(let outfit):
@@ -185,6 +189,18 @@ private extension MarketplaceRootView {
         activeRoute = .publicProfile(UFitPublicProfileStore(reference: reference, client: session.api, session: session))
     }
 
+    func showWorkspaceDashboard(_ space: UFitWorkspaceReference) {
+        guard case .create = activeRoute, workspaces.spaces.contains(space), space.status != .suspended, let userID = session.user?.id else { return }
+        routeHistory.append(activeRoute)
+        activeRoute = .workspaceDashboard(UFitWorkspaceDashboardStore(workspace: space, session: session, userID: userID))
+    }
+    func showWorkspaceCommissions() {
+        guard case .workspaceDashboard(let dashboard) = activeRoute, dashboard.isCurrentAccount,
+            dashboard.workspace.isCreator, let document = dashboard.document, let userID = session.user?.id else { return }
+        routeHistory.append(activeRoute)
+        activeRoute = .workspaceCommissions(UFitWorkspaceCommissionsStore(name: document.name, session: session, userID: userID))
+    }
+
     func showManagedProfile(_ space: UFitWorkspaceReference) {
         guard let userID = session.user?.id else { return }
         Task {
@@ -196,7 +212,7 @@ private extension MarketplaceRootView {
     }
 
     var hidesTabBar: Bool {
-        switch activeRoute { case .checkout, .applicationForm, .adminApplication, .managedProfile, .catalogProduct, .catalogForm, .catalogStock, .managedOutfit, .outfitForm, .brandCommercePolicy, .brandOrders, .brandOrder, .returns, .returnDetail, .returnCreation: true; default: false }
+        switch activeRoute { case .workspaceDashboard, .workspaceCommissions, .checkout, .applicationForm, .adminApplication, .managedProfile, .catalogProduct, .catalogForm, .catalogStock, .managedOutfit, .outfitForm, .brandCommercePolicy, .brandOrders, .brandOrder, .returns, .returnDetail, .returnCreation: true; default: false }
     }
 
     func showCustomerReturns() {
@@ -422,6 +438,8 @@ private enum AppRoute {
     case feed
     case search
     case create
+    case workspaceDashboard(UFitWorkspaceDashboardStore)
+    case workspaceCommissions(UFitWorkspaceCommissionsStore)
     case managedProfile(UFitManagedProfileStore)
     case managedOutfits(UFitManagedOutfitsStore)
     case managedOutfit(UFitManagedOutfitStore)

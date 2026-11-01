@@ -12,11 +12,6 @@ final class MarketplaceStore {
     private(set) var isLoadingFeed = false
     var feedErrorMessage: String?
     var actionMessage: String?
-    var creatorDashboard: UFitCreatorDashboardDTO?
-    var creatorOutfits: [UFitCreatorOutfitDTO] = []
-    var creatorCommissions: [UFitCreatorCommissionDTO] = []
-    var brandDashboard: UFitBrandDashboardDTO?
-    var brandOrders: [BrandOrder]
 
     @ObservationIgnored private let client: UFitAPIClient
     @ObservationIgnored private let session: UFitSessionStore?
@@ -27,7 +22,6 @@ final class MarketplaceStore {
         self.client = client
         self.session = session
         self.outfits = fallbackOutfits
-        self.brandOrders = []
     }
 
     static func live(client: UFitAPIClient = UFitAPIClient(), session: UFitSessionStore? = nil) -> MarketplaceStore {
@@ -36,10 +30,6 @@ final class MarketplaceStore {
 
     var isAuthenticated: Bool {
         session?.user != nil || client.configuration.bearerToken != nil
-    }
-
-    var brandProfileID: String? {
-        client.configuration.brandProfileID
     }
 
     func loadFeedIfNeeded() async {
@@ -98,11 +88,6 @@ final class MarketplaceStore {
     func clearAccountData() {
         savedOutfits = []
         savedOutfitIDs = []
-        creatorDashboard = nil
-        creatorOutfits = []
-        creatorCommissions = []
-        brandDashboard = nil
-        brandOrders = []
         actionMessage = nil
     }
 
@@ -132,35 +117,6 @@ final class MarketplaceStore {
             } else {
                 savedOutfitIDs.remove(outfit.id)
             }
-            actionMessage = friendlyMessage(for: error)
-        }
-    }
-
-    func loadCreatorWorkspace() async {
-        do {
-            async let dashboard = client.fetchCreatorDashboard()
-            async let outfits = client.fetchCreatorOutfits(limit: 20)
-            async let commissions = client.fetchCreatorCommissions(limit: 20)
-            creatorDashboard = try await dashboard
-            creatorOutfits = try await outfits.items
-            creatorCommissions = try await commissions.items
-        } catch {
-            actionMessage = friendlyMessage(for: error)
-        }
-    }
-
-    func loadBrandWorkspace() async {
-        guard let brandProfileID else {
-            actionMessage = "Set UFIT_BRAND_PROFILE_ID to load the brand workspace."
-            return
-        }
-
-        do {
-            async let dashboard = client.fetchBrandDashboard(brandProfileID: brandProfileID)
-            async let orders = client.fetchBrandOrders(brandProfileID: brandProfileID, limit: 8)
-            brandDashboard = try await dashboard
-            brandOrders = try await orders.items.map { $0.toBrandOrder() }
-        } catch {
             actionMessage = friendlyMessage(for: error)
         }
     }
@@ -227,35 +183,10 @@ private extension UFitOutfitItemDTO {
     }
 }
 
-extension UFitBrandOrderDTO {
-    func toBrandOrder() -> BrandOrder {
-        BrandOrder(
-            id: orderNumber,
-            customer: sourceCreatorId == nil ? "Direct order" : "Creator sale",
-            items: 1,
-            total: UFitMoney.format(totalAmount, currency: currency),
-            status: OrderStatus(apiStatus: status),
-            date: UFitDate.short(createdAt)
-        )
-    }
-}
-
-enum UFitMoney {
-    private static let locale = Locale(identifier: "fr_CH")
-    private static let decimalBase = Decimal(10)
+extension UFitMoney {
     private static let separator = " + "
     private static let rangeSeparator = " – "
     private static let inspiration = String(localized: "Pièces d’inspiration")
-    static func format(_ amount: Int, currency: String) -> String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.locale = locale
-        formatter.currencyCode = currency
-        var divisor = Decimal(1)
-        for _ in 0..<formatter.maximumFractionDigits { divisor *= decimalBase }
-        let major = NSDecimalNumber(decimal: Decimal(amount) / divisor)
-        return formatter.string(from: major) ?? major.stringValue + currency
-    }
     static func ranges(_ prices: [UFitProductPriceDTO]) -> String {
         guard !prices.isEmpty else { return inspiration }
         return prices.map { range in

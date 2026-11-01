@@ -21,6 +21,7 @@ struct UFitWorkspacesContent: View {
     let onOutfits: (UFitWorkspaceReference) -> Void
     let onAdminOutfits: () -> Void
     let onPublicProfile: (UFitWorkspaceReference) -> Void
+    let onDashboard: (UFitWorkspaceReference) -> Void
     private enum Copy {
         static let title = String(localized: "Mes espaces")
         static let refresh = String(localized: "Actualiser")
@@ -29,6 +30,7 @@ struct UFitWorkspacesContent: View {
         static let apply = String(localized: "Mes candidatures")
         static let payments = String(localized: "Paiements et versements")
         static let admin = String(localized: "Candidatures à examiner")
+        static let dashboard = String(localized: "Tableau de bord")
         static let profile = String(localized: "Modifier le profil")
         static let publicProfile = String(localized: "Voir le profil public")
         static let catalog = String(localized: "Catalogue de produits")
@@ -69,6 +71,9 @@ struct UFitWorkspacesContent: View {
                                         HStack { Text(space.status.label); if let role = space.roleLabel { Text(role) } }.font(.subheadline).foregroundStyle(Color.ufitMuted)
                                     }
                                 }
+                                Button(action: { onDashboard(space) }) {
+                                    HStack { Text(Copy.dashboard); Spacer(); Image(systemName: Icon.chevron) }.frame(minHeight: Layout.touch).contentShape(Rectangle())
+                                }.disabled(space.status == .suspended)
                                 Button(action: { onOpen(space) }) {
                                     HStack { Text(Copy.profile); Spacer(); if busyIDs.contains(space.id) { ProgressView() } else { Image(systemName: Icon.chevron) } }
                                         .frame(minHeight: Layout.touch).contentShape(Rectangle())

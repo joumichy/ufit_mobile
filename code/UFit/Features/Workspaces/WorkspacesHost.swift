@@ -16,11 +16,12 @@ struct UFitWorkspacesHost: View {
     let onOutfits: (UFitWorkspaceReference) -> Void
     let onAdminOutfits: () -> Void
     let onPublicProfile: (UFitWorkspaceReference) -> Void
+    let onDashboard: (UFitWorkspaceReference) -> Void
     var body: some View {
         UFitWorkspacesContent(spaces: store.spaces, hasLoaded: store.hasLoaded, isLoading: store.isLoading,
             busyIDs: store.busyIDs, message: store.message, canAdminister: canAdminister,
             onRefresh: { Task { await store.load() } }, onOpen: onOpen, onApplications: onApplications,
-            onPayments: onPayments, onAdminApplications: onAdminApplications, onCatalog: onCatalog, onCommercePolicy: onCommercePolicy, onOrders: onOrders, onReturns: onReturns, onAdminReturns: onAdminReturns, onAdminProducts: onAdminProducts, onOutfits: onOutfits, onAdminOutfits: onAdminOutfits, onPublicProfile: onPublicProfile)
+            onPayments: onPayments, onAdminApplications: onAdminApplications, onCatalog: onCatalog, onCommercePolicy: onCommercePolicy, onOrders: onOrders, onReturns: onReturns, onAdminReturns: onAdminReturns, onAdminProducts: onAdminProducts, onOutfits: onOutfits, onAdminOutfits: onAdminOutfits, onPublicProfile: onPublicProfile, onDashboard: onDashboard)
             .task { await store.load() }
             .onDisappear { store.cancelOpening() }
     }

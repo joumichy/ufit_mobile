@@ -75,7 +75,7 @@ final class UFitSessionStore {
             client = SupabaseClient(supabaseURL: url, supabaseKey: key)
         } else { client = nil }
         auth = client
-        api = UFitAPIClient(configuration: UFitAPIConfiguration(baseURL: configuration.apiURL, bearerToken: nil, brandProfileID: nil), tokenProvider: {
+        api = UFitAPIClient(configuration: UFitAPIConfiguration(baseURL: configuration.apiURL, bearerToken: nil), tokenProvider: {
             guard let client else { return nil }
             return try await client.auth.session.accessToken
         })
