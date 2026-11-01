@@ -8,30 +8,9 @@ struct HomeFeedView: View {
     var onSignIn: () -> Void = {}
 
     var body: some View {
-        ScrollView(.vertical) {
-            LazyVStack(spacing: 0) {
-                ForEach(store.outfits) { outfit in
-                    OutfitFeedCard(
-                        outfit: outfit,
-                        isLiked: store.savedOutfitIDs.contains(outfit.id),
-                        onLike: { toggleLike(outfit) },
-                        onOutfitTap: { onOutfitTap(outfit) },
-                        onAuthorTap: { if let author = outfit.author { onAuthorTap(author) } },
-                        isSaving: store.savingOutfitIDs.contains(outfit.id), onItemTap: { onItemTap(outfit, $0) },
-                        showingPieces: Binding(get: { store.expandedFeedIDs.contains(outfit.id) }, set: { expanded in
-                            if expanded { store.expandedFeedIDs.insert(outfit.id) } else { store.expandedFeedIDs.remove(outfit.id) }
-                        }), selectedPhotoID: Binding(get: { store.feedPhotoIDs[outfit.id] }, set: { store.feedPhotoIDs[outfit.id] = $0 })
-                    )
-                    .containerRelativeFrame([.horizontal, .vertical])
-                }
-            }
-            .scrollTargetLayout()
-        }
-        .scrollIndicators(.hidden)
-        .scrollTargetBehavior(.paging)
-        .scrollPosition(id: $store.visibleFeedOutfitID)
-        .background(Color.black)
-        .ignoresSafeArea()
+        HomeFeedContentView(outfits: store.outfits, savedOutfitIDs: store.savedOutfitIDs, savingOutfitIDs: store.savingOutfitIDs,
+            expandedOutfitIDs: $store.expandedFeedIDs, photoIDs: $store.feedPhotoIDs, visibleOutfitID: $store.visibleFeedOutfitID,
+            onToggleSaved: toggleLike, onOutfitTap: onOutfitTap, onAuthorTap: onAuthorTap, onItemTap: onItemTap)
         .task {
             await store.loadFeedIfNeeded()
         }
