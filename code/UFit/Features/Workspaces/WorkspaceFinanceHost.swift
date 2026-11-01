@@ -2,11 +2,12 @@ import SwiftUI
 
 struct UFitWorkspaceDashboardHost: View {
     let store: UFitWorkspaceDashboardStore
+    let title: String
     let onBack: () -> Void
     let onCommissions: () -> Void
     var body: some View {
         UFitWorkspaceDashboardContent(document: store.document, isLoading: store.isLoading, message: store.message,
-            onBack: onBack, onRefresh: { Task { await store.load() } }, onCommissions: onCommissions)
+            onBack: onBack, onRefresh: { Task { await store.load() } }, onCommissions: onCommissions, sectionTitle: title, showsActivity: false)
             .task { await store.load() }
             .onDisappear { store.cancelLoading() }
     }

@@ -21,9 +21,9 @@ final class UFitManagedOutfitsStore {
     @ObservationIgnored let client: UFitAPIClient
     @ObservationIgnored let session: UFitSessionStore
     @ObservationIgnored private let userID: String?
-    init(scope: UFitOutfitScope?, title: String, subtitle: String?, access: UFitOutfitAccess, client: UFitAPIClient, session: UFitSessionStore) {
+    init(scope: UFitOutfitScope?, title: String, subtitle: String?, access: UFitOutfitAccess, client: UFitAPIClient, session: UFitSessionStore, initialStatus: UFitOutfitStatus? = nil) {
         self.scope = scope; self.title = title; self.subtitle = subtitle; self.access = access; self.client = client; self.session = session
-        userID = session.user?.id; selectedStatus = access == .moderator ? .underReview : nil
+        userID = session.user?.id; selectedStatus = access == .moderator ? .underReview : initialStatus
     }
     var rows: [UFitManagedOutfitRow] { outfits.map { $0.row() } }
     var isCurrentAccount: Bool { userID != nil && session.user?.id == userID }

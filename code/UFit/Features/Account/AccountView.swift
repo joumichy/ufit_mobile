@@ -8,18 +8,16 @@ struct UFitAccountView: View {
     let onSaveName: (String) -> Void
     let onSignOut: () -> Void
     var onOrders: (() -> Void)?
-    var onPayments: (() -> Void)?
     var onApplications: (() -> Void)?
-    var onAdminApplications: (() -> Void)?
+    var onChooseExperience: (() -> Void)?
+    var onBack: (() -> Void)?
     @State private var editing = false
     @State private var editedName = String()
     private enum Copy {
         static let applications = String(localized: "Mes candidatures")
         static let applicationsIcon = "doc.text"
-        static let admin = String(localized: "Administration · candidatures")
-        static let adminIcon = "checkmark.shield"
-        static let payments = String(localized: "Paiements et versements")
-        static let paymentsIcon = "creditcard"
+        static let choose = String(localized: "Changer d’espace")
+        static let chooseIcon = "arrow.triangle.swap"
         static let orders = String(localized: "Mes commandes")
         static let ordersIcon = "bag"
         static let title = String(localized: "Mon compte")
@@ -41,9 +39,11 @@ struct UFitAccountView: View {
         static let touch: CGFloat = 44
     }
     var body: some View {
-        ScrollView {
+        VStack(spacing: .zero) {
+            if let onBack { DetailHeader(title: Copy.title, onBack: onBack) }
+            ScrollView {
             VStack(alignment: .leading, spacing: Layout.spacing) {
-                Text(Copy.title).font(.system(size: Layout.title, weight: .regular, design: .serif))
+                if onBack == nil { Text(Copy.title).font(.system(size: Layout.title, weight: .regular, design: .serif)) }
                 HStack(spacing: Layout.spacing) {
                     Image(systemName: Copy.person).font(.system(size: Layout.portrait, weight: .ultraLight))
                     VStack(alignment: .leading) {
@@ -67,14 +67,14 @@ struct UFitAccountView: View {
                 if let message { Text(message).font(.callout).foregroundStyle(Color.ufitMuted) }
                 Divider()
                 if let onOrders { Button(action: onOrders) { Label(Copy.orders, systemImage: Copy.ordersIcon) }.frame(minHeight: Layout.touch) }
-                if let onPayments { Button(action: onPayments) { Label(Copy.payments, systemImage: Copy.paymentsIcon) }.frame(minHeight: Layout.touch) }
                 if let onApplications { Button(action: onApplications) { Label(Copy.applications, systemImage: Copy.applicationsIcon) }.frame(minHeight: Layout.touch) }
-                if let onAdminApplications { Button(action: onAdminApplications) { Label(Copy.admin, systemImage: Copy.adminIcon) }.frame(minHeight: Layout.touch) }
+                if let onChooseExperience { Button(action: onChooseExperience) { Label(Copy.choose, systemImage: Copy.chooseIcon) }.frame(minHeight: Layout.touch) }
                 Button(action: onSignOut) { Label(Copy.signOut, systemImage: Copy.exitIcon) }.disabled(isBusy)
             }
             .padding(Layout.spacing)
             .padding(.bottom, Layout.bottom)
             .frame(maxWidth: .infinity, alignment: .leading)
+        }
         }
         .foregroundStyle(Color.ufitInk).background(Color.white)
         .buttonStyle(.plain)

@@ -21,9 +21,9 @@ final class UFitCatalogStore {
     @ObservationIgnored let client: UFitAPIClient
     @ObservationIgnored let session: UFitSessionStore
     @ObservationIgnored private let ownerUserID: String?
-    init(brandID: String?, title: String, subtitle: String, access: UFitCatalogAccess, client: UFitAPIClient, session: UFitSessionStore) {
+    init(brandID: String?, title: String, subtitle: String, access: UFitCatalogAccess, client: UFitAPIClient, session: UFitSessionStore, initialStatus: UFitCatalogStatus? = nil) {
         self.brandID = brandID; self.title = title; self.subtitle = subtitle; self.access = access; self.client = client; self.session = session
-        ownerUserID = session.user?.id; selectedStatus = access == .moderator ? .underReview : nil
+        ownerUserID = session.user?.id; selectedStatus = access == .moderator ? .underReview : initialStatus
     }
     var rows: [UFitCatalogRow] { products.map { $0.row() } }
     var isCurrentAccount: Bool { ownerUserID != nil && session.user?.id == ownerUserID }

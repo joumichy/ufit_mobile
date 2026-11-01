@@ -9,6 +9,13 @@ struct MarketplaceRootView: View {
     @State private var workspaces: UFitWorkspacesStore
     @State private var applications: UFitApplicationsStore
     @State private var adminApplications: UFitApplicationQueueStore
+    @State private var experience: UFitExperienceStore
+    @State private var adminActivity: UFitAdminActivityStore
+    @State private var professionalDashboard: UFitWorkspaceDashboardStore?
+    @State private var appliedExperience = UFitExperienceSelection.customer
+    @State private var showExperienceChooser = false
+    @State private var preserveCustomerContextOnSignIn = false
+    @Environment(\.scenePhase) private var scenePhase
     @State private var routeHistory: [AppRoute] = []
     @State private var showAuthentication = false
 
@@ -18,7 +25,10 @@ struct MarketplaceRootView: View {
         _store = State(initialValue: MarketplaceStore.live(client: session.api, session: session))
         _cart = State(initialValue: UFitCartStore(client: session.api, session: session))
         _orders = State(initialValue: UFitOrdersStore(client: session.api, session: session))
-        _workspaces = State(initialValue: UFitWorkspacesStore(client: session.api, session: session))
+        let workspaces = UFitWorkspacesStore(client: session.api, session: session)
+        _workspaces = State(initialValue: workspaces)
+        _experience = State(initialValue: UFitExperienceStore(session: session, workspaces: workspaces))
+        _adminActivity = State(initialValue: UFitAdminActivityStore(session: session))
         _applications = State(initialValue: UFitApplicationsStore(client: session.api, session: session))
         _adminApplications = State(initialValue: UFitApplicationQueueStore(client: session.api, session: session))
     }
@@ -32,8 +42,8 @@ struct MarketplaceRootView: View {
                 OnboardingView(onComplete: completeOnboarding)
             } else {
                 ZStack(alignment: .bottom) {
-                    routedContent
-                    if !hidesTabBar { BottomNavBar(activeTab: activeTab, onSelect: selectTab) }
+                    routedContent.environment(\.ufitPrimarySection, routeHistory.isEmpty)
+                    if !hidesTabBar { BottomNavBar(activeTab: activeTab, experience: experience.kind, cartCount: cart.count, onSelect: selectTab) }
                 }
                 .background(Color.ufitBackground)
             }
@@ -50,19 +60,35 @@ struct MarketplaceRootView: View {
             orders.reset()
             workspaces.reset()
             applications.reset()
-            adminApplications.reset()
+            adminApplications.reset(); adminActivity.reset(); professionalDashboard = nil; experience.reset(); appliedExperience = .customer
             if previousUserID != nil { returnToFeed() }
-            if userID != nil { Task { await store.loadSavedOutfits() } }
+            if userID != nil {
+                if preserveCustomerContextOnSignIn { experience.choose(.customer) }
+                preserveCustomerContextOnSignIn = false
+                Task { await experience.load(); await store.loadSavedOutfits(); await cart.load() }
+            }
+        }
+        .onChange(of: experience.selected) { _, _ in applyExperienceNavigation() }
+        .onChange(of: experience.asksForChoice) { _, requested in
+            if requested && !showAuthentication { showExperienceChooser = true }
+        }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active && session.user != nil { Task { await experience.load() } }
         }
         .onChange(of: session.needsNewPassword) { _, needed in
             if needed { showAuthentication = true }
         }
         .onChange(of: showAuthentication) { _, showing in
-            if !showing, case .publicProfile(let profile) = activeRoute { Task { await profile.loadFollow(refreshProfile: true) } }
+            if !showing {
+                if session.user == nil { preserveCustomerContextOnSignIn = false }
+                if experience.asksForChoice { showExperienceChooser = true }
+                if case .publicProfile(let profile) = activeRoute { Task { await profile.loadFollow(refreshProfile: true) } }
+            }
         }
         .sheet(isPresented: $showAuthentication) {
             UFitAuthenticationHost(session: session, onBrowse: { showAuthentication = false })
         }
+        .sheet(isPresented: $showExperienceChooser, onDismiss: experience.dismissChoiceRequest) { experienceChooser }
     }
 
     @ViewBuilder
@@ -74,18 +100,22 @@ struct MarketplaceRootView: View {
                 onOutfitTap: showOutfitDetail,
                 onAuthorTap: { author in showPublicProfile(.init(id: author.id, kind: author.kind)) },
                 onItemTap: showOutfitItem,
-                onSignIn: { showAuthentication = true }
+                onSignIn: { requestSignIn(keepCustomerContext: true) }
             )
         case .search:
             SearchOutfitsView(store: store, onOutfitTap: showOutfitDetail)
-        case .create:
-            UFitWorkspacesHost(store: workspaces, canAdminister: session.user?.canAdminister == true,
-                onOpen: showManagedProfile, onApplications: showApplications, onPayments: showPayments,
-                onAdminApplications: showAdminApplications, onCatalog: showBrandCatalog, onCommercePolicy: showBrandCommercePolicy, onOrders: showBrandOrders, onReturns: showBrandReturns, onAdminReturns: showAdminReturns, onAdminProducts: showAdminProducts,
-                onOutfits: showManagedOutfits, onAdminOutfits: showAdminOutfits,
-                onPublicProfile: { space in showPublicProfile(.init(id: space.profileID, kind: space.isCreator ? .creator : .brand)) }, onDashboard: showWorkspaceDashboard)
+        case .professionalHome:
+            professionalHome
+        case .professionalProfile:
+            if let space = experience.workspace {
+                UFitProfessionalProfileContent(workspace: space, isOpening: workspaces.busyIDs.contains(space.id), message: workspaces.message,
+                    onAction: { performProfileAction($0, space: space) }, onChooseExperience: showExperiencePicker)
+            } else { experienceChooser }
+        case .administratorHome:
+            UFitAdminActivityHost(store: adminActivity, onChooseExperience: showExperiencePicker, onApplications: showAdminApplications,
+                onProducts: showAdminProducts, onOutfits: showAdminOutfits, onReturns: showAdminReturns)
         case .workspaceDashboard(let dashboard):
-            UFitWorkspaceDashboardHost(store: dashboard, onBack: goBack, onCommissions: showWorkspaceCommissions)
+            UFitWorkspaceDashboardHost(store: dashboard, title: dashboard.workspace.isCreator ? AppTab.creatorEarnings.title : ExperienceCopy.sales, onBack: goBack, onCommissions: showWorkspaceCommissions)
         case .workspaceCommissions(let commissions):
             UFitWorkspaceCommissionsHost(store: commissions, onBack: goBack)
         case .managedOutfits(let outfits):
@@ -121,7 +151,7 @@ struct MarketplaceRootView: View {
         case .outfit(let outfit, let shopping, let itemID):
             OutfitDetailView(outfit: outfit, shopping: shopping, session: session, cart: cart,
                 onAuthor: { author in showPublicProfile(.init(id: author.id, kind: author.kind)) },
-                onBrand: { id in showPublicProfile(.init(id: id, kind: .brand)) }, onBack: goBack, onCart: showCart, onSignIn: { showAuthentication = true }, focusedItemID: itemID)
+                onBrand: { id in showPublicProfile(.init(id: id, kind: .brand)) }, onBack: goBack, onCart: showCart, onSignIn: { requestSignIn(keepCustomerContext: true) }, focusedItemID: itemID)
         case .cart:
             UFitCartHost(store: cart, onBack: goBack, onCheckout: showCheckout)
         case .checkout(let checkout):
@@ -129,7 +159,11 @@ struct MarketplaceRootView: View {
         case .saved:
             SavedOutfitsView(store: store, onOutfitTap: showOutfitDetail)
         case .account:
-            UFitAccountHost(session: session, onSignedOut: returnToFeed, onOrders: showOrders, onPayments: showPayments, onApplications: showApplications, onAdminApplications: showAdminApplications)
+            UFitAccountHost(session: session, onSignedOut: returnToFeed,
+                onOrders: experience.kind == .customer ? showOrders : nil,
+                onApplications: experience.kind == .administrator ? nil : showApplications,
+                onChooseExperience: experience.canChooseAnotherExperience ? showExperiencePicker : nil,
+                onBack: routeHistory.isEmpty ? nil : goBack)
         case .applications:
             UFitApplicationsHost(store: applications, onBack: goBack, onApply: showApplicationForm, onPayments: showPayments)
         case .applicationForm(let form):
@@ -145,7 +179,7 @@ struct MarketplaceRootView: View {
         case .order(let order):
             UFitOrderDetailHost(store: order, onBack: goBack, onReturns: showCustomerReturns)
         case .publicProfile(let profile):
-            UFitPublicProfileHost(store: profile, session: session, onBack: goBack, onSignIn: { showAuthentication = true }, onOpen: showOutfitDetail)
+            UFitPublicProfileHost(store: profile, session: session, onBack: goBack, onSignIn: { requestSignIn(keepCustomerContext: true) }, onOpen: showOutfitDetail)
         }
     }
 }
@@ -158,24 +192,36 @@ private extension MarketplaceRootView {
     }
 
     func selectTab(_ tab: AppTab) {
-        if (tab == .profile || tab == .saved || tab == .create) && session.user == nil {
-            showAuthentication = true
-            return
+        guard experience.kind.tabs.contains(tab) else { return }
+        if (tab == .profile || tab == .saved || tab == .cart) && session.user == nil {
+            requestSignIn(keepCustomerContext: tab != .profile); return
         }
-        routeHistory = []
-        activeTab = tab
-
+        cancelCurrentForm(); workspaces.cancelOpening(); routeHistory = []; activeTab = tab
         switch tab {
-        case .feed:
-            activeRoute = .feed
-        case .search:
-            activeRoute = .search
-        case .create:
-            activeRoute = .create
-        case .saved:
-            activeRoute = .saved
-        case .profile:
-            activeRoute = .account
+        case .feed: activeRoute = .feed
+        case .search: activeRoute = .search
+        case .saved: activeRoute = .saved
+        case .cart: activeRoute = .cart
+        case .profile: activeRoute = .account
+        case .creatorStudio, .brandActivity: activeRoute = .professionalHome
+        case .creatorProfile, .brandProfile: activeRoute = .professionalProfile
+        case .creatorOutfits, .brandPublications:
+            if let space = experience.workspace { activeRoute = .managedOutfits(outfitCollection(space)) }
+        case .creatorEarnings:
+            if let dashboard = professionalDashboard { activeRoute = .workspaceDashboard(dashboard) }
+        case .brandCatalog:
+            if let space = experience.workspace { activeRoute = .catalog(catalogCollection(space)) }
+        case .brandOrders:
+            if let space = experience.workspace {
+                do { activeRoute = .brandOrders(try UFitBrandOrdersStore(space: space, session: session)) }
+                catch { workspaces.reportOpeningFailure(error, space: space); activeTab = .brandProfile; activeRoute = .professionalProfile }
+            }
+        case .adminHome: activeRoute = .administratorHome
+        case .adminApplications: activeRoute = .adminApplications
+        case .adminProducts:
+            activeRoute = .catalog(UFitCatalogStore(brandID: nil, title: CatalogCopy.moderation, subtitle: CatalogCopy.allBrands, access: .moderator, client: session.api, session: session))
+        case .adminOutfits:
+            activeRoute = .managedOutfits(UFitManagedOutfitsStore(scope: nil, title: OutfitCopy.moderation, subtitle: OutfitCopy.allAuthors, access: .moderator, client: session.api, session: session))
         }
     }
 
@@ -197,7 +243,7 @@ private extension MarketplaceRootView {
     }
 
     func showWorkspaceDashboard(_ space: UFitWorkspaceReference) {
-        guard case .create = activeRoute, workspaces.spaces.contains(space), space.status != .suspended, let userID = session.user?.id else { return }
+        guard experience.canUse(space), let userID = session.user?.id else { return }
         routeHistory.append(activeRoute)
         activeRoute = .workspaceDashboard(UFitWorkspaceDashboardStore(workspace: space, session: session, userID: userID))
     }
@@ -212,15 +258,13 @@ private extension MarketplaceRootView {
         guard let userID = session.user?.id else { return }
         Task {
             guard let profile = await workspaces.open(space), session.user?.id == userID,
-                  case .create = activeRoute else { return }
+                  experience.canUse(space), case .professionalProfile = activeRoute else { return }
             routeHistory.append(activeRoute)
             activeRoute = .managedProfile(profile)
         }
     }
 
-    var hidesTabBar: Bool {
-        switch activeRoute { case .workspaceDashboard, .workspaceCommissions, .checkout, .applicationForm, .adminApplication, .managedProfile, .catalogProduct, .catalogForm, .catalogStock, .managedOutfit, .outfitForm, .brandCommercePolicy, .brandOrders, .brandOrder, .returns, .returnDetail, .returnCreation: true; default: false }
-    }
+    var hidesTabBar: Bool { !routeHistory.isEmpty }
 
     func showCustomerReturns() {
         guard case .order(let detail) = activeRoute, !detail.isBusy, let order = detail.order, session.user != nil else { return }
@@ -230,7 +274,7 @@ private extension MarketplaceRootView {
         } catch { detail.message = error.localizedDescription }
     }
     func showBrandReturns(_ space: UFitWorkspaceReference) {
-        guard case .create = activeRoute, session.user != nil, workspaces.spaces.contains(space), !space.isCreator,
+        guard experience.canUse(space), !space.isCreator,
               space.status == .active || space.status == .paused else { return }
         do {
             let list = try UFitReturnsStore(scope: .brand(brandID: space.profileID), context: space.name, session: session)
@@ -238,9 +282,9 @@ private extension MarketplaceRootView {
         } catch { workspaces.reportOpeningFailure(error, space: space) }
     }
     func showAdminReturns() {
-        guard case .create = activeRoute, session.user?.canAdminister == true else { return }
+        guard experience.kind == .administrator, session.user?.canAdminister == true else { return }
         do {
-            let list = try UFitReturnsStore(scope: .administrator, context: String(localized: "Retours et arbitrages"), session: session)
+            let list = try UFitReturnsStore(scope: .administrator, context: ExperienceCopy.returns, session: session)
             routeHistory.append(activeRoute); activeRoute = .returns(list)
         } catch { workspaces.reportOpeningFailure(error) }
     }
@@ -267,13 +311,6 @@ private extension MarketplaceRootView {
             activeRoute = .returnDetail(detail)
         } catch { list.reportOpeningFailure(error) }
     }
-    func showBrandOrders(_ space: UFitWorkspaceReference) {
-        guard case .create = activeRoute, session.user != nil, workspaces.spaces.contains(space), !space.isCreator, space.status == .active || space.status == .paused else { return }
-        do {
-            let list = try UFitBrandOrdersStore(space: space, session: session)
-            routeHistory.append(activeRoute); activeRoute = .brandOrders(list)
-        } catch { workspaces.reportOpeningFailure(error, space: space) }
-    }
     func showBrandOrder(_ id: String) {
         guard case .brandOrders(let list) = activeRoute, list.isCurrentAccount else { return }
         do {
@@ -283,24 +320,16 @@ private extension MarketplaceRootView {
     }
 
     func showBrandCommercePolicy(_ space: UFitWorkspaceReference) {
-        guard case .create = activeRoute, session.user != nil, workspaces.spaces.contains(space), !space.isCreator, space.status == .active || space.status == .paused else { return }
+        guard experience.canUse(space), !space.isCreator, space.status == .active || space.status == .paused else { return }
         do {
             let policy = try UFitBrandCommercePolicyStore(space: space, session: session)
             routeHistory.append(activeRoute); activeRoute = .brandCommercePolicy(policy)
         } catch { workspaces.reportOpeningFailure(error, space: space) }
     }
 
-    func showManagedOutfits(_ space: UFitWorkspaceReference) {
-        guard session.user != nil, space.status == .active || space.status == .paused else { return }
-        routeHistory.append(activeRoute)
-        activeRoute = .managedOutfits(UFitManagedOutfitsStore(scope: .init(workspace: space), title: OutfitCopy.title,
-            subtitle: space.name, access: .author, client: session.api, session: session))
-    }
     func showAdminOutfits() {
-        guard session.user?.canAdminister == true else { return }
-        routeHistory.append(activeRoute)
-        activeRoute = .managedOutfits(UFitManagedOutfitsStore(scope: nil, title: OutfitCopy.moderation,
-            subtitle: OutfitCopy.allAuthors, access: .moderator, client: session.api, session: session))
+        guard experience.kind == .administrator, session.user?.canAdminister == true else { return }
+        selectTab(.adminOutfits)
     }
     func showManagedOutfit(_ outfit: UFitManagedOutfitStore) {
         guard outfit.collection.isCurrentAccount, case .managedOutfits(let current) = activeRoute, current === outfit.collection else { return }
@@ -330,15 +359,9 @@ private extension MarketplaceRootView {
         static let allAuthors = String(localized: "Créateurs et marques")
     }
 
-    func showBrandCatalog(_ space: UFitWorkspaceReference) {
-        guard case .brand = space, space.status != .suspended, session.user != nil else { return }
-        routeHistory.append(activeRoute)
-        activeRoute = .catalog(UFitCatalogStore(brandID: space.profileID, title: CatalogCopy.title, subtitle: space.name, access: .member, client: session.api, session: session))
-    }
     func showAdminProducts() {
-        guard session.user?.canAdminister == true else { return }
-        routeHistory.append(activeRoute)
-        activeRoute = .catalog(UFitCatalogStore(brandID: nil, title: CatalogCopy.moderation, subtitle: CatalogCopy.allBrands, access: .moderator, client: session.api, session: session))
+        guard experience.kind == .administrator, session.user?.canAdminister == true else { return }
+        selectTab(.adminProducts)
     }
     func showCatalogProduct(_ product: UFitCatalogProductStore) {
         guard product.catalog.isCurrentAccount, case .catalog(let current) = activeRoute, current === product.catalog else { return }
@@ -373,7 +396,7 @@ private extension MarketplaceRootView {
     }
 
     func showApplications() {
-        guard session.user != nil else { showAuthentication = true; return }
+        guard session.user != nil else { requestSignIn(keepCustomerContext: true); return }
         routeHistory.append(activeRoute)
         activeRoute = .applications
     }
@@ -382,9 +405,8 @@ private extension MarketplaceRootView {
         activeRoute = .applicationForm(UFitApplicationFormStore(kind: kind, correcting: correcting, client: session.api, session: session))
     }
     func showAdminApplications() {
-        guard session.user?.canAdminister == true else { return }
-        routeHistory.append(activeRoute)
-        activeRoute = .adminApplications
+        guard experience.kind == .administrator, session.user?.canAdminister == true else { return }
+        selectTab(.adminApplications)
     }
     func showAdminApplication(_ item: UFitApplicationQueueItem) {
         guard session.user?.canAdminister == true else { return }
@@ -393,18 +415,18 @@ private extension MarketplaceRootView {
     }
 
     func showCheckout() {
-        guard session.user != nil else { showAuthentication = true; return }
+        guard session.user != nil else { requestSignIn(keepCustomerContext: true); return }
         routeHistory.append(activeRoute)
         activeRoute = .checkout(UFitCheckoutStore(client: session.api, cart: cart, name: session.user?.displayName))
     }
 
     func showPayments() {
-        guard session.user != nil else { showAuthentication = true; return }
+        guard session.user != nil else { requestSignIn(keepCustomerContext: true); return }
         routeHistory.append(activeRoute)
         activeRoute = .connect(UFitConnectStore(client: session.api, session: session))
     }
     func showOrders() {
-        guard session.user != nil else {showAuthentication = true; return}
+        guard session.user != nil else { requestSignIn(keepCustomerContext: true); return }
         routeHistory.append(activeRoute)
         activeRoute = .orders
     }
@@ -421,30 +443,130 @@ private extension MarketplaceRootView {
     }
 
     func showCart() {
-        guard session.user != nil else { showAuthentication = true; return }
-        routeHistory.append(activeRoute)
-        activeRoute = .cart
+        guard session.user != nil else { requestSignIn(keepCustomerContext: true); return }
+        if experience.kind != .customer {
+            experience.choose(.customer); applyExperienceNavigation(); selectTab(.cart)
+        } else { routeHistory.append(activeRoute); activeRoute = .cart }
     }
 
     func goBack() {
-        if case .catalogForm(let form) = activeRoute { form.cancelPhotoUploads() }
-        if case .outfitForm(let form) = activeRoute { form.cancelPhotoUploads() }
-        activeRoute = routeHistory.popLast() ?? .feed
+        cancelCurrentForm()
+        if let previous = routeHistory.popLast() { activeRoute = previous }
+        else { selectTab(experience.kind.homeTab) }
     }
 
     func returnToFeed() {
-        if case .catalogForm(let form) = activeRoute { form.cancelPhotoUploads() }
-        if case .outfitForm(let form) = activeRoute { form.cancelPhotoUploads() }
+        cancelCurrentForm()
         routeHistory = []
         activeRoute = .feed
         activeTab = .feed
     }
 }
 
+private extension MarketplaceRootView {
+    @ViewBuilder var professionalHome: some View {
+        if let space = experience.workspace, let dashboard = professionalDashboard {
+            if space.isCreator {
+                UFitCreatorStudioHost(workspace: space, store: dashboard, onChooseExperience: showExperiencePicker,
+                    onCreate: startOutfit, onOutfits: selectOutfits,
+                    onPublicProfile: { showPublicProfile(.init(id: space.profileID, kind: .creator)) })
+            } else {
+                UFitBrandActivityHost(workspace: space, store: dashboard, onChooseExperience: showExperiencePicker,
+                    onAddProduct: startProduct, onCatalog: selectCatalog, onOrders: { selectTab(.brandOrders) },
+                    onReturns: { showBrandReturns(space) }, onSales: { showWorkspaceDashboard(space) })
+            }
+        } else { experienceChooser }
+    }
+    var experienceChooser: some View {
+        UFitExperienceChooserContent(choices: experience.choices, selected: experience.selected, isLoading: experience.isLoading,
+            message: experience.message, onChoose: chooseExperience, onRefresh: { Task { await experience.load() } },
+            onClose: {
+                if showExperienceChooser { showExperienceChooser = false; experience.dismissChoiceRequest() }
+                else { chooseExperience(.customer) }
+            })
+    }
+    func requestSignIn(keepCustomerContext: Bool) {
+        preserveCustomerContextOnSignIn = keepCustomerContext; showAuthentication = true
+    }
+    func showExperiencePicker() {
+        guard session.user != nil else { requestSignIn(keepCustomerContext: false); return }
+        showExperienceChooser = true
+        Task { await experience.load() }
+    }
+    func chooseExperience(_ selection: UFitExperienceSelection) {
+        experience.choose(selection)
+        guard experience.selected == selection else { return }
+        applyExperienceNavigation(); showExperienceChooser = false
+    }
+    func applyExperienceNavigation() {
+        guard appliedExperience != experience.selected else { return }
+        cancelCurrentForm(); workspaces.cancelOpening(); routeHistory = []
+        professionalDashboard?.cancelLoading(); professionalDashboard = nil
+        appliedExperience = experience.selected
+        if let space = experience.workspace, let userID = session.user?.id {
+            professionalDashboard = UFitWorkspaceDashboardStore(workspace: space, session: session, userID: userID)
+        }
+        selectTab(experience.kind.homeTab)
+    }
+    func cancelCurrentForm() {
+        if case .catalogForm(let form) = activeRoute { form.cancelPhotoUploads() }
+        if case .outfitForm(let form) = activeRoute { form.cancelPhotoUploads() }
+    }
+    func outfitCollection(_ space: UFitWorkspaceReference, status: UFitOutfitStatus? = nil) -> UFitManagedOutfitsStore {
+        UFitManagedOutfitsStore(scope: .init(workspace: space), title: space.isCreator ? OutfitCopy.title : AppTab.brandPublications.title,
+            subtitle: space.name, access: .author, client: session.api, session: session, initialStatus: status)
+    }
+    func catalogCollection(_ space: UFitWorkspaceReference, status: UFitCatalogStatus? = nil) -> UFitCatalogStore {
+        UFitCatalogStore(brandID: space.profileID, title: CatalogCopy.title, subtitle: space.name, access: .member,
+            client: session.api, session: session, initialStatus: status)
+    }
+    func selectOutfits(_ status: UFitOutfitStatus?) {
+        guard let space = experience.workspace, experience.canUse(space) else { return }
+        selectTab(space.isCreator ? .creatorOutfits : .brandPublications)
+        activeRoute = .managedOutfits(outfitCollection(space, status: status))
+    }
+    func selectCatalog(_ status: UFitCatalogStatus?) {
+        guard let space = experience.workspace, experience.canUse(space), !space.isCreator else { return }
+        selectTab(.brandCatalog); activeRoute = .catalog(catalogCollection(space, status: status))
+    }
+    func startOutfit() {
+        selectOutfits(nil)
+        if case .managedOutfits(let list) = activeRoute { showOutfitForm(list) }
+    }
+    func startProduct() {
+        selectCatalog(nil)
+        if case .catalog(let catalog) = activeRoute { showCatalogForm(catalog) }
+    }
+    func performProfileAction(_ action: UFitProfessionalProfileAction, space: UFitWorkspaceReference) {
+        guard experience.canUse(space) else { return }
+        switch action {
+        case .edit: showManagedProfile(space)
+        case .publicProfile:
+            guard space.status == .active else { return }
+            showPublicProfile(.init(id: space.profileID, kind: space.isCreator ? .creator : .brand))
+        case .sales: showWorkspaceDashboard(space)
+        case .commercePolicy: showBrandCommercePolicy(space)
+        case .payments:
+            guard space.status == .active else { return }
+            routeHistory.append(activeRoute)
+            let profile = UFitPaymentProfile(kind: space.isCreator ? .creator : .brand, profileID: space.profileID, name: space.name)
+            activeRoute = .connect(UFitConnectStore(client: session.api, session: session, profile: profile))
+        case .personalAccount:
+            routeHistory.append(activeRoute); activeRoute = .account
+        }
+    }
+    private enum ExperienceCopy {
+        static let sales = String(localized: "Ventes et encaissements")
+        static let returns = String(localized: "Retours et arbitrages")
+    }
+}
+
 private enum AppRoute {
     case feed
     case search
-    case create
+    case professionalHome
+    case professionalProfile
+    case administratorHome
     case workspaceDashboard(UFitWorkspaceDashboardStore)
     case workspaceCommissions(UFitWorkspaceCommissionsStore)
     case managedProfile(UFitManagedProfileStore)

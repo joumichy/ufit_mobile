@@ -20,18 +20,20 @@ final class UFitWorkspacesStore {
         if let space, !spaces.contains(space) { return }
         message = error.localizedDescription
     }
-    func load() async {
-        guard !isLoading, let userID = session.user?.id else { return }
+    @discardableResult
+    func load() async -> Bool {
+        guard !isLoading, let userID = session.user?.id else { return false }
         let request = generation
         isLoading = true; message = nil
         defer { if generation == request { isLoading = false } }
         do {
             let memberships = try await client.fetchAllWorkspaceMemberships()
-            guard generation == request, session.user?.id == userID else { return }
+            guard generation == request, session.user?.id == userID else { return false }
             spaces = memberships.creator.map { [.creator($0)] } ?? []
             spaces.append(contentsOf: memberships.brands.map { .brand($0) })
             hasLoaded = true
-        } catch { if generation == request && session.user?.id == userID { message = error.localizedDescription } }
+            return true
+        } catch { if generation == request && session.user?.id == userID { message = error.localizedDescription }; return false }
     }
     func open(_ space: UFitWorkspaceReference) async -> UFitManagedProfileStore? {
         guard spaces.contains(space), !busyIDs.contains(space.id), let userID = session.user?.id else { return nil }

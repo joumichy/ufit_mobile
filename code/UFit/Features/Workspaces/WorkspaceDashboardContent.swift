@@ -2,12 +2,15 @@ import SwiftUI
 
 struct UFitWorkspaceDashboardContent: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Environment(\.ufitPrimarySection) private var isPrimarySection
     let document: UFitWorkspaceDashboardPresentation?
     let isLoading: Bool
     let message: String?
     let onBack: () -> Void
     let onRefresh: () -> Void
     let onCommissions: () -> Void
+    var sectionTitle: String = Copy.title
+    var showsActivity = true
     private enum Copy {
         static let title = String(localized: "Tableau de bord")
         static let refresh = String(localized: "Actualiser le tableau de bord")
@@ -37,14 +40,14 @@ struct UFitWorkspaceDashboardContent: View {
     }
     private enum Layout {
         static let page: CGFloat = 24; static let gap: CGFloat = 16; static let small: CGFloat = 8
-        static let radius: CGFloat = 16; static let touch: CGFloat = 44; static let bottom: CGFloat = 32
+        static let radius: CGFloat = 16; static let touch: CGFloat = 44; static let bottom: CGFloat = 32; static let rootBottom: CGFloat = 110
         static let singleColumn = [GridItem(.flexible(), alignment: .topLeading)]
         static let columns = [GridItem(.flexible(), alignment: .topLeading), GridItem(.flexible(), alignment: .topLeading)]
     }
     private enum Icon { static let refresh = "arrow.clockwise"; static let next = "chevron.right" }
     var body: some View {
         VStack(spacing: .zero) {
-            DetailHeader(title: Copy.title, onBack: onBack) {
+            DetailHeader(title: sectionTitle, onBack: onBack) {
                 if isLoading { ProgressView().frame(width: Layout.touch, height: Layout.touch) }
                 else { Button(action: onRefresh) { Image(systemName: Icon.refresh).frame(width: Layout.touch, height: Layout.touch) }.accessibilityLabel(Copy.refresh) }
             }
@@ -60,11 +63,11 @@ struct UFitWorkspaceDashboardContent: View {
                             Text(document.status).font(.subheadline).foregroundStyle(Color.ufitMuted)
                             if let grade = document.grade { Text(grade).font(.subheadline.weight(.medium)) }
                         }
-                        activity(document.activity)
+                        if showsActivity { activity(document.activity) }
                         sales(document)
                         if document.kind == .creator { commissions(document.commissions) }
                     } else if isLoading || message == nil { ProgressView(Copy.loading).frame(maxWidth: .infinity) }
-                }.padding(Layout.page).padding(.bottom, Layout.bottom).frame(maxWidth: .infinity, alignment: .leading)
+                }.padding(Layout.page).padding(.bottom, isPrimarySection ? Layout.rootBottom : Layout.bottom).frame(maxWidth: .infinity, alignment: .leading)
             }
         }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.white)
     }

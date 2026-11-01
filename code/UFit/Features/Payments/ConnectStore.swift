@@ -16,9 +16,17 @@ final class UFitConnectStore {
     struct BrowserSession: Identifiable { let id = UUID(); let url: URL }
     @ObservationIgnored private let client: UFitAPIClient
     @ObservationIgnored private let session: UFitSessionStore
+    @ObservationIgnored private let requestedProfile: UFitPaymentProfile?
     @ObservationIgnored private var browserProfile: UFitPaymentProfile?
     private enum ProtocolValue { static let locale = Locale(identifier: "fr"); static let homeCountry = "CH"; static let secureScheme = "https"; static let scheme = "ufit"; static let callbackHost = "connect"; static let refreshPath = "/refresh"; static let returnPath = "/return" }
-    init(client: UFitAPIClient, session: UFitSessionStore) { self.client = client; self.session = session }
+    init(client: UFitAPIClient, session: UFitSessionStore, profile: UFitPaymentProfile? = nil) {
+        self.client = client; self.session = session; requestedProfile = profile
+    }
+    private enum Selection { static let single = 1; static let first = 0 }
+    private enum ProfileFailure: LocalizedError {
+        case unavailable
+        var errorDescription: String? { String(localized: "Ce compte de versement n’est plus disponible dans cet espace. Actualisez vos accès.") }
+    }
     var selected: UFitPaymentProfile? { profiles.first { $0.id == selectedID } }
     var status: UFitConnectAccountStatus? { selectedID.flatMap { statuses[$0] } }
     var message: String? { selectedID.flatMap { messages[$0] } ?? loadError }
@@ -35,9 +43,16 @@ final class UFitConnectStore {
             if let creator = owned.creator, creator.status == .active {
                 profiles.insert(UFitPaymentProfile(kind: .creator, profileID: creator.id, name: creator.displayName), at: .zero)
             }
+            if let requestedProfile { profiles = profiles.filter { $0.id == requestedProfile.id } }
             self.profiles = profiles
+            let eligibleIDs = Set(profiles.map(\.id))
+            if let selectedID, !eligibleIDs.contains(selectedID) { self.selectedID = nil }
+            statuses = statuses.filter { eligibleIDs.contains($0.key) }
+            messages = messages.filter { eligibleIDs.contains($0.key) }
+            guard requestedProfile == nil || !profiles.isEmpty else { throw ProfileFailure.unavailable }
             countries = codes.map { UFitConnectCountry(id: $0, name: ProtocolValue.locale.localizedString(forRegionCode: $0) ?? $0) }.sorted { $0.name.localizedCompare($1.name) == .orderedAscending }
-            if let profile = selected ?? profiles.first { await select(profile) }
+            if let profile = selected { await select(profile) }
+            else if profiles.count == Selection.single { await select(profiles[Selection.first]) }
         } catch { if session.user?.id == userID { loadError = error.localizedDescription } }
     }
     func select(_ profile: UFitPaymentProfile) async {
