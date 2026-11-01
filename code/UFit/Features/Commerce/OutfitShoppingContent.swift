@@ -2,7 +2,7 @@ import SwiftUI
 
 struct UFitOutfitShoppingContent: View {
     let title: String
-    let image: String
+    let photos: [UFitOutfitGalleryPhoto]
     let description: String
     let author: OutfitAuthor?
     let prices: String
@@ -27,7 +27,6 @@ struct UFitOutfitShoppingContent: View {
     }
     private enum Layout {
         static let spacing: CGFloat = 24
-        static let hero: CGFloat = 340
         static let title: CGFloat = 32
         static let bottom: CGFloat = 112
     }
@@ -42,7 +41,7 @@ struct UFitOutfitShoppingContent: View {
             }
             ScrollView {
                 VStack(alignment: .leading, spacing: Layout.spacing) {
-                    FashionImage(source: image).frame(width: geometry.size.width, height: Layout.hero).clipped()
+                    UFitOutfitGalleryContent(photos: photos).frame(width: geometry.size.width)
                     VStack(alignment: .leading, spacing: Layout.spacing) {
                         Text(title).font(.system(size: Layout.title, weight: .regular, design: .serif)).fixedSize(horizontal: false, vertical: true)
                         if let author {
@@ -111,6 +110,7 @@ private struct UFitShoppingPieceCard: View {
                     Text(piece.price).font(.subheadline.weight(.medium))
                 }.frame(maxWidth: .infinity, alignment: .leading)
             }
+            if let note = piece.note, !note.isEmpty { Text(note).font(.callout).foregroundStyle(Color.ufitMuted) }
             if let issue = piece.issue { Text(issue).font(.callout).foregroundStyle(Color.ufitMuted) }
             if !piece.variants.isEmpty {
                 Picker(Copy.variant, selection: Binding<String?>(get: {piece.selectedVariantID}, set: {if let value = $0 {onSelect(value)}})) {

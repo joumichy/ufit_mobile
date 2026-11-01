@@ -18,7 +18,7 @@ struct OutfitDetailView: View {
     }
     var body: some View {
         UFitOutfitShoppingContent(title: shopping.detail?.title ?? outfit.title,
-            image: shopping.detail?.coverImageUrl ?? outfit.imageName,
+            photos: presentedPhotos,
             description: shopping.detail?.description ?? outfit.description, author: presentedAuthor,
             prices: shopping.detail.map { UFitMoney.ranges($0.prices) } ?? outfit.price,
             pieces: shopping.pieces, cartCount: cart.count, isLoading: shopping.isLoading,
@@ -38,6 +38,10 @@ struct OutfitDetailView: View {
             } message: { Text(Copy.consequence) }
     }
     private var presentedAuthor: OutfitAuthor? { if let detail = shopping.detail { detail.author } else { outfit.author } }
+    private var presentedPhotos: [UFitOutfitGalleryPhoto] {
+        if let detail = shopping.detail { detail.images.sorted { $0.position < $1.position } }
+        else { [.init(url: outfit.imageName, position: .zero)] }
+    }
     private func add(id: String, replacing: Bool = false) {
         guard session.user != nil else { onSignIn(); return }
         Task {

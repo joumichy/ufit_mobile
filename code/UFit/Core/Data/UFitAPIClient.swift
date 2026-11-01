@@ -168,6 +168,7 @@ struct UFitAPIClient {
         catch is DecodingError { throw UFitPublicProfileContractError.outfits }
         guard detail.id == id else { throw UFitPublicProfileContractError.outfits }
         try UFitPublicOutfitIdentity.validate(id: detail.id, author: detail.author, creatorID: detail.creatorId, brandID: detail.brandId)
+        try detail.validateGallery()
         return detail
     }
 
@@ -332,7 +333,16 @@ struct UFitOutfitDetailDTO: Decodable {
     let brandId: String?
     let publishedAt: String?
     let description: String
+    let images: [UFitOutfitGalleryPhoto]
     let items: [UFitOutfitItemDTO]
+    func validateGallery() throws {
+        guard !images.isEmpty, images.count <= UFitOutfitInput.photosMax,
+              Set(images.map(\.position)).count == images.count,
+              images.allSatisfy({ photo in
+                  guard photo.position >= .zero, let url = URL(string: photo.url), let scheme = url.scheme else { return false }
+                  return UFitMultipartEncoding.allowedSchemes.contains(scheme) && url.host != nil && url.user == nil && url.password == nil
+              }), coverImageUrl == images.sorted(by: { $0.position < $1.position }).first?.url else { throw UFitPublicProfileContractError.outfits }
+    }
 }
 
 struct UFitOutfitItemDTO: Decodable {

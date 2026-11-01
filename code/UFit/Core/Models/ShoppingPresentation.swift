@@ -1,5 +1,11 @@
 import Foundation
 
+struct UFitOutfitGalleryPhoto: Decodable, Identifiable {
+    let url: String
+    let position: Int
+    var id: Int { position }
+}
+
 struct UFitVariantChoice: Identifiable {
     let id: String
     let label: String
@@ -12,6 +18,7 @@ struct UFitShoppingPiece: Identifiable {
     let brandID: String?
     let image: String?
     let price: String
+    let note: String?
     let variants: [UFitVariantChoice]
     let selectedVariantID: String?
     let quantity: Int

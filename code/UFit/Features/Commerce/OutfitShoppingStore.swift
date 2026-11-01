@@ -34,7 +34,7 @@ final class UFitOutfitShoppingStore {
             } ?? Copy.inspiration
             return UFitShoppingPiece(id: item.id, name: product?.name ?? item.label,
                 brand: product.flatMap { brands[$0.brandId]?.brandName }, brandID: product?.brandId, image: product?.images.sorted { $0.position < $1.position }.first?.url,
-                price: price, variants: (product?.variants ?? []).map { value in
+                price: price, note: item.stylingNote, variants: (product?.variants ?? []).map { value in
                     let options = [value.size, value.color].compactMap { $0 }.filter { !$0.isEmpty }
                     return UFitVariantChoice(id: value.id, label: options.isEmpty ? Copy.standard : options.joined(separator: Defaults.separator), isAvailable: value.stockQuantity > .zero)
                 }, selectedVariantID: selected, quantity: quantities[item.id] ?? Defaults.quantity,
