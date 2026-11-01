@@ -55,9 +55,8 @@ struct UFitCatalogFormHost: View {
                     onRetryPhoto: store.retryPhoto, onRemovePhoto: store.removePhoto)
             }
         }
-        .photosPicker(isPresented: $showingPhotos, selection: $selectedPhotos,
-            maxSelectionCount: max(Selection.minimumSlots, UFitCatalogInput.photosMax - store.draft.photos.count),
-            selectionBehavior: .ordered, matching: .images, preferredItemEncoding: .current)
+        .ufitPhotosPicker(isPresented: $showingPhotos, selection: $selectedPhotos,
+            limit: max(Selection.minimumSlots, UFitCatalogInput.photosMax - store.draft.photos.count))
         .onChange(of: selectedPhotos) { _, _ in importSelection() }
         .onChange(of: showingPhotos) { _, _ in importSelection() }
         .task { if store.pendingCreation == nil { await store.prepare() } }

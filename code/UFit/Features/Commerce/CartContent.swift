@@ -4,9 +4,12 @@ struct UFitCartContent: View {
     let lines: [UFitCartPresentationLine]
     let subtotal: String
     let isLoading: Bool
+    let hasLoaded: Bool
+    let loadError: String?
     let message: String?
     let onBack: () -> Void
-    let onRefresh: () -> Void
+    let onBrowse: () -> Void
+    let onRefresh: () async -> Void
     let onQuantity: (String, Int) -> Void
     let onRemove: (String) -> Void
     var onCheckout: (() -> Void)?
@@ -16,34 +19,56 @@ struct UFitCartContent: View {
         static let emptyIcon = "bag"
         static let subtotal = String(localized: "Sous-total")
         static let checkout = String(localized: "Livraison et paiement")
-        static let retry = String(localized: "Actualiser")
+        static let retry = String(localized: "Réessayer")
+        static let browse = String(localized: "Découvrir les tenues")
+        static let loading = String(localized: "Chargement du panier")
+        static let failed = String(localized: "Panier indisponible")
+        static let failureIcon = "wifi.exclamationmark"
     }
-    private enum Layout { static let spacing: CGFloat = 24; static let bottom: CGFloat = 110 }
+    private enum Layout { static let spacing: CGFloat = UFitSpace.xl }
     var body: some View {
         VStack(spacing: .zero) {
-            DetailHeader(onBack: onBack) { Text(Copy.title).font(.headline) }
-            ScrollView {
-                VStack(alignment: .leading, spacing: Layout.spacing) {
-                    if isLoading && lines.isEmpty { ProgressView().frame(maxWidth: .infinity) }
-                    else if lines.isEmpty {
-                        ContentUnavailableView(Copy.empty, systemImage: Copy.emptyIcon)
-                        Button(Copy.retry, action: onRefresh).buttonStyle(CompactPrimaryButtonStyle())
-                    } else {
-                        ForEach(lines) { line in
-                            UFitCartLineContent(line: line, onQuantity: { onQuantity(line.id, $0) }, onRemove: { onRemove(line.id) })
-                            Divider()
+            DetailHeader(title: Copy.title, onBack: onBack)
+            GeometryReader { viewport in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: Layout.spacing) {
+                        if lines.isEmpty { initialContent }
+                        else {
+                            if isLoading { UFitLoading(Copy.loading).frame(maxWidth: .infinity) }
+                            if let loadError, !isLoading {
+                                UFitNotice(message: loadError, kind: .error)
+                                UFitActionButton(title: Copy.retry, kind: .secondary, action: refresh)
+                            }
+                            ForEach(lines) { line in
+                                UFitCartLineContent(line: line, onQuantity: { onQuantity(line.id, $0) }, onRemove: { onRemove(line.id) })
+                                Divider()
+                            }
+                            if let message { UFitNotice(message: message, kind: .error) }
                         }
-                        HStack { Text(Copy.subtotal); Spacer(); Text(subtotal).fontWeight(.semibold) }
-                        if let onCheckout {
-                            Button(action: onCheckout) { Text(Copy.checkout).frame(maxWidth: .infinity) }
-                                .buttonStyle(PrimaryButtonStyle()).disabled(lines.contains { $0.isBusy || !$0.isAvailable })
-                        }
-                    }
-                    if let message { Text(message).font(.callout).foregroundStyle(Color.ufitMuted) }
-                }.padding(Layout.spacing).padding(.bottom, Layout.bottom)
-            }.refreshable { onRefresh() }
-        }.foregroundStyle(Color.ufitInk).background(Color.white)
+                    }.padding(Layout.spacing).frame(minHeight: viewport.size.height, alignment: lines.isEmpty ? .center : .topLeading)
+                }.ufitRefreshable { await onRefresh() }
+            }
+        }.safeAreaInset(edge: .bottom, spacing: .zero) {
+            if !lines.isEmpty {
+                VStack(spacing: UFitSpace.md) {
+                    HStack { Text(Copy.subtotal); Spacer(); Text(subtotal).font(UFitTypography.headline) }
+                    if let onCheckout { UFitActionButton(title: Copy.checkout, disabled: lines.contains { $0.isBusy || !$0.isAvailable }, action: onCheckout) }
+                }.padding(UFitSpace.page).background(Color.ufitCanvas).overlay(alignment: .top) { Rectangle().fill(Color.ufitBorder).frame(height: UFitSpace.hairline) }
+            }
+        }.foregroundStyle(Color.ufitInk).background(Color.ufitCanvas)
     }
+    @ViewBuilder private var initialContent: some View {
+        if isLoading || (!hasLoaded && loadError == nil) { UFitLoading(Copy.loading).frame(maxWidth: .infinity) }
+        else if let loadError {
+            UFitEmptyState(title: Copy.failed, message: loadError, symbol: Copy.failureIcon,
+                actionTitle: Copy.retry, action: refresh)
+        } else {
+            UFitEmptyState(title: Copy.empty, symbol: Copy.emptyIcon,
+                actionTitle: Copy.browse, actionKind: .primary, action: onBrowse)
+        }
+    }
+    private func refresh() { Task { await onRefresh() } }
+
 }
 
 private struct UFitCartLineContent: View {
@@ -56,25 +81,27 @@ private struct UFitCartLineContent: View {
         static let unavailable = String(localized: "Pièce indisponible")
         static let photo = "photo"
     }
-    private enum Layout { static let image: CGFloat = 84; static let spacing: CGFloat = 16; static let minimum = 1 }
+    private enum Layout { static let image: CGFloat = 84; static let spacing: CGFloat = UFitSpace.md; static let minimum = 1 }
     var body: some View {
-        HStack(alignment: .top, spacing: Layout.spacing) {
-            Group {
-                if let image = line.image { FashionImage(source: image) }
-                else { Color.ufitBackground.overlay(Image(systemName: Copy.photo)) }
-            }.frame(width: Layout.image, height: Layout.image).clipped()
-            VStack(alignment: .leading, spacing: Layout.spacing) {
-                Text(line.name).font(.headline)
-                Text(line.variant).font(.subheadline).foregroundStyle(Color.ufitMuted)
-                Text(line.amount).font(.subheadline.weight(.medium))
-                if !line.isAvailable { Text(Copy.unavailable).font(.callout) }
-                Stepper(Copy.quantity + " : \(line.quantity)", value: Binding(get: {line.quantity}, set: onQuantity), in: Layout.minimum...max(Layout.minimum, line.maximumQuantity))
+        VStack(alignment: .leading, spacing: Layout.spacing) {
+            HStack(alignment: .top, spacing: Layout.spacing) {
+                Group {
+                    if let image = line.image { FashionImage(source: image) }
+                    else { Color.ufitCanvas.overlay(UFitIcon(systemName: Copy.photo)) }
+                }.frame(width: Layout.image, height: Layout.image).clipped()
+                VStack(alignment: .leading, spacing: Layout.spacing) {
+                    Text(line.name).font(UFitTypography.headline)
+                    Text(line.variant).font(UFitTypography.subheadline).foregroundStyle(Color.ufitSecondaryText)
+                    Text(line.amount).font(UFitTypography.subheadline.weight(.medium))
+                    if !line.isAvailable { Text(Copy.unavailable).font(UFitTypography.callout) }
+                }.frame(maxWidth: .infinity, alignment: .leading)
+            }
+                UFitQuantityControl(Copy.quantity, value: Binding(get: {line.quantity}, set: onQuantity), in: Layout.minimum...max(Layout.minimum, line.maximumQuantity))
                     .disabled(line.isBusy || !line.isAvailable)
                 HStack {
-                    Button(Copy.remove, role: .destructive, action: onRemove).disabled(line.isBusy)
-                    if line.isBusy { ProgressView() }
+                    UFitButton(Copy.remove, role: .destructive, action: onRemove).disabled(line.isBusy)
+                    if line.isBusy { UFitLoading() }
                 }
-            }.frame(maxWidth: .infinity, alignment: .leading)
-        }
+        }.frame(maxWidth: .infinity, alignment: .leading)
     }
 }

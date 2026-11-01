@@ -39,8 +39,8 @@ struct UFitWorkspaceDashboardContent: View {
         static let ledger = String(localized: "Historique des commissions")
     }
     private enum Layout {
-        static let page: CGFloat = 24; static let gap: CGFloat = 16; static let small: CGFloat = 8
-        static let radius: CGFloat = 16; static let touch: CGFloat = 44; static let bottom: CGFloat = 32; static let rootBottom: CGFloat = 110
+        static let page: CGFloat = UFitSpace.xl; static let gap: CGFloat = UFitSpace.md; static let small: CGFloat = UFitSpace.xs
+        static let radius: CGFloat = UFitRadius.card; static let touch: CGFloat = UFitControlSize.touch; static let bottom: CGFloat = 32; static let rootBottom: CGFloat = 110
         static let singleColumn = [GridItem(.flexible(), alignment: .topLeading)]
         static let columns = [GridItem(.flexible(), alignment: .topLeading), GridItem(.flexible(), alignment: .topLeading)]
     }
@@ -48,37 +48,37 @@ struct UFitWorkspaceDashboardContent: View {
     var body: some View {
         VStack(spacing: .zero) {
             DetailHeader(title: sectionTitle, onBack: onBack) {
-                if isLoading { ProgressView().frame(width: Layout.touch, height: Layout.touch) }
-                else { Button(action: onRefresh) { Image(systemName: Icon.refresh).frame(width: Layout.touch, height: Layout.touch) }.accessibilityLabel(Copy.refresh) }
+                if isLoading { UFitLoading().frame(width: Layout.touch, height: Layout.touch) }
+                else { UFitButton(action: onRefresh) { UFitIcon(systemName: Icon.refresh).frame(width: Layout.touch, height: Layout.touch) }.accessibilityLabel(Copy.refresh) }
             }
             ScrollView {
                 VStack(alignment: .leading, spacing: Layout.page) {
                     if let message {
-                        Text(message).font(.callout).foregroundStyle(Color.ufitMuted).accessibilityAddTraits(.updatesFrequently)
-                        Button(Copy.retry, action: onRefresh).frame(minHeight: Layout.touch)
+                        Text(message).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText).accessibilityAddTraits(.updatesFrequently)
+                        UFitButton(Copy.retry, action: onRefresh).frame(minHeight: Layout.touch)
                     }
                     if let document {
                         VStack(alignment: .leading, spacing: Layout.small) {
-                            Text(document.name).font(.title.weight(.medium))
-                            Text(document.status).font(.subheadline).foregroundStyle(Color.ufitMuted)
-                            if let grade = document.grade { Text(grade).font(.subheadline.weight(.medium)) }
+                            Text(document.name).font(UFitTypography.title.weight(.medium))
+                            Text(document.status).font(UFitTypography.subheadline).foregroundStyle(Color.ufitSecondaryText)
+                            if let grade = document.grade { Text(grade).font(UFitTypography.subheadline.weight(.medium)) }
                         }
                         if showsActivity { activity(document.activity) }
                         sales(document)
                         if document.kind == .creator { commissions(document.commissions) }
-                    } else if isLoading || message == nil { ProgressView(Copy.loading).frame(maxWidth: .infinity) }
-                }.padding(Layout.page).padding(.bottom, isPrimarySection ? Layout.rootBottom : Layout.bottom).frame(maxWidth: .infinity, alignment: .leading)
+                    } else if isLoading || message == nil { UFitLoading(Copy.loading).frame(maxWidth: .infinity) }
+                }.padding(Layout.page).padding(.bottom, UFitSpace.xl).frame(maxWidth: .infinity, alignment: .leading)
             }
-        }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.white)
+        }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.ufitCanvas)
     }
     private func activity(_ rows: [UFitWorkspaceActivityFigure]) -> some View {
         VStack(alignment: .leading, spacing: Layout.gap) {
-            Text(Copy.activity).font(.title2.weight(.medium))
+            Text(Copy.activity).font(UFitTypography.title2.weight(.medium))
             LazyVGrid(columns: dynamicTypeSize.isAccessibilitySize ? Layout.singleColumn : Layout.columns, spacing: Layout.gap) {
                 ForEach(rows) { row in
                     VStack(alignment: .leading, spacing: Layout.small) {
-                        Text(row.value, format: .number).font(.title2.weight(.medium)).monospacedDigit()
-                        Text(row.label).font(.subheadline).foregroundStyle(Color.ufitMuted).fixedSize(horizontal: false, vertical: true)
+                        Text(row.value, format: .number).font(UFitTypography.title2.weight(.medium)).monospacedDigit()
+                        Text(row.label).font(UFitTypography.subheadline).foregroundStyle(Color.ufitSecondaryText).fixedSize(horizontal: false, vertical: true)
                     }.frame(maxWidth: .infinity, alignment: .leading).padding(Layout.gap)
                         .background(Color.ufitSecondary, in: RoundedRectangle(cornerRadius: Layout.radius))
                         .accessibilityElement(children: .combine)
@@ -89,14 +89,14 @@ struct UFitWorkspaceDashboardContent: View {
     private func sales(_ document: UFitWorkspaceDashboardPresentation) -> some View {
         VStack(alignment: .leading, spacing: Layout.gap) {
             VStack(alignment: .leading, spacing: Layout.small) {
-                Text(document.kind == .creator ? Copy.attributed : Copy.sales).font(.title2.weight(.medium))
-                Text(document.kind == .creator ? Copy.merchandiseBasis : Copy.orderBasis).font(.caption).foregroundStyle(Color.ufitMuted)
+                Text(document.kind == .creator ? Copy.attributed : Copy.sales).font(UFitTypography.title2.weight(.medium))
+                Text(document.kind == .creator ? Copy.merchandiseBasis : Copy.orderBasis).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText)
             }
-            if document.sales.isEmpty { Text(Copy.noSales).font(.callout).foregroundStyle(Color.ufitMuted) }
+            if document.sales.isEmpty { Text(Copy.noSales).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
             ForEach(document.sales) { value in
                 VStack(alignment: .leading, spacing: Layout.gap) {
-                    Text(value.currency).font(.headline)
-                    Text(value.ordersLabel).font(.subheadline).foregroundStyle(Color.ufitMuted)
+                    Text(value.currency).font(UFitTypography.headline)
+                    Text(value.ordersLabel).font(UFitTypography.subheadline).foregroundStyle(Color.ufitSecondaryText)
                     figure(Copy.captured, value.captured)
                     figure(Copy.refunded, value.refunded)
                     if value.hasRefundInProgress { figure(Copy.inProgress, value.inProgress) }
@@ -108,11 +108,11 @@ struct UFitWorkspaceDashboardContent: View {
     }
     private func commissions(_ values: [UFitWorkspaceCommissionFigure]) -> some View {
         VStack(alignment: .leading, spacing: Layout.gap) {
-            Text(Copy.commissions).font(.title2.weight(.medium))
-            if values.isEmpty { Text(Copy.noCommissions).font(.callout).foregroundStyle(Color.ufitMuted) }
+            Text(Copy.commissions).font(UFitTypography.title2.weight(.medium))
+            if values.isEmpty { Text(Copy.noCommissions).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
             ForEach(values) { value in
                 VStack(alignment: .leading, spacing: Layout.gap) {
-                    Text(value.currency).font(.headline)
+                    Text(value.currency).font(UFitTypography.headline)
                     figure(Copy.original, value.original)
                     figure(Copy.adjustments, value.adjusted)
                     figure(Copy.commissionNet, value.net, emphasized: true)
@@ -124,8 +124,8 @@ struct UFitWorkspaceDashboardContent: View {
                     if value.hasPaidAdjustment { figure(Copy.recover, value.paidAdjustment, emphasized: true) }
                 }.padding(Layout.gap).overlay { RoundedRectangle(cornerRadius: Layout.radius).stroke(Color.ufitBorder) }
             }
-            Button(action: onCommissions) {
-                HStack { Text(Copy.ledger); Spacer(); Image(systemName: Icon.next) }.frame(minHeight: Layout.touch).contentShape(Rectangle())
+            UFitButton(action: onCommissions) {
+                HStack { Text(Copy.ledger); Spacer(); UFitIcon(systemName: Icon.next) }.frame(minHeight: Layout.touch).contentShape(Rectangle())
             }
         }
     }
@@ -133,6 +133,6 @@ struct UFitWorkspaceDashboardContent: View {
         ViewThatFits(in: .horizontal) {
             HStack(alignment: .firstTextBaseline, spacing: Layout.gap) { Text(label).fixedSize(); Spacer(); Text(amount).monospacedDigit().fixedSize() }
             VStack(alignment: .leading, spacing: Layout.small) { Text(label); Text(amount).monospacedDigit() }
-        }.font(emphasized ? .body.weight(.semibold) : .subheadline).accessibilityElement(children: .combine)
+        }.font(emphasized ? UFitTypography.body.weight(.semibold) : UFitTypography.subheadline).accessibilityElement(children: .combine)
     }
 }

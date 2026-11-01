@@ -5,29 +5,29 @@ struct OutfitPieceCard: View {
     let piece: OutfitPiece
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: UFitSpace.md) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 5) {
                     Text("#\(index)")
-                        .font(.system(size: 13))
-                        .foregroundStyle(Color.ufitMuted)
+                        .ufitFont(size: UFitTypography.Size.small)
+                        .foregroundStyle(Color.ufitSecondaryText)
                     Text(piece.name)
-                        .font(.system(size: 16, weight: .medium))
+                        .ufitFont(size: UFitTypography.Size.body, weight: .medium)
                     Text(piece.brand)
-                        .font(.system(size: 14))
-                        .foregroundStyle(Color.ufitMuted)
+                        .ufitFont(size: UFitTypography.Size.small)
+                        .foregroundStyle(Color.ufitSecondaryText)
                 }
 
                 Spacer()
 
                 Text(piece.price)
-                    .font(.system(size: 20, weight: .regular))
+                    .ufitFont(size: UFitTypography.Size.section, weight: .regular)
             }
 
-            FlowLayout(spacing: 8) {
+            FlowLayout(spacing: UFitSpace.xs) {
                 ForEach(piece.sizes, id: \.self) { size in
                     Text(size)
-                        .font(.system(size: 14, weight: .medium))
+                        .ufitFont(size: UFitTypography.Size.small, weight: .medium)
                         .foregroundStyle(Color.ufitInk)
                         .padding(.horizontal, 15)
                         .padding(.vertical, 9)
@@ -41,11 +41,11 @@ struct OutfitPieceCard: View {
 
             if !piece.isShoppable {
                 Text("Inspiration only")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(Color.ufitMuted)
+                    .ufitFont(size: UFitTypography.Size.caption, weight: .medium)
+                    .foregroundStyle(Color.ufitSecondaryText)
             }
         }
         .padding(18)
-        .background(Color.ufitSecondary, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background(Color.ufitSecondary, in: RoundedRectangle(cornerRadius: UFitRadius.card, style: .continuous))
     }
 }

@@ -4,18 +4,24 @@ struct OnboardingView: View {
     let onComplete: () -> Void
 
     @State private var currentIndex = 0
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private let slides = SampleData.onboardingSlides
+    private let slides = [
+        OnboardingSlide(id: .zero, systemImage: "sparkles", title: String(localized: "Votre prochaine inspiration."), description: String(localized: "Découvrez des tenues composées par des créateurs et des marques sélectionnés.")),
+        OnboardingSlide(id: 1, systemImage: "person.crop.circle.badge.checkmark", title: String(localized: "Des regards singuliers."), description: String(localized: "Explorez les univers des créateurs et retrouvez leurs pièces préférées.")),
+        OnboardingSlide(id: 2, systemImage: "bag", title: String(localized: "De la tenue à la pièce."), description: String(localized: "Choisissez vos tailles, vérifiez les conditions de la marque et commandez dans Ufit.")),
+        OnboardingSlide(id: 3, systemImage: "bookmark", title: String(localized: "Gardez ce qui vous inspire."), description: String(localized: "Enregistrez vos tenues et retrouvez-les à votre rythme."))
+    ]
 
     var body: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: .zero) {
             Spacer(minLength: 60)
 
             OnboardingSlideView(slide: slides[currentIndex])
-                .animation(.easeInOut(duration: 0.2), value: currentIndex)
+                .animation(reduceMotion ? nil : .easeInOut(duration: UFitMotion.transition), value: currentIndex)
 
             OnboardingProgressIndicator(count: slides.count, currentIndex: currentIndex)
-                .padding(.top, 32)
+                .padding(.top, UFitSpace.xxl)
 
             Spacer(minLength: 40)
 
@@ -26,14 +32,14 @@ struct OnboardingView: View {
             )
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.white)
+        .background(Color.ufitCanvas)
     }
 }
 
 private extension OnboardingView {
     func continueOnboarding() {
         if currentIndex < slides.count - 1 {
-            withAnimation(.easeInOut(duration: 0.28)) {
+            withAnimation(reduceMotion ? nil : .easeInOut(duration: UFitMotion.transition)) {
                 currentIndex += 1
             }
         } else {
@@ -46,24 +52,24 @@ struct OnboardingSlideView: View {
     let slide: OnboardingSlide
 
     var body: some View {
-        VStack(spacing: 32) {
-            Image(systemName: slide.systemImage)
-                .font(.system(size: 42, weight: .light))
+        VStack(spacing: UFitSpace.xxl) {
+            UFitIcon(systemName: slide.systemImage)
+                .ufitFont(size: UFitTypography.Size.display, weight: .light)
                 .foregroundStyle(Color.ufitInk)
                 .frame(width: 96, height: 96)
-                .background(Color.ufitSecondary, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+                .background(Color.ufitSecondary, in: RoundedRectangle(cornerRadius: UFitRadius.sheet, style: .continuous))
 
-            VStack(spacing: 14) {
+            VStack(spacing: UFitSpace.md) {
                 Text(slide.title)
-                    .font(.system(size: 31, weight: .regular))
+                    .ufitFont(size: UFitTypography.Size.editorial, weight: .regular)
                     .multilineTextAlignment(.center)
                     .foregroundStyle(Color.ufitInk)
 
                 Text(slide.description)
-                    .font(.system(size: 16))
+                    .ufitFont(size: UFitTypography.Size.body)
                     .lineSpacing(4)
                     .multilineTextAlignment(.center)
-                    .foregroundStyle(Color.ufitMuted)
+                    .foregroundStyle(Color.ufitSecondaryText)
                     .padding(.horizontal, 10)
             }
         }
@@ -73,16 +79,17 @@ struct OnboardingSlideView: View {
 }
 
 struct OnboardingProgressIndicator: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let count: Int
     let currentIndex: Int
 
     var body: some View {
-        HStack(spacing: 8) {
+        HStack(spacing: UFitSpace.xs) {
             ForEach(0..<count, id: \.self) { index in
                 Capsule()
                     .fill(index == currentIndex ? Color.ufitInk : Color.ufitBorder)
                     .frame(width: index == currentIndex ? 32 : 7, height: 7)
-                    .animation(.spring(response: 0.3, dampingFraction: 0.85), value: currentIndex)
+                    .animation(reduceMotion ? nil : .easeOut(duration: UFitMotion.feedback), value: currentIndex)
             }
         }
     }
@@ -94,23 +101,23 @@ struct OnboardingActions: View {
     let onSkip: () -> Void
 
     var body: some View {
-        VStack(spacing: 12) {
-            Button(action: onContinue) {
-                Text(isLastSlide ? "Get Started" : "Continue")
+        VStack(spacing: UFitSpace.sm) {
+            UFitButton(action: onContinue) {
+                Text(isLastSlide ? String(localized: "Découvrir Ufit") : String(localized: "Continuer"))
                     .frame(maxWidth: .infinity)
             }
-            .buttonStyle(PrimaryButtonStyle())
+            .ufitButtonStyle(.primary)
 
             if !isLastSlide {
-                Button("Skip", action: onSkip)
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(Color.ufitMuted)
+                UFitButton(String(localized: "Passer"), action: onSkip)
+                    .ufitFont(size: UFitTypography.Size.body, weight: .medium)
+                    .foregroundStyle(Color.ufitSecondaryText)
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, 13)
             }
         }
-        .padding(.horizontal, 24)
-        .padding(.bottom, 24)
+        .padding(.horizontal, UFitSpace.xl)
+        .padding(.bottom, UFitSpace.xl)
     }
 }
 

@@ -24,47 +24,47 @@ struct UFitApplicationsContent: View {
         static let newCreator = String(localized: "Présentez votre univers et trois tenues.")
         static let newBrand = String(localized: "Présentez votre marque et ses possibilités de vente.")
     }
-    private enum Layout { static let spacing: CGFloat = 24; static let inline: CGFloat = 12; static let radius: CGFloat = 16; static let bottom: CGFloat = 110; static let title: CGFloat = 32; static let touch: CGFloat = 44 }
+    private enum Layout { static let spacing: CGFloat = UFitSpace.xl; static let inline: CGFloat = 12; static let radius: CGFloat = UFitRadius.card; static let bottom: CGFloat = 110; static let title: CGFloat = UFitTypography.Size.editorial; static let touch: CGFloat = UFitControlSize.touch }
     var body: some View {
         VStack(spacing: .zero) {
-            DetailHeader(onBack: onBack) { if isLoading { ProgressView().frame(minWidth: Layout.touch, minHeight: Layout.touch) } else { Button(Copy.refresh, action: onRefresh).frame(minHeight: Layout.touch) } }
+            DetailHeader(onBack: onBack) { if isLoading { UFitLoading().frame(minWidth: Layout.touch, minHeight: Layout.touch) } else { UFitButton(Copy.refresh, action: onRefresh).frame(minHeight: Layout.touch) } }
             ScrollView {
                 VStack(alignment: .leading, spacing: Layout.spacing) {
-                    Text(Copy.title).font(.system(size: Layout.title, design: .serif))
-                    if let message { Text(message).font(.callout).foregroundStyle(Color.ufitMuted) }
+                    Text(Copy.title).ufitFont(size: Layout.title, design: .serif).accessibilityAddTraits(.isHeader)
+                    if let message { Text(message).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
                     if hasLoaded {
                         card(.creator, creator, canApply: canApplyCreator)
                         card(.brand, brand, canApply: canApplyBrand)
                     }
-                }.padding(Layout.spacing).padding(.bottom, Layout.bottom).frame(maxWidth: .infinity, alignment: .leading)
+                }.padding(Layout.spacing).padding(.bottom, UFitSpace.xl).frame(maxWidth: .infinity, alignment: .leading)
             }
-        }.foregroundStyle(Color.ufitInk).background(Color.white)
+        }.foregroundStyle(Color.ufitInk).background(Color.ufitCanvas)
     }
     private func card(_ kind: UFitApplicationKind, _ application: UFitApplicationDocument?, canApply: Bool) -> some View {
         VStack(alignment: .leading, spacing: Layout.inline) {
-            Text(kind.label).font(.title2.weight(.medium))
+            Text(kind.label).font(UFitTypography.title2.weight(.medium))
             if let application {
-                Text(application.name).font(.headline)
-                Text(application.metadata.status.label).font(.subheadline.weight(.semibold))
-                Text(Copy.submitted + " " + application.metadata.submittedAt.label).font(.caption).foregroundStyle(Color.ufitMuted)
+                Text(application.name).font(UFitTypography.headline)
+                Text(application.metadata.status.label).font(UFitTypography.subheadline.weight(.semibold))
+                Text(Copy.submitted + " " + application.metadata.submittedAt.label).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText)
                 if let review = application.metadata.latestReview, let notes = review.notes {
                     Divider()
-                    Text(Copy.feedback).font(.subheadline.weight(.medium))
-                    Text(notes).font(.callout)
-                    Text(review.createdAt.label).font(.caption).foregroundStyle(Color.ufitMuted)
+                    Text(Copy.feedback).font(UFitTypography.subheadline.weight(.medium))
+                    Text(notes).font(UFitTypography.callout)
+                    Text(review.createdAt.label).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText)
                 }
                 if application.metadata.status.canCorrect {
-                    Button(action: { onCorrect(application) }) { Text(Copy.correct).frame(maxWidth: .infinity) }.buttonStyle(PrimaryButtonStyle())
+                    UFitButton(action: { onCorrect(application) }) { Text(Copy.correct).frame(maxWidth: .infinity) }.ufitButtonStyle(.primary)
                 }
                 if application.metadata.status == .accepted {
-                    Button(Copy.payments, action: onPayments).frame(minHeight: Layout.touch)
-                    if kind == .brand && canApply { Button(Copy.anotherBrand) { onApply(kind) }.frame(minHeight: Layout.touch) }
+                    UFitButton(Copy.payments, action: onPayments).frame(minHeight: Layout.touch)
+                    if kind == .brand && canApply { UFitButton(Copy.anotherBrand) { onApply(kind) }.frame(minHeight: Layout.touch) }
                 }
             } else if canApply {
-                Text(kind == .creator ? Copy.newCreator : Copy.newBrand).font(.callout).foregroundStyle(Color.ufitMuted)
-                Button(action: { onApply(kind) }) { Text(kind.title).frame(maxWidth: .infinity) }.buttonStyle(PrimaryButtonStyle())
+                Text(kind == .creator ? Copy.newCreator : Copy.newBrand).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText)
+                UFitButton(action: { onApply(kind) }) { Text(kind.title).frame(maxWidth: .infinity) }.ufitButtonStyle(.primary)
             }
         }.padding(Layout.spacing).frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.ufitBackground, in: RoundedRectangle(cornerRadius: Layout.radius))
+            .background(Color.ufitCanvas, in: RoundedRectangle(cornerRadius: Layout.radius))
     }
 }

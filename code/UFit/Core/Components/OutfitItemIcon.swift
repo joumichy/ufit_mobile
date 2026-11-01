@@ -24,7 +24,7 @@ struct UFitOutfitItemIcon: View {
                         path.closeSubpath()
                     }.stroke(style: StrokeStyle(lineWidth: Layout.stroke, lineCap: .round, lineJoin: .round))
                 }
-            } else { Image(systemName: symbol).font(.system(size: Layout.size, weight: .regular)) }
+            } else { UFitIcon(systemName: symbol).ufitFont(size: Layout.size, weight: .regular) }
         }.frame(width: Layout.size, height: Layout.size)
     }
 }

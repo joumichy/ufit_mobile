@@ -31,53 +31,49 @@ struct UFitAccountView: View {
         static let exitIcon = "rectangle.portrait.and.arrow.right"
     }
     private enum Layout {
-        static let spacing: CGFloat = 24
+        static let spacing: CGFloat = UFitSpace.xl
         static let portrait: CGFloat = 64
-        static let title: CGFloat = 32
-        static let radius: CGFloat = 14
+        static let title: CGFloat = UFitTypography.Size.editorial
+        static let radius: CGFloat = UFitRadius.action
         static let bottom: CGFloat = 100
-        static let touch: CGFloat = 44
+        static let touch: CGFloat = UFitControlSize.touch
     }
     var body: some View {
         VStack(spacing: .zero) {
             if let onBack { DetailHeader(title: Copy.title, onBack: onBack) }
             ScrollView {
             VStack(alignment: .leading, spacing: Layout.spacing) {
-                if onBack == nil { Text(Copy.title).font(.system(size: Layout.title, weight: .regular, design: .serif)) }
+                if onBack == nil { Text(Copy.title).ufitFont(size: Layout.title, weight: .regular, design: .serif) }
                 HStack(spacing: Layout.spacing) {
-                    Image(systemName: Copy.person).font(.system(size: Layout.portrait, weight: .ultraLight))
+                    UFitIcon(systemName: Copy.person).ufitFont(size: Layout.portrait, weight: .ultraLight)
                     VStack(alignment: .leading) {
-                        if !name.isEmpty { Text(name).font(.title3.weight(.semibold)) }
-                        Text(email).font(.subheadline).foregroundStyle(Color.ufitMuted)
+                        if !name.isEmpty { Text(name).font(UFitTypography.title3.weight(.semibold)) }
+                        Text(email).font(UFitTypography.subheadline).foregroundStyle(Color.ufitSecondaryText)
                     }
                 }
                 if editing {
                     VStack(alignment: .leading, spacing: Layout.spacing) {
-                        Text(Copy.name).font(.subheadline.weight(.medium))
-                        TextField(Copy.name, text: $editedName).textContentType(.name)
-                            .padding().background(Color.ufitBackground, in: RoundedRectangle(cornerRadius: Layout.radius))
-                        Button(action: { onSaveName(editedName) }) {
-                            HStack { Spacer(); if isBusy { ProgressView().tint(.white) } else { Text(Copy.save) }; Spacer() }
-                        }.buttonStyle(PrimaryButtonStyle()).disabled(isBusy || editedName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || editedName == name)
-                        Button(Copy.cancel) { editing = false }.disabled(isBusy)
+                        UFitTextField(label: Copy.name, text: $editedName, contentType: .name)
+                        UFitActionButton(title: Copy.save, isBusy: isBusy, disabled: editedName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || editedName == name, action: { onSaveName(editedName) })
+                        UFitButton(Copy.cancel) { editing = false }.disabled(isBusy)
                     }
                 } else {
-                    Button { editedName = name; editing = true } label: { Label(Copy.edit, systemImage: Copy.editIcon) }
+                    UFitButton { editedName = name; editing = true } label: { Label(Copy.edit, systemImage: Copy.editIcon) }
                 }
-                if let message { Text(message).font(.callout).foregroundStyle(Color.ufitMuted) }
+                if let message { Text(message).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
                 Divider()
-                if let onOrders { Button(action: onOrders) { Label(Copy.orders, systemImage: Copy.ordersIcon) }.frame(minHeight: Layout.touch) }
-                if let onApplications { Button(action: onApplications) { Label(Copy.applications, systemImage: Copy.applicationsIcon) }.frame(minHeight: Layout.touch) }
-                if let onChooseExperience { Button(action: onChooseExperience) { Label(Copy.choose, systemImage: Copy.chooseIcon) }.frame(minHeight: Layout.touch) }
-                Button(action: onSignOut) { Label(Copy.signOut, systemImage: Copy.exitIcon) }.disabled(isBusy)
+                if let onOrders { UFitButton(action: onOrders) { Label(Copy.orders, systemImage: Copy.ordersIcon) }.frame(minHeight: Layout.touch) }
+                if let onApplications { UFitButton(action: onApplications) { Label(Copy.applications, systemImage: Copy.applicationsIcon) }.frame(minHeight: Layout.touch) }
+                if let onChooseExperience { UFitButton(action: onChooseExperience) { Label(Copy.choose, systemImage: Copy.chooseIcon) }.frame(minHeight: Layout.touch) }
+                UFitButton(action: onSignOut) { Label(Copy.signOut, systemImage: Copy.exitIcon) }.disabled(isBusy)
             }
             .padding(Layout.spacing)
-            .padding(.bottom, Layout.bottom)
+            .padding(.bottom, UFitSpace.xl)
             .frame(maxWidth: .infinity, alignment: .leading)
         }
         }
-        .foregroundStyle(Color.ufitInk).background(Color.white)
-        .buttonStyle(.plain)
+        .foregroundStyle(Color.ufitInk).background(Color.ufitCanvas)
+        .ufitButtonStyle(.text)
         .onChange(of: name) { _, _ in editing = false }
     }
 }

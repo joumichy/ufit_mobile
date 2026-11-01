@@ -52,12 +52,11 @@ struct UFitOutfitFormHost: View {
                 UFitOutfitPreparationContent(isLoading: store.isLoading, message: store.message, onBack: onBack, onRetry: { Task { await store.prepare() } })
             }
         }
-        .photosPicker(isPresented: $showingPhotos, selection: $selectedPhotos,
-            maxSelectionCount: max(Selection.minimumSlots, UFitOutfitInput.photosMax - store.draft.photos.count),
-            selectionBehavior: .ordered, matching: .images, preferredItemEncoding: .current)
+        .ufitPhotosPicker(isPresented: $showingPhotos, selection: $selectedPhotos,
+            limit: max(Selection.minimumSlots, UFitOutfitInput.photosMax - store.draft.photos.count))
         .onChange(of: selectedPhotos) { _, _ in importSelection() }
         .onChange(of: showingPhotos) { _, _ in importSelection() }
-        .sheet(item: $productSelection) { selection in
+        .ufitSheet(item: $productSelection) { selection in
             UFitOutfitProductSelectionHost(store: selection, onClose: { productSelection = nil }, onSelect: { choice in
                 if selection.select(choice) { productSelection = nil }
             })

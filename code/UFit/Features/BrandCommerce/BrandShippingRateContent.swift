@@ -24,7 +24,7 @@ struct UFitBrandShippingRateContent: View {
         static let discardTitle = String(localized: "Abandonner ce tarif ?"); static let discard = String(localized: "Abandonner")
         static let keep = String(localized: "Continuer la saisie")
     }
-    private enum Layout { static let page: CGFloat = 24; static let gap: CGFloat = 16; static let small: CGFloat = 8; static let touch: CGFloat = 44 }
+    private enum Layout { static let page: CGFloat = UFitSpace.xl; static let gap: CGFloat = UFitSpace.md; static let small: CGFloat = UFitSpace.xs; static let touch: CGFloat = UFitControlSize.touch }
     private enum Icon { static let chevron = "chevron.right" }
     init(rate: UFitBrandShippingRateDraft, isNew: Bool, pricesIncludeTaxes: Bool?, countries: [UFitCountry], currencies: [UFitCurrency],
          otherRates: [UFitBrandShippingRateDraft], onClose: @escaping () -> Void, onSave: @escaping (UFitBrandShippingRateDraft) -> Void) {
@@ -32,7 +32,8 @@ struct UFitBrandShippingRateContent: View {
         self.countries = countries; self.currencies = currencies; self.otherRates = otherRates; self.onClose = onClose; self.onSave = onSave
     }
     var body: some View {
-        NavigationStack {
+        VStack(spacing: .zero) {
+            UFitSheetHeader(title: isNew ? Copy.new : Copy.edit, onClose: { if draft == original { onClose() } else { confirmingDiscard = true } })
             ScrollView {
                 VStack(alignment: .leading, spacing: Layout.page) {
                     choice(Copy.country, value: countries.first(where: { $0.id == draft.country })?.name ?? Copy.chooseCountry,
@@ -47,32 +48,30 @@ struct UFitBrandShippingRateContent: View {
                 }.padding(Layout.page).frame(maxWidth: .infinity, alignment: .leading)
             }.scrollDismissesKeyboard(.interactively)
                 .safeAreaInset(edge: .bottom) {
-                    Button {
+                    UFitButton {
                         errors = UFitBrandCommerceValidation.rate(draft, pricesIncludeTaxes: pricesIncludeTaxes, countries: countries, currencies: currencies, others: otherRates)
                         if errors.isEmpty { onSave(draft) }
-                    } label: { Text(Copy.save).frame(maxWidth: .infinity) }.buttonStyle(PrimaryButtonStyle()).padding(Layout.gap).background(Color.white)
+                    } label: { Text(Copy.save).frame(maxWidth: .infinity) }.ufitButtonStyle(.primary).padding(Layout.gap).background(Color.ufitCanvas)
                 }
-                .navigationTitle(isNew ? Copy.new : Copy.edit).navigationBarTitleDisplayMode(.inline)
-                .toolbar { ToolbarItem(placement: .cancellationAction) { Button(Copy.close) { if draft == original { onClose() } else { confirmingDiscard = true } } } }
-        }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.white)
+        }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.ufitCanvas)
             .interactiveDismissDisabled(draft != original)
             .onChange(of: draft) { _, _ in errors = [:] }
-            .sheet(item: $selection) { picker in
+            .ufitSheet(item: $selection) { picker in
                 switch picker {
                 case .country: UFitCountrySelectionContent(countries: countries, selected: draft.country) { draft.country = $0.id }
                 case .currency: UFitCurrencySelectionContent(currencies: currencies, selected: draft.currency) { draft.currency = $0.code }
                 }
             }
-            .confirmationDialog(Copy.discardTitle, isPresented: $confirmingDiscard, titleVisibility: .visible) {
-                Button(Copy.discard, role: .destructive, action: onClose)
-                Button(Copy.keep, role: .cancel) {}
+            .ufitConfirmationDialog(Copy.discardTitle, isPresented: $confirmingDiscard, titleVisibility: .visible) {
+                UFitButton(Copy.discard, role: .destructive, action: onClose)
+                UFitButton(Copy.keep, role: .cancel) {}
             }
     }
     private func choice(_ label: String, value: String, error: String?, action: @escaping () -> Void) -> some View {
         VStack(alignment: .leading, spacing: Layout.small) {
-            Text(label).font(.subheadline.weight(.medium))
-            Button(action: action) { HStack { Text(value); Spacer(); Image(systemName: Icon.chevron) }.frame(minHeight: Layout.touch).contentShape(Rectangle()) }.buttonStyle(.plain).accessibilityLabel(label + UFitBrandCommerceInput.separator + value)
-            if let error { Text(error).font(.caption) }
+            Text(label).font(UFitTypography.subheadline.weight(.medium))
+            UFitButton(action: action) { HStack { Text(value); Spacer(); UFitIcon(systemName: Icon.chevron) }.frame(minHeight: Layout.touch).contentShape(Rectangle()) }.ufitButtonStyle(.text).accessibilityLabel(label + UFitBrandCommerceInput.separator + value)
+            if let error { UFitFieldError(message: error) }
         }
     }
 }

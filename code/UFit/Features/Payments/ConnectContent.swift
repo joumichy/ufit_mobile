@@ -7,6 +7,7 @@ struct UFitConnectContent: View {
     let countries: [UFitConnectCountry]
     @Binding var country: String
     let loadingProfiles: Bool
+    let hasLoaded: Bool
     let busyIDs: Set<String>
     let message: String?
     let onBack: () -> Void
@@ -16,6 +17,11 @@ struct UFitConnectContent: View {
     let onDashboard: () -> Void
     private enum Copy {
         static let title = String(localized: "Paiements et versements")
+        static let loading = String(localized: "Chargement des comptes de vente")
+        static let failed = String(localized: "Espaces de vente indisponibles")
+        static let retry = String(localized: "Réessayer")
+        static let failureIcon = "wifi.exclamationmark"
+        static let refreshIcon = "arrow.clockwise"
         static let empty = String(localized: "Aucun espace de vente")
         static let icon = "creditcard"
         static let test = String(localized: "Mode test")
@@ -33,60 +39,73 @@ struct UFitConnectContent: View {
         static let selected = "checkmark"
         static let disclosure = "chevron.right"
     }
-    private enum Layout { static let spacing: CGFloat = 24; static let row: CGFloat = 14; static let touch: CGFloat = 44; static let bottom: CGFloat = 110; static let radius: CGFloat = 12; static let title: CGFloat = 30; static let pillVertical: CGFloat = 7; static let single = 1 }
+    private enum Layout { static let spacing: CGFloat = UFitSpace.xl; static let row: CGFloat = 14; static let touch: CGFloat = UFitControlSize.touch; static let bottom: CGFloat = 110; static let radius: CGFloat = UFitRadius.field; static let title: CGFloat = UFitTypography.Size.editorial; static let pillVertical: CGFloat = 7; static let single = 1 }
     private var selected: UFitPaymentProfile? { profiles.first { $0.id == selectedID } }
     private var isBusy: Bool { selectedID.map(busyIDs.contains) ?? false }
     var body: some View {
         VStack(spacing: .zero) {
-            DetailHeader(onBack: onBack) {
-                if loadingProfiles || isBusy { ProgressView().frame(minWidth: Layout.touch, minHeight: Layout.touch) }
-                else { Button(Copy.refresh, action: onRefresh).frame(minHeight: Layout.touch) }
+            DetailHeader(title: Copy.title, onBack: onBack) {
+                if isBusy { UFitLoading().frame(minWidth: Layout.touch, minHeight: Layout.touch) }
+                else if !profiles.isEmpty {
+                    UFitButton(action: onRefresh) { UFitIcon(systemName: Copy.refreshIcon).frame(width: Layout.touch, height: Layout.touch) }
+                        .accessibilityLabel(Copy.refresh).disabled(loadingProfiles)
+                }
             }
-            ScrollView {
-                VStack(alignment: .leading, spacing: Layout.spacing) {
-                    Text(Copy.title).font(.system(size: Layout.title, design: .serif))
-                    if profiles.count > Layout.single {
-                        VStack(spacing: .zero) {
-                            ForEach(profiles) { profile in
-                                Button { onSelect(profile) } label: {
-                                    HStack(spacing: Layout.row) {
-                                        VStack(alignment: .leading) { Text(profile.name).font(.headline); Text(profile.kind.label).font(.subheadline).foregroundStyle(Color.ufitMuted) }
-                                        Spacer()
-                                        if busyIDs.contains(profile.id) { ProgressView() }
-                                        else { Image(systemName: profile.id == selectedID ? Copy.selected : Copy.disclosure) }
-                                    }.frame(minHeight: Layout.touch).padding(.vertical, Layout.row)
-                                }.buttonStyle(.plain)
-                                Divider()
+            GeometryReader { viewport in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: Layout.spacing) {
+                        if profiles.isEmpty {
+                            if loadingProfiles || (!hasLoaded && message == nil) { UFitLoading(Copy.loading).frame(maxWidth: .infinity) }
+                            else if let message {
+                                UFitEmptyState(title: Copy.failed, message: message, symbol: Copy.failureIcon,
+                                    actionTitle: Copy.retry, action: onRefresh)
+                            } else { UFitEmptyState(title: Copy.empty, symbol: Copy.icon) }
+                        } else {
+                            if profiles.count > Layout.single {
+                                VStack(spacing: .zero) {
+                                    ForEach(profiles) { profile in
+                                        UFitButton { onSelect(profile) } label: {
+                                            HStack(spacing: Layout.row) {
+                                                VStack(alignment: .leading) { Text(profile.name).font(UFitTypography.headline); Text(profile.kind.label).font(UFitTypography.subheadline).foregroundStyle(Color.ufitSecondaryText) }
+                                                Spacer()
+                                                if busyIDs.contains(profile.id) { UFitLoading() }
+                                                else { UFitIcon(systemName: profile.id == selectedID ? Copy.selected : Copy.disclosure) }
+                                            }.frame(minHeight: Layout.touch).padding(.vertical, Layout.row)
+                                        }.ufitButtonStyle(.text)
+                                        Divider()
+                                    }
+                                }
+                            }
+                            if let selected {
+                                if profiles.count == Layout.single { Text(selected.name).font(UFitTypography.title3.weight(.semibold)) }
+                                if let status { account(status) }
+                            }
+                            if let message {
+                                UFitNotice(message: message, kind: .error)
+                                if selected == nil { UFitActionButton(title: Copy.retry, kind: .secondary, action: onRefresh) }
                             }
                         }
-                    }
-                    if let selected {
-                        if profiles.count == Layout.single { Text(selected.name).font(.title3.weight(.semibold)) }
-                        if let status { account(status) }
-                    } else if !loadingProfiles {
-                        ContentUnavailableView(Copy.empty, systemImage: Copy.icon)
-                    }
-                    if let message { Text(message).font(.callout).foregroundStyle(Color.ufitMuted) }
-                }.padding(Layout.spacing).padding(.bottom, Layout.bottom).frame(maxWidth: .infinity, alignment: .leading)
+                    }.padding(Layout.spacing).frame(minHeight: viewport.size.height, alignment: profiles.isEmpty ? .center : .topLeading)
+                }
             }
-        }.foregroundStyle(Color.ufitInk).background(Color.white)
+        }.foregroundStyle(Color.ufitInk).background(Color.ufitCanvas)
     }
     private func account(_ status: UFitConnectAccountStatus) -> some View {
         VStack(alignment: .leading, spacing: Layout.spacing) {
-            if !status.liveMode { Text(Copy.test).font(.caption.weight(.semibold)).padding(.horizontal, Layout.row).padding(.vertical, Layout.pillVertical).background(Color.ufitBackground, in: Capsule()) }
-            Text(status.stage.label).font(.title2.weight(.medium))
-            if status.stage != .ready { Text(Copy.required).font(.callout).foregroundStyle(Color.ufitMuted) }
+            if !status.liveMode { Text(Copy.test).font(UFitTypography.caption.weight(.semibold)).padding(.horizontal, Layout.row).padding(.vertical, Layout.pillVertical).background(Color.ufitCanvas, in: Capsule()) }
+            Text(status.stage.label).font(UFitTypography.title2.weight(.medium))
+            if status.stage != .ready { Text(Copy.required).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
             if let selectedCountry = status.country {
                 VStack(alignment: .leading, spacing: Layout.row) {
-                    Text(Copy.country).font(.subheadline.weight(.medium))
+                    Text(Copy.country).font(UFitTypography.subheadline.weight(.medium))
                     Text(countries.first { $0.id == selectedCountry }?.name ?? selectedCountry)
                 }
             } else if status.canConfigure {
                 VStack(alignment: .leading, spacing: Layout.row) {
-                    Text(Copy.country).font(.subheadline.weight(.medium))
-                    Picker(Copy.country, selection: $country) { ForEach(countries) { Text($0.name).tag($0.id) } }
+                    Text(Copy.country).font(UFitTypography.subheadline.weight(.medium))
+                    UFitSelection(Copy.country, selection: $country, options: countries.map { .init(value: $0.id, title: $0.name) })
                         .labelsHidden().pickerStyle(.menu).tint(Color.ufitInk).frame(minHeight: Layout.touch).disabled(isBusy)
-                    Text(Copy.immutable).font(.caption).foregroundStyle(Color.ufitMuted)
+                    Text(Copy.immutable).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText)
                 }
             }
             Divider()
@@ -94,16 +113,16 @@ struct UFitConnectContent: View {
             capability(Copy.payouts, status.payoutsEnabled)
             if status.canConfigure {
                 if status.stage != .ready {
-                    Button(action: onConfigure) { Text(Copy.start).frame(maxWidth: .infinity) }
-                        .buttonStyle(PrimaryButtonStyle()).disabled(isBusy || (status.country == nil && country.isEmpty))
+                    UFitButton(action: onConfigure) { Text(Copy.start).frame(maxWidth: .infinity) }
+                        .ufitButtonStyle(.primary).disabled(isBusy || (status.country == nil && country.isEmpty))
                 }
                 if status.stage == .ready || status.stage == .restricted {
-                    Button(Copy.dashboard, action: onDashboard).frame(minHeight: Layout.touch).disabled(isBusy)
+                    UFitButton(Copy.dashboard, action: onDashboard).frame(minHeight: Layout.touch).disabled(isBusy)
                 }
-            } else { Text(Copy.owner).font(.callout).foregroundStyle(Color.ufitMuted) }
+            } else { Text(Copy.owner).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
         }
     }
     private func capability(_ title: String, _ enabled: Bool) -> some View {
-        HStack { Text(title).font(.subheadline); Spacer(); Text(enabled ? Copy.enabled : Copy.pending).font(.subheadline.weight(.medium)) }
+        HStack { Text(title).font(UFitTypography.subheadline); Spacer(); Text(enabled ? Copy.enabled : Copy.pending).font(UFitTypography.subheadline.weight(.medium)) }
     }
 }

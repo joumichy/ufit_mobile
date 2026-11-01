@@ -13,39 +13,39 @@ struct UFitExperienceChooserContent: View {
         static let loading = String(localized: "Vérification de vos accès")
     }
     private enum Icon { static let close = "xmark"; static let selected = "checkmark.circle.fill" }
-    private enum Layout { static let page: CGFloat = 24; static let gap: CGFloat = 16; static let small: CGFloat = 4; static let title: CGFloat = 30; static let touch: CGFloat = 52; static let icon: CGFloat = 24 }
+    private enum Layout { static let page: CGFloat = UFitSpace.xl; static let gap: CGFloat = UFitSpace.md; static let small: CGFloat = UFitSpace.xxs; static let title: CGFloat = UFitTypography.Size.editorial; static let touch: CGFloat = UFitControlSize.input; static let icon: CGFloat = 24 }
     var body: some View {
         VStack(alignment: .leading, spacing: Layout.page) {
             HStack {
-                Text(Copy.title).font(.system(size: Layout.title, design: .serif))
+                Text(Copy.title).ufitFont(size: Layout.title, design: .serif)
                 Spacer()
-                Button(action: onClose) { Image(systemName: Icon.close).frame(width: Layout.touch, height: Layout.touch) }.accessibilityLabel(Copy.close)
+                UFitButton(action: onClose) { UFitIcon(systemName: Icon.close).frame(width: Layout.touch, height: Layout.touch) }.accessibilityLabel(Copy.close)
             }
-            if isLoading { ProgressView(Copy.loading) }
+            if isLoading { UFitLoading(Copy.loading) }
             if let message {
-                Text(message).font(.callout).foregroundStyle(Color.ufitMuted)
-                Button(Copy.refresh, action: onRefresh).frame(minHeight: Layout.touch)
+                Text(message).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText)
+                UFitButton(Copy.refresh, action: onRefresh).frame(minHeight: Layout.touch)
             }
             ScrollView {
                 VStack(spacing: .zero) {
                     ForEach(choices) { choice in
-                        Button { onChoose(choice.selection) } label: {
+                        UFitButton { onChoose(choice.selection) } label: {
                             HStack(spacing: Layout.gap) {
-                                Image(systemName: choice.selection.kind.systemImage).font(.title3).frame(width: Layout.icon).accessibilityHidden(true)
+                                UFitIcon(systemName: choice.selection.kind.systemImage).font(UFitTypography.title3).frame(width: Layout.icon).accessibilityHidden(true)
                                 VStack(alignment: .leading, spacing: Layout.small) {
-                                    Text(choice.name.isEmpty ? choice.selection.kind.title : choice.name).font(.body.weight(.medium))
-                                    if !choice.name.isEmpty { Text(choice.selection.kind.title).font(.caption).foregroundStyle(Color.ufitMuted) }
-                                    if let status = choice.status, status != .active { Text(status.label).font(.caption).foregroundStyle(Color.ufitMuted) }
+                                    Text(choice.name.isEmpty ? choice.selection.kind.title : choice.name).font(UFitTypography.body.weight(.medium))
+                                    if !choice.name.isEmpty { Text(choice.selection.kind.title).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText) }
+                                    if let status = choice.status, status != .active { Text(status.label).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText) }
                                 }.fixedSize(horizontal: false, vertical: true)
                                 Spacer(minLength: Layout.small)
-                                if selected == choice.selection { Image(systemName: Icon.selected).accessibilityHidden(true) }
+                                if selected == choice.selection { UFitIcon(systemName: Icon.selected).accessibilityHidden(true) }
                             }.frame(minHeight: Layout.touch).padding(.vertical, Layout.gap).contentShape(Rectangle())
-                        }.buttonStyle(.plain).disabled(!choice.canSelect)
+                        }.ufitButtonStyle(.text).disabled(!choice.canSelect)
                             .accessibilityAddTraits(selected == choice.selection ? .isSelected : [])
                         Divider()
                     }
                 }
             }
-        }.padding(Layout.page).foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.white)
+        }.padding(Layout.page).foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.ufitCanvas)
     }
 }

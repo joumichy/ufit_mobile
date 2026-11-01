@@ -5,7 +5,9 @@ import Observation
 final class UFitCartStore {
     private(set) var cart: UFitCartDTO?
     private(set) var isLoading = false
+    private(set) var hasLoaded = false
     private(set) var busyItems = Set<String>()
+    private(set) var loadError: String?
     var message: String?
     private var products = [String: UFitPublicProductDTO]()
     @ObservationIgnored private let client: UFitAPIClient
@@ -32,7 +34,7 @@ final class UFitCartStore {
                 isBusy: busyItems.contains(line.id), isAvailable: (variant?.stockQuantity ?? .zero) > .zero)
         }
     }
-    func reset() { cart = nil; products = [:]; busyItems = []; message = nil }
+    func reset() { cart = nil; products = [:]; busyItems = []; message = nil; loadError = nil; hasLoaded = false }
     func load() async {
         guard !isLoading, let userID = session.user?.id else { return }
         isLoading = true
@@ -41,13 +43,15 @@ final class UFitCartStore {
             let response = try await client.fetchCart()
             guard session.user?.id == userID else { return }
             cart = response.cart
+            hasLoaded = true
+            loadError = nil
             message = nil
             await hydrate(userID: userID)
-        } catch { if session.user?.id == userID { message = error.localizedDescription } }
+        } catch { if session.user?.id == userID { loadError = error.localizedDescription } }
     }
     func receive(_ response: UFitCartDTO) async {
         guard let userID = session.user?.id else { return }
-        cart = response
+        cart = response; hasLoaded = true; loadError = nil; message = nil
         await hydrate(userID: userID)
     }
     private func hydrate(userID: String) async {
@@ -65,7 +69,7 @@ final class UFitCartStore {
         do {
             let response = try await client.setCartQuantity(itemID: id, quantity: quantity)
             guard session.user?.id == userID else { return }
-            cart = response; message = nil
+            cart = response; hasLoaded = true; loadError = nil; message = nil
             await hydrate(userID: userID)
         } catch { if session.user?.id == userID { message = error.localizedDescription } }
     }
@@ -76,7 +80,7 @@ final class UFitCartStore {
         do {
             let response = try await client.removeCartItem(id: id)
             guard session.user?.id == userID else { return }
-            cart = response; message = nil
+            cart = response; hasLoaded = true; loadError = nil; message = nil
             await hydrate(userID: userID)
         } catch { if session.user?.id == userID { message = error.localizedDescription } }
     }

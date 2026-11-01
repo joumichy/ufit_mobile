@@ -7,32 +7,32 @@ struct OutfitDetailContentView: View {
     let onBuy: () -> Void
 
     var body: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: .zero) {
             DetailHeader(onBack: onBack) {
-                HStack(spacing: 18) {
-                    Image(systemName: "square.and.arrow.up")
-                    Image(systemName: "heart")
+                HStack(spacing: UFitSpace.md) {
+                    UFitIcon(systemName: "square.and.arrow.up")
+                    UFitIcon(systemName: "heart")
                 }
-                .font(.system(size: 21, weight: .regular))
+                .ufitFont(size: UFitTypography.Size.section, weight: .regular)
                 .foregroundStyle(Color.ufitInk)
             }
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
+                VStack(alignment: .leading, spacing: UFitSpace.xl) {
                     OutfitHeroImage(imageName: outfit.imageName)
                     OutfitSummary(outfit: outfit)
                     OutfitPiecesSection(pieces: pieces)
                     CheckoutSummary(total: outfit.price)
-                    Button("Acheter le look complet", action: onBuy)
-                        .buttonStyle(PrimaryButtonStyle())
-                        .padding(.horizontal, 24)
-                        .padding(.bottom, 104)
+                    UFitButton("Acheter le look complet", action: onBuy)
+                        .ufitButtonStyle(.primary)
+                        .padding(.horizontal, UFitSpace.xl)
+                        .padding(.bottom, UFitSpace.xl)
                 }
             }
             .scrollIndicators(.hidden)
-            .background(Color.white)
+            .background(Color.ufitCanvas)
         }
-        .background(Color.white)
+        .background(Color.ufitCanvas)
     }
 }
 
@@ -52,19 +52,19 @@ struct OutfitSummary: View {
     let outfit: Outfit
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 7) {
+        VStack(alignment: .leading, spacing: UFitSpace.xs) {
             Text(outfit.title)
-                .font(.system(size: 27, weight: .regular))
+                .ufitFont(size: UFitTypography.Size.title, weight: .regular)
             Text("By \(outfit.creator)")
-                .font(.system(size: 15))
-                .foregroundStyle(Color.ufitMuted)
+                .ufitFont(size: UFitTypography.Size.body)
+                .foregroundStyle(Color.ufitSecondaryText)
             Text(outfit.description)
-                .font(.system(size: 14))
+                .ufitFont(size: UFitTypography.Size.small)
                 .lineSpacing(3)
-                .foregroundStyle(Color.ufitMuted)
-                .padding(.top, 4)
+                .foregroundStyle(Color.ufitSecondaryText)
+                .padding(.top, UFitSpace.xxs)
         }
-        .padding(.horizontal, 24)
+        .padding(.horizontal, UFitSpace.xl)
     }
 }
 
@@ -72,14 +72,14 @@ struct OutfitPiecesSection: View {
     let pieces: [OutfitPiece]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: UFitSpace.md) {
             Text("Complete the Look")
-                .font(.system(size: 20, weight: .medium))
-                .padding(.horizontal, 24)
+                .ufitFont(size: UFitTypography.Size.section, weight: .medium)
+                .padding(.horizontal, UFitSpace.xl)
 
             ForEach(Array(pieces.enumerated()), id: \.element.id) { index, piece in
                 OutfitPieceCard(index: index + 1, piece: piece)
-                    .padding(.horizontal, 24)
+                    .padding(.horizontal, UFitSpace.xl)
             }
         }
     }
@@ -89,10 +89,10 @@ struct CheckoutSummary: View {
     let total: String
 
     var body: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: UFitSpace.sm) {
             HStack {
                 Text("Subtotal")
-                    .foregroundStyle(Color.ufitMuted)
+                    .foregroundStyle(Color.ufitSecondaryText)
                 Spacer()
                 Text(total)
             }
@@ -103,13 +103,13 @@ struct CheckoutSummary: View {
                 Text("Total")
                 Spacer()
                 Text(total)
-                    .font(.system(size: 22, weight: .medium))
+                    .ufitFont(size: UFitTypography.Size.section, weight: .medium)
             }
         }
-        .font(.system(size: 16))
+        .ufitFont(size: UFitTypography.Size.body)
         .foregroundStyle(Color.ufitInk)
         .padding(18)
-        .background(Color.ufitSecondary, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .padding(.horizontal, 24)
+        .background(Color.ufitSecondary, in: RoundedRectangle(cornerRadius: UFitRadius.card, style: .continuous))
+        .padding(.horizontal, UFitSpace.xl)
     }
 }

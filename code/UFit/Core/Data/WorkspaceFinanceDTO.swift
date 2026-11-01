@@ -133,7 +133,7 @@ struct UFitWorkspaceCommissionPageDTO: Decodable {
 
 struct UFitCreatorDashboardDTO: Decodable {
     struct Profile: Decodable {
-        struct Grade: Decodable { let code: String; let label: String; let rank: Int; let commissionBps: Int }
+        struct Grade: Decodable { let code: String; let label: String; let rank: Int }
         let id: String; let userId: String; let displayName: String; let slug: String; let status: UFitProfileStatus; let grade: Grade
     }
     struct Outfits: Decodable {

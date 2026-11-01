@@ -6,20 +6,20 @@ struct MetricCard: View {
     let label: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 7) {
-            Image(systemName: icon)
-                .font(.system(size: 20))
-                .foregroundStyle(Color.ufitMuted)
+        VStack(alignment: .leading, spacing: UFitSpace.xs) {
+            UFitIcon(systemName: icon)
+                .ufitFont(size: UFitTypography.Size.section)
+                .foregroundStyle(Color.ufitSecondaryText)
                 .padding(.bottom, 2)
             Text(value)
-                .font(.system(size: 25, weight: .regular))
+                .ufitFont(size: UFitTypography.Size.title, weight: .regular)
             Text(label)
-                .font(.system(size: 12))
-                .foregroundStyle(Color.ufitMuted)
+                .ufitFont(size: UFitTypography.Size.caption)
+                .foregroundStyle(Color.ufitSecondaryText)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
-        .background(Color.ufitSecondary, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .padding(UFitSpace.md)
+        .background(Color.ufitSecondary, in: RoundedRectangle(cornerRadius: UFitRadius.card, style: .continuous))
     }
 }
 
@@ -32,13 +32,13 @@ struct DashboardRow: View {
     var body: some View {
         HStack {
             Text(label)
-                .foregroundStyle(muted ? Color.ufitMuted : Color.ufitInk)
+                .foregroundStyle(muted ? Color.ufitSecondaryText : Color.ufitInk)
             Spacer()
             Text(value)
-                .font(.system(size: valueSize, weight: .regular))
-                .foregroundStyle(muted ? Color.ufitMuted : Color.ufitInk)
+                .ufitFont(size: valueSize, weight: .regular)
+                .foregroundStyle(muted ? Color.ufitSecondaryText : Color.ufitInk)
         }
-        .font(.system(size: 15))
+        .ufitFont(size: UFitTypography.Size.body)
     }
 }
 
@@ -46,27 +46,27 @@ struct OrderCard: View {
     let order: BrandOrder
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: UFitSpace.md) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 5) {
                     Text(order.id)
-                        .font(.system(size: 14, weight: .medium))
+                        .ufitFont(size: UFitTypography.Size.small, weight: .medium)
                     Text("\(order.customer) · \(order.items) items")
-                        .font(.system(size: 12))
-                        .foregroundStyle(Color.ufitMuted)
+                        .ufitFont(size: UFitTypography.Size.caption)
+                        .foregroundStyle(Color.ufitSecondaryText)
                     Text(order.date)
-                        .font(.system(size: 12))
-                        .foregroundStyle(Color.ufitMuted)
+                        .ufitFont(size: UFitTypography.Size.caption)
+                        .foregroundStyle(Color.ufitSecondaryText)
                 }
 
                 Spacer()
 
-                VStack(alignment: .trailing, spacing: 8) {
+                VStack(alignment: .trailing, spacing: UFitSpace.xs) {
                     Text(order.total)
-                        .font(.system(size: 16, weight: .medium))
+                        .ufitFont(size: UFitTypography.Size.body, weight: .medium)
 
                     Text(order.status.label)
-                        .font(.system(size: 11, weight: .medium))
+                        .ufitFont(size: UFitTypography.Size.micro, weight: .medium)
                         .foregroundStyle(order.status.foreground)
                         .padding(.horizontal, 10)
                         .padding(.vertical, 5)
@@ -76,17 +76,17 @@ struct OrderCard: View {
 
             if order.status == .pending {
                 HStack(spacing: 9) {
-                    Button {
+                    UFitButton {
                     } label: {
                         Label("Ship Order", systemImage: "truck.box")
                             .frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(CompactPrimaryButtonStyle())
+                    .ufitButtonStyle(.primary, compact: true)
 
-                    Button {
+                    UFitButton {
                     } label: {
-                        Image(systemName: "arrow.down.doc")
-                            .font(.system(size: 16, weight: .medium))
+                        UFitIcon(systemName: "arrow.down.doc")
+                            .ufitFont(size: UFitTypography.Size.body, weight: .medium)
                             .foregroundStyle(Color.ufitInk)
                             .frame(width: 48, height: 42)
                             .background(.white, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
@@ -95,11 +95,11 @@ struct OrderCard: View {
                                     .stroke(Color.ufitBorder, lineWidth: 1)
                             )
                     }
-                    .buttonStyle(.plain)
+                    .ufitButtonStyle(.text)
                 }
             }
         }
-        .padding(16)
-        .background(Color.ufitSecondary, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .padding(UFitSpace.md)
+        .background(Color.ufitSecondary, in: RoundedRectangle(cornerRadius: UFitRadius.card, style: .continuous))
     }
 }

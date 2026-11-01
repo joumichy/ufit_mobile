@@ -23,7 +23,7 @@ struct UFitBrandOrderHost: View {
                     do { form = try UFitShipmentFormStore(parent: store, command: command) } catch { store.recordFailure(error) }
                 } else { Task { await store.perform(command) } }
             }).task { if store.order == nil { await store.load() } }
-            .sheet(item: $form) { current in
+            .ufitSheet(item: $form) { current in
                 UFitShipmentFormHost(store: current, onClose: {
                     form = nil
                     if current.canRefresh { Task { await store.load() } }

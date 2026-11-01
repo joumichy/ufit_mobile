@@ -27,26 +27,26 @@ struct UFitWorkspaceCommissionsContent: View {
         static let details = String(localized: "Détail du calcul")
     }
     private enum Layout {
-        static let page: CGFloat = 24; static let gap: CGFloat = 16; static let small: CGFloat = 8
-        static let touch: CGFloat = 44; static let bottom: CGFloat = 32
+        static let page: CGFloat = UFitSpace.xl; static let gap: CGFloat = UFitSpace.md; static let small: CGFloat = UFitSpace.xs
+        static let touch: CGFloat = UFitControlSize.touch; static let bottom: CGFloat = 32
     }
     private enum Icon { static let refresh = "arrow.clockwise" }
     var body: some View {
         VStack(spacing: .zero) {
             DetailHeader(title: Copy.title, onBack: onBack) {
-                if isLoading { ProgressView().frame(width: Layout.touch, height: Layout.touch) }
-                else { Button(action: onRefresh) { Image(systemName: Icon.refresh).frame(width: Layout.touch, height: Layout.touch) }.accessibilityLabel(Copy.refresh) }
+                if isLoading { UFitLoading().frame(width: Layout.touch, height: Layout.touch) }
+                else { UFitButton(action: onRefresh) { UFitIcon(systemName: Icon.refresh).frame(width: Layout.touch, height: Layout.touch) }.accessibilityLabel(Copy.refresh) }
             }
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: Layout.page) {
-                    Text(name).font(.title.weight(.medium))
-                    if hasLoaded && entries.isEmpty && message == nil && !isLoading { Text(Copy.empty).font(.callout).foregroundStyle(Color.ufitMuted) }
+                    Text(name).font(UFitTypography.title.weight(.medium))
+                    if hasLoaded && entries.isEmpty && message == nil && !isLoading { Text(Copy.empty).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
                     ForEach(entries) { entry in
                         VStack(alignment: .leading, spacing: Layout.gap) {
-                            Text(entry.date).font(.headline)
-                            Text(entry.state.label).font(.subheadline.weight(.medium))
-                            Text(entry.net).font(.title2.weight(.medium)).monospacedDigit()
-                            DisclosureGroup(Copy.details) {
+                            Text(entry.date).font(UFitTypography.headline)
+                            Text(entry.state.label).font(UFitTypography.subheadline.weight(.medium))
+                            Text(entry.net).font(UFitTypography.title2.weight(.medium)).monospacedDigit()
+                            UFitDisclosure(Copy.details) {
                                 VStack(alignment: .leading, spacing: Layout.gap) {
                                     row(Copy.base, entry.base)
                                     row(Copy.rate, entry.rate)
@@ -54,26 +54,26 @@ struct UFitWorkspaceCommissionsContent: View {
                                     row(Copy.adjustments, entry.adjusted)
                                     row(Copy.net, entry.net)
                                     if entry.hasPaidAdjustment { row(Copy.recover, entry.paidAdjustment) }
-                                    Text(entry.id).font(.caption.monospaced()).textSelection(.enabled).foregroundStyle(Color.ufitMuted)
+                                    Text(entry.id).font(UFitTypography.caption.monospaced()).textSelection(.enabled).foregroundStyle(Color.ufitSecondaryText)
                                 }.padding(.top, Layout.gap)
                             }.frame(minHeight: Layout.touch)
                         }
                         Divider()
                     }
                     if let message {
-                        Text(message).font(.callout).foregroundStyle(Color.ufitMuted).accessibilityAddTraits(.updatesFrequently)
-                        Button(Copy.retry, action: onRetry).frame(minHeight: Layout.touch)
+                        Text(message).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText).accessibilityAddTraits(.updatesFrequently)
+                        UFitButton(Copy.retry, action: onRetry).frame(minHeight: Layout.touch)
                     }
-                    if isLoading || (!hasLoaded && message == nil) { ProgressView(Copy.loading).frame(maxWidth: .infinity) }
-                    else if hasMore && message == nil { Button(Copy.more, action: onMore).frame(minHeight: Layout.touch) }
-                }.padding(Layout.page).padding(.bottom, Layout.bottom).frame(maxWidth: .infinity, alignment: .leading)
+                    if isLoading || (!hasLoaded && message == nil) { UFitLoading(Copy.loading).frame(maxWidth: .infinity) }
+                    else if hasMore && message == nil { UFitButton(Copy.more, action: onMore).frame(minHeight: Layout.touch) }
+                }.padding(Layout.page).padding(.bottom, UFitSpace.xl).frame(maxWidth: .infinity, alignment: .leading)
             }
-        }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.white)
+        }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.ufitCanvas)
     }
     private func row(_ label: String, _ value: String) -> some View {
         ViewThatFits(in: .horizontal) {
             HStack(alignment: .firstTextBaseline, spacing: Layout.gap) { Text(label).fixedSize(); Spacer(); Text(value).monospacedDigit().fixedSize() }
             VStack(alignment: .leading, spacing: Layout.small) { Text(label); Text(value).monospacedDigit() }
-        }.font(.subheadline).accessibilityElement(children: .combine)
+        }.font(UFitTypography.subheadline).accessibilityElement(children: .combine)
     }
 }

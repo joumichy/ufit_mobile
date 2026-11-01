@@ -19,35 +19,46 @@ struct UFitCreatorStudioContent: View {
     }
     var body: some View {
         VStack(spacing: .zero) {
-            UFitExperienceHeader(title: Copy.title, name: workspace.name, kind: .creator, onChooseExperience: onChooseExperience, onRefresh: onRefresh, isLoading: isLoading)
+            UFitExperienceHeader(title: Copy.title, name: workspace.name, kind: .creator, onChooseExperience: onChooseExperience, onRefresh: message == nil ? onRefresh : nil, isLoading: isLoading)
             ScrollView {
                 VStack(alignment: .leading, spacing: ProfessionalLayout.page) {
-                    if workspace.status != .active { Text(workspace.status.label).font(.callout).foregroundStyle(Color.ufitMuted) }
-                    Button(action: onCreate) { Text(Copy.create).frame(maxWidth: .infinity) }.buttonStyle(PrimaryButtonStyle()).disabled(workspace.status == .suspended)
+                    if workspace.status != .active { UFitNotice(message: workspace.status.label) }
                     if let document {
-                        HStack {
-                            if let grade = document.grade { Text(grade).font(.subheadline.weight(.medium)) }
-                            Spacer()
-                        }
-                        ProfessionalFigures(rows: document.activity.filter { $0.id == .outfits || $0.id == .published })
-                        VStack(alignment: .leading, spacing: .zero) {
-                            Text(Copy.work).font(.title2.weight(.medium)).padding(.bottom, ProfessionalLayout.small)
-                            ForEach(document.activity.filter { $0.id == .draft || $0.id == .review || $0.id == .rejected }) { row in
-                                UFitExperienceActionRow(title: row.label, count: row.value) { onOutfits(outfitFilter(row.id)) }
-                                Divider()
+                        let work = document.activity.filter { ($0.id == .rejected || $0.id == .draft) && $0.value > .zero }
+                            .sorted { ProfessionalQueueOrder.priority($0.id) < ProfessionalQueueOrder.priority($1.id) }
+                        if !work.isEmpty {
+                            UFitEditorialHeading(title: StudioCopy.resume, editorial: false)
+                            VStack(spacing: .zero) {
+                                ForEach(work) { row in
+                                    UFitExperienceActionRow(title: row.label, count: row.value) { onOutfits(outfitFilter(row.id)) }
+                                    Divider()
+                                }
                             }
                         }
-                        if workspace.status == .active {
-                            UFitExperienceActionRow(title: Copy.preview, systemImage: ProfessionalIcon.publicProfile, action: onPublicProfile)
+                        UFitActionButton(title: Copy.create, kind: work.isEmpty ? .primary : .secondary,
+                            disabled: workspace.status == .suspended, action: onCreate)
+                        if let review = document.activity.first(where: { $0.id == .review }), review.value > .zero {
+                            UFitExperienceActionRow(title: review.label, count: review.value) { onOutfits(.underReview) }
                         }
-                    } else if isLoading || message == nil { ProgressView(Copy.loading).frame(maxWidth: .infinity) }
-                    if let message {
-                        Text(message).font(.callout).foregroundStyle(Color.ufitMuted)
-                        Button(Copy.retry, action: onRefresh).frame(minHeight: ProfessionalLayout.touch)
-                    }
-                }.padding(.horizontal, ProfessionalLayout.page).padding(.bottom, ProfessionalLayout.bottom).frame(maxWidth: .infinity, alignment: .leading)
+                        let collection = document.activity.filter { $0.id == .outfits || $0.id == .published }
+                        if collection.contains(where: { $0.value > .zero }) {
+                            UFitEditorialHeading(title: Copy.work, editorial: false)
+                            VStack(spacing: .zero) {
+                                ForEach(collection) { row in
+                                    UFitExperienceActionRow(title: row.label, count: row.value) { onOutfits(row.id == .published ? .published : nil) }
+                                    Divider()
+                                }
+                            }
+                        }
+                        if let grade = document.grade { Text(grade).font(UFitTypography.subheadline).foregroundStyle(Color.ufitSecondaryText) }
+                        if workspace.status == .active { UFitExperienceActionRow(title: Copy.preview, systemImage: ProfessionalIcon.publicProfile, action: onPublicProfile) }
+                        if isLoading { UFitLoading(Copy.loading).frame(maxWidth: .infinity) }
+                    } else if isLoading || message == nil { UFitLoading(Copy.loading).frame(maxWidth: .infinity) }
+                    else { UFitActionButton(title: Copy.create, kind: .secondary, disabled: workspace.status == .suspended, action: onCreate) }
+                    if let message { UFitNotice(message: message, kind: .error); UFitActionButton(title: Copy.retry, kind: .secondary, action: onRefresh) }
+                }.padding(.horizontal, ProfessionalLayout.page).padding(.bottom, UFitSpace.xl).frame(maxWidth: .infinity, alignment: .leading)
             }
-        }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.white)
+        }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.ufitCanvas)
     }
     private func outfitFilter(_ key: UFitWorkspaceActivityFigure.Key) -> UFitOutfitStatus? {
         switch key { case .draft: .draft; case .review: .underReview; case .rejected: .rejected; default: nil }
@@ -77,61 +88,91 @@ struct UFitBrandActivityContent: View {
     }
     var body: some View {
         VStack(spacing: .zero) {
-            UFitExperienceHeader(title: Copy.title, name: workspace.name, kind: .brand, onChooseExperience: onChooseExperience, onRefresh: onRefresh, isLoading: isLoading)
+            UFitExperienceHeader(title: Copy.title, name: workspace.name, kind: .brand, onChooseExperience: onChooseExperience, onRefresh: message == nil ? onRefresh : nil, isLoading: isLoading)
             ScrollView {
                 VStack(alignment: .leading, spacing: ProfessionalLayout.page) {
-                    if workspace.status != .active { Text(workspace.status.label).font(.callout).foregroundStyle(Color.ufitMuted) }
-                    Button(action: onAddProduct) { Text(Copy.add).frame(maxWidth: .infinity) }.buttonStyle(PrimaryButtonStyle()).disabled(workspace.status == .suspended)
+                    if workspace.status != .active { UFitNotice(message: workspace.status.label) }
                     if let document {
-                        VStack(alignment: .leading, spacing: ProfessionalLayout.gap) {
-                            UFitExperienceActionRow(title: Copy.orders, systemImage: ProfessionalIcon.orders, action: onOrders)
-                            ProfessionalFigures(rows: document.activity.filter { $0.id == .paid || $0.id == .preparing || $0.id == .shipped })
-                            UFitExperienceActionRow(title: Copy.returns, systemImage: ProfessionalIcon.returns, action: onReturns)
+                        let fulfilment = document.activity.filter { $0.id == .paid || $0.id == .preparing || $0.id == .shipped }
+                        let hasOrders = fulfilment.contains { $0.value > .zero }
+                        let corrections = document.activity.filter { ($0.id == .rejected || $0.id == .review) && $0.value > .zero }.sorted { ProfessionalQueueOrder.priority($0.id) < ProfessionalQueueOrder.priority($1.id) }
+                        if hasOrders {
+                            VStack(alignment: .leading, spacing: UFitSpace.lg) {
+                                UFitEditorialHeading(title: BrandCopy.fulfilment, editorial: false)
+                                ProfessionalFigures(rows: fulfilment)
+                                UFitActionButton(title: BrandCopy.manageOrders, action: onOrders)
+                            }.padding(UFitSpace.lg).background(Color.ufitSecondary, in: RoundedRectangle(cornerRadius: UFitRadius.card))
                         }
-                        Divider()
-                        VStack(alignment: .leading, spacing: .zero) {
-                            Text(Copy.catalog).font(.title2.weight(.medium)).padding(.bottom, ProfessionalLayout.small)
-                            ForEach(document.activity.filter { $0.id == .review || $0.id == .rejected }) { row in
+                        UFitEditorialHeading(title: Copy.catalog, editorial: false)
+                        if let products = document.activity.first(where: { $0.id == .products }), products.value == .zero && corrections.isEmpty {
+                            UFitActionButton(title: Copy.add, kind: hasOrders ? .secondary : .primary,
+                                disabled: workspace.status == .suspended, action: onAddProduct)
+                        } else {
+                            let correction = corrections.first(where: { $0.id == .rejected })
+                            if !hasOrders, let correction {
+                                UFitActionButton(title: BrandCopy.corrections(correction.value)) { onCatalog(.rejected) }
+                                UFitExperienceActionRow(title: BrandCopy.openCatalog) { onCatalog(nil) }
+                            } else { UFitActionButton(title: BrandCopy.openCatalog, kind: hasOrders ? .secondary : .primary) { onCatalog(nil) } }
+                            ForEach(corrections.filter { hasOrders || $0.id != .rejected }) { row in
                                 UFitExperienceActionRow(title: row.label, count: row.value) { onCatalog(row.id == .review ? .underReview : .rejected) }
                                 Divider()
                             }
-                            if let stock = document.activity.first(where: { $0.id == .lowStock }) {
-                                HStack { Text(stock.label); Spacer(); Text(stock.value, format: .number).monospacedDigit() }.font(.callout).foregroundStyle(Color.ufitMuted).padding(.vertical, ProfessionalLayout.gap)
+                            if let stock = document.activity.first(where: { $0.id == .lowStock }), stock.value > .zero {
+                                HStack { Text(stock.label); Spacer(); Text(stock.value, format: .number) }.font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText)
                             }
+                            UFitActionButton(title: Copy.add, kind: .secondary, disabled: workspace.status == .suspended, action: onAddProduct)
                         }
-                        VStack(alignment: .leading, spacing: ProfessionalLayout.small) {
-                            Text(Copy.sales).font(.title2.weight(.medium))
-                            if document.sales.isEmpty { Text(Copy.noSales).font(.callout).foregroundStyle(Color.ufitMuted) }
-                            else {
-                                Text(Copy.net).font(.caption).foregroundStyle(Color.ufitMuted)
-                                ForEach(document.sales) { row in Text(row.net).font(.title2).monospacedDigit() }
-                            }
+                        UFitEditorialHeading(title: BrandCopy.service, editorial: false)
+                        if !hasOrders { UFitExperienceActionRow(title: Copy.orders, systemImage: ProfessionalIcon.orders, action: onOrders) }
+                        UFitExperienceActionRow(title: Copy.returns, subtitle: BrandCopy.returns, systemImage: ProfessionalIcon.returns, action: onReturns)
+                        VStack(alignment: .leading, spacing: UFitSpace.sm) {
+                            UFitEditorialHeading(title: Copy.sales, editorial: false)
+                            if document.sales.isEmpty { Text(Copy.noSales).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
+                            else { Text(Copy.net).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText); ForEach(document.sales) { row in Text(row.net).font(UFitTypography.title2).monospacedDigit() } }
                             UFitExperienceActionRow(title: Copy.salesDetail, action: onSales)
                         }
-                    } else if isLoading || message == nil { ProgressView(Copy.loading).frame(maxWidth: .infinity) }
-                    if let message {
-                        Text(message).font(.callout).foregroundStyle(Color.ufitMuted)
-                        Button(Copy.retry, action: onRefresh).frame(minHeight: ProfessionalLayout.touch)
-                    }
-                }.padding(.horizontal, ProfessionalLayout.page).padding(.bottom, ProfessionalLayout.bottom).frame(maxWidth: .infinity, alignment: .leading)
+                        if isLoading { UFitLoading(Copy.loading).frame(maxWidth: .infinity) }
+                    } else if isLoading || message == nil { UFitLoading(Copy.loading).frame(maxWidth: .infinity) }
+                    else { UFitActionButton(title: Copy.add, kind: .secondary, disabled: workspace.status == .suspended, action: onAddProduct) }
+                    if let message { UFitNotice(message: message, kind: .error); UFitActionButton(title: Copy.retry, kind: .secondary, action: onRefresh) }
+                }.padding(.horizontal, ProfessionalLayout.page).padding(.bottom, UFitSpace.xl).frame(maxWidth: .infinity, alignment: .leading)
             }
-        }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.white)
+        }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.ufitCanvas)
     }
 }
+
 private struct ProfessionalFigures: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     let rows: [UFitWorkspaceActivityFigure]
-    private enum Layout { static let spacing: CGFloat = 16; static let font: CGFloat = 28; static let single = [GridItem(.flexible(), alignment: .leading)] }
+    private enum Layout { static let spacing: CGFloat = UFitSpace.md; static let font: CGFloat = UFitTypography.Size.title; static let single = [GridItem(.flexible(), alignment: .leading)] }
     var body: some View {
         LazyVGrid(columns: dynamicTypeSize.isAccessibilitySize ? Layout.single : rows.map { _ in GridItem(.flexible(), alignment: .leading) }, alignment: .leading, spacing: Layout.spacing) {
             ForEach(rows) { row in
                 VStack(alignment: .leading, spacing: ProfessionalLayout.small) {
-                    Text(row.value, format: .number).font(.system(size: Layout.font, weight: .regular, design: .serif)).monospacedDigit()
-                    Text(row.label).font(.caption).foregroundStyle(Color.ufitMuted).fixedSize(horizontal: false, vertical: true)
+                    Text(row.value, format: .number).ufitFont(size: Layout.font, weight: .regular, design: .serif).monospacedDigit()
+                    Text(row.label).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText).fixedSize(horizontal: false, vertical: true)
                 }.frame(maxWidth: .infinity, alignment: .leading).accessibilityElement(children: .combine)
             }
         }
     }
 }
-private enum ProfessionalLayout { static let page: CGFloat = 24; static let gap: CGFloat = 16; static let small: CGFloat = 8; static let bottom: CGFloat = 110; static let touch: CGFloat = 44 }
+private enum ProfessionalLayout { static let page: CGFloat = UFitSpace.xl; static let gap: CGFloat = UFitSpace.md; static let small: CGFloat = UFitSpace.xs; static let bottom: CGFloat = 110; static let touch: CGFloat = UFitControlSize.touch }
 private enum ProfessionalIcon { static let publicProfile = "person.crop.circle"; static let orders = "shippingbox"; static let returns = "arrow.uturn.backward" }
+
+private enum StudioCopy {
+    static let resume = String(localized: "À reprendre")
+}
+private enum BrandCopy {
+    static let fulfilment = String(localized: "Commandes à suivre")
+    static let service = String(localized: "Service")
+    static let openCatalog = String(localized: "Ouvrir le catalogue")
+    static func corrections(_ count: Int) -> String {
+        count == 1 ? String(localized: "Voir l’article à corriger") : String(localized: "Voir les \(count) articles à corriger")
+    }
+    static let manageOrders = String(localized: "Gérer les commandes")
+    static let returns = String(localized: "Demandes et suivi des remboursements")
+}
+
+private enum ProfessionalQueueOrder {
+    static func priority(_ key: UFitWorkspaceActivityFigure.Key) -> Int { switch key { case .rejected: 0; case .draft: 1; default: 2 } }
+}

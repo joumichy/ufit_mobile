@@ -12,12 +12,16 @@ final class MarketplaceStore {
     var savedOutfits: [Outfit] = []
     private(set) var savingOutfitIDs = Set<String>()
     private(set) var isLoadingFeed = false
+    private(set) var hasLoadedFeed = false
+    private(set) var isLoadingSavedOutfits = false
+    private(set) var hasLoadedSavedOutfits = false
+    private(set) var savedErrorMessage: String?
     var feedErrorMessage: String?
     var actionMessage: String?
 
     @ObservationIgnored private let client: UFitAPIClient
     @ObservationIgnored private let session: UFitSessionStore?
-    @ObservationIgnored private var hasLoadedFeed = false
+    @ObservationIgnored private var accountGeneration = UUID()
     @ObservationIgnored private var detailedOutfits = [String: Outfit]()
 
     init(client: UFitAPIClient, session: UFitSessionStore? = nil, fallbackOutfits: [Outfit] = []) {
@@ -36,19 +40,19 @@ final class MarketplaceStore {
 
     func loadFeedIfNeeded() async {
         guard !hasLoadedFeed else { return }
-        hasLoadedFeed = true
         await refreshFeed()
     }
 
     func refreshFeed() async {
         guard !isLoadingFeed else { return }
-        isLoadingFeed = true
+        isLoadingFeed = true; feedErrorMessage = nil
         defer { isLoadingFeed = false }
         do {
-            let response = try await client.fetchOutfitFeed(limit: 20)
+            let response = try await client.fetchOutfitFeed()
             let remoteOutfits = response.items.map { $0.toOutfit() }
             feedErrorMessage = nil
             outfits = remoteOutfits
+            hasLoadedFeed = true
             if let visibleFeedOutfitID, !remoteOutfits.contains(where: { $0.id == visibleFeedOutfitID }) { self.visibleFeedOutfitID = nil }
         } catch {
             feedErrorMessage = friendlyMessage(for: error)
@@ -75,28 +79,46 @@ final class MarketplaceStore {
     }
 
     func loadSavedOutfits() async {
+        guard !isLoadingSavedOutfits else { return }
+        let request = accountGeneration, userID = session?.user?.id
+        isLoadingSavedOutfits = true; savedErrorMessage = nil
+        defer { if accountGeneration == request { isLoadingSavedOutfits = false } }
         do {
             let page = try await client.fetchSavedOutfits()
+            guard accountGeneration == request, session?.user?.id == userID else { return }
             var resolved: [Outfit] = []
             for reference in page.items {
+                guard accountGeneration == request, session?.user?.id == userID else { return }
                 let detail = try await client.fetchOutfitDetail(id: reference.id)
                 resolved.append(detail.toOutfit())
             }
+            guard accountGeneration == request, session?.user?.id == userID else { return }
             savedOutfits = resolved
             savedOutfitIDs = Set(savedOutfits.map(\.id))
-        } catch { actionMessage = friendlyMessage(for: error) }
+            hasLoadedSavedOutfits = true
+        } catch {
+            if accountGeneration == request, session?.user?.id == userID { savedErrorMessage = friendlyMessage(for: error) }
+        }
     }
 
     func clearAccountData() {
+        accountGeneration = UUID()
         savedOutfits = []
         savedOutfitIDs = []
+        savingOutfitIDs = []
+        hasLoadedFeed = false
+        feedErrorMessage = nil
+        hasLoadedSavedOutfits = false
+        isLoadingSavedOutfits = false
+        savedErrorMessage = nil
         actionMessage = nil
     }
 
     func toggleSaved(outfit: Outfit) async {
         guard !savingOutfitIDs.contains(outfit.id) else { return }
+        let request = accountGeneration, userID = session?.user?.id
         savingOutfitIDs.insert(outfit.id)
-        defer { savingOutfitIDs.remove(outfit.id) }
+        defer { if accountGeneration == request { savingOutfitIDs.remove(outfit.id) } }
         let wasSaved = savedOutfitIDs.contains(outfit.id)
         if wasSaved {
             savedOutfitIDs.remove(outfit.id)
@@ -110,10 +132,12 @@ final class MarketplaceStore {
             } else {
                 _ = try await client.saveOutfit(id: outfit.id)
             }
+            guard accountGeneration == request, session?.user?.id == userID else { return }
             if wasSaved { savedOutfits.removeAll { $0.id == outfit.id } }
             else { savedOutfits.append(outfit) }
-            actionMessage = wasSaved ? "Removed from saved outfits." : "Saved to your wardrobe."
+            actionMessage = wasSaved ? SavedCopy.removed : SavedCopy.saved
         } catch {
+            guard accountGeneration == request, session?.user?.id == userID else { return }
             if wasSaved {
                 savedOutfitIDs.insert(outfit.id)
             } else {
@@ -121,6 +145,11 @@ final class MarketplaceStore {
             }
             actionMessage = friendlyMessage(for: error)
         }
+    }
+
+    private enum SavedCopy {
+        static let removed = String(localized: "Tenue retirée des favoris.")
+        static let saved = String(localized: "Tenue enregistrée.")
     }
 
     private func friendlyMessage(for error: Error) -> String {

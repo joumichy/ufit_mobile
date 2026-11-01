@@ -36,114 +36,108 @@ struct UFitManagedOutfitContent: View {
         static let photo = String(localized: "Photo de la tenue"); static let separator = " · "
     }
     private enum Layout {
-        static let page: CGFloat = 24; static let gap: CGFloat = 16; static let small: CGFloat = 8; static let touch: CGFloat = 44
-        static let title: CGFloat = 32; static let hero: CGFloat = 390; static let image: CGFloat = 76; static let radius: CGFloat = 12; static let editor: CGFloat = 150; static let bottom: CGFloat = 80
+        static let page: CGFloat = UFitSpace.xl; static let gap: CGFloat = UFitSpace.md; static let small: CGFloat = UFitSpace.xs; static let touch: CGFloat = UFitControlSize.touch
+        static let title: CGFloat = UFitTypography.Size.editorial; static let hero: CGFloat = 390; static let image: CGFloat = 76; static let radius: CGFloat = UFitRadius.field; static let editor: CGFloat = 150; static let bottom: CGFloat = 80
     }
     private enum Icon { static let refresh = "arrow.clockwise"; static let photo = "photo" }
     private var locked: Bool { isLoading || isMutating }
     var body: some View {
         VStack(spacing: .zero) {
             DetailHeader(onBack: onBack) {
-                if isLoading { ProgressView().frame(width: Layout.touch, height: Layout.touch) }
-                else { Button(action: onRefresh) { Image(systemName: Icon.refresh).frame(width: Layout.touch, height: Layout.touch) }.accessibilityLabel(Copy.refresh).disabled(isMutating) }
+                if isLoading { UFitLoading().frame(width: Layout.touch, height: Layout.touch) }
+                else { UFitButton(action: onRefresh) { UFitIcon(systemName: Icon.refresh).frame(width: Layout.touch, height: Layout.touch) }.accessibilityLabel(Copy.refresh).disabled(isMutating) }
             }
             ScrollView {
                 VStack(alignment: .leading, spacing: Layout.page) {
                     VStack(alignment: .leading, spacing: Layout.small) {
-                        Text(outfit.status.label).font(.caption).foregroundStyle(Color.ufitMuted)
-                        Text(outfit.title).font(.system(size: Layout.title, design: .serif))
-                        if let author = outfit.author { Text(author).font(.subheadline).foregroundStyle(Color.ufitMuted) }
-                        Text(outfit.price).font(.headline)
+                        Text(outfit.status.label).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText)
+                        Text(outfit.title).ufitFont(size: Layout.title, design: .serif)
+                        if let author = outfit.author { Text(author).font(UFitTypography.subheadline).foregroundStyle(Color.ufitSecondaryText) }
+                        Text(outfit.price).font(UFitTypography.headline)
                     }
                     if outfit.photos.isEmpty {
-                        Rectangle().fill(Color.ufitBackground).overlay { Label(Copy.noPhotos, systemImage: Icon.photo) }.frame(height: Layout.hero)
+                        Rectangle().fill(Color.ufitCanvas).overlay { Label(Copy.noPhotos, systemImage: Icon.photo) }.frame(height: Layout.hero)
                     } else {
-                        TabView {
-                            ForEach(outfit.photos) { photo in
-                                UFitPinnedPhotoContent(source: photo.source, pins: [], contentMode: .fit, onPin: {_ in},
-                                    renewSource: renewPhotoSource.map { renew in { () async throws -> String in try await renew(photo.id) } })
-                            }
-                        }.tabViewStyle(.page(indexDisplayMode: outfit.photos.count > UFitOutfitInput.positionStep ? .always : .never)).frame(height: Layout.hero)
+                        UFitOutfitGalleryContent(photos: outfit.photos.enumerated().map { index, photo in
+                            .init(url: photo.source, position: index, id: photo.id)
+                        }, contentMode: .fit, imageHeight: Layout.hero, renewPhotoSource: renewPhotoSource)
                     }
-                    if !outfit.description.isEmpty { Text(outfit.description).font(.body) }
-                    if let gender = outfit.gender { Text(gender.label).font(.subheadline).foregroundStyle(Color.ufitMuted) }
-                    if !outfit.tags.isEmpty { Text(outfit.tags.map(\.label).joined(separator: Copy.separator)).font(.callout).foregroundStyle(Color.ufitMuted) }
+                    if !outfit.description.isEmpty { Text(outfit.description).font(UFitTypography.body) }
+                    if let gender = outfit.gender { Text(gender.label).font(UFitTypography.subheadline).foregroundStyle(Color.ufitSecondaryText) }
+                    if !outfit.tags.isEmpty { Text(outfit.tags.map(\.label).joined(separator: Copy.separator)).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
                     VStack(alignment: .leading, spacing: Layout.gap) {
-                        Text(Copy.pieces).font(.title2.weight(.medium))
-                        if outfit.pieces.isEmpty { Text(Copy.noPieces).foregroundStyle(Color.ufitMuted) }
+                        Text(Copy.pieces).font(UFitTypography.title2.weight(.medium))
+                        if outfit.pieces.isEmpty { Text(Copy.noPieces).foregroundStyle(Color.ufitSecondaryText) }
                         ForEach(outfit.pieces) { piece in
                             VStack(alignment: .leading, spacing: Layout.small) {
                                 HStack(alignment: .top, spacing: Layout.gap) {
                                     if let source = piece.image { FashionImage(source: source).frame(width: Layout.image, height: Layout.image).clipShape(RoundedRectangle(cornerRadius: Layout.radius)) }
                                     VStack(alignment: .leading, spacing: Layout.small) {
-                                        Text(piece.title).font(.headline)
-                                        Text(piece.type.label).font(.caption).foregroundStyle(Color.ufitMuted)
-                                        if let price = piece.price { Text(price).font(.subheadline) }
-                                        if !piece.isShoppable { Text(Copy.inspiration).font(.caption).foregroundStyle(Color.ufitMuted) }
-                                        else if !piece.isAvailable { Text(Copy.unavailable).font(.caption) }
-                                        if piece.isRequired { Text(Copy.required).font(.caption).foregroundStyle(Color.ufitMuted) }
+                                        Text(piece.title).font(UFitTypography.headline)
+                                        Text(piece.type.label).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText)
+                                        if let price = piece.price { Text(price).font(UFitTypography.subheadline) }
+                                        if !piece.isShoppable { Text(Copy.inspiration).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText) }
+                                        else if !piece.isAvailable { Text(Copy.unavailable).font(UFitTypography.caption) }
+                                        if piece.isRequired { Text(Copy.required).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText) }
                                     }
                                 }
-                                if let note = piece.note, !note.isEmpty { Text(note).font(.callout).foregroundStyle(Color.ufitMuted) }
+                                if let note = piece.note, !note.isEmpty { Text(note).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
                                 Divider()
                             }
                         }
                     }
                     if let reason = outfit.rejectionReason {
-                        VStack(alignment: .leading, spacing: Layout.small) { Text(Copy.rejected).font(.headline); Text(reason).font(.callout) }
+                        VStack(alignment: .leading, spacing: Layout.small) { Text(Copy.rejected).font(UFitTypography.headline); Text(reason).font(UFitTypography.callout) }
                     }
-                    if let message { Text(message).font(.callout) }
-                    if isMutating { ProgressView(Copy.saving).frame(maxWidth: .infinity, minHeight: Layout.touch) }
+                    if let message { Text(message).font(UFitTypography.callout) }
+                    if isMutating { UFitLoading(Copy.saving).frame(maxWidth: .infinity, minHeight: Layout.touch) }
                     actions.disabled(locked)
-                }.padding(Layout.page).padding(.bottom, Layout.bottom).frame(maxWidth: .infinity, alignment: .leading)
+                }.padding(Layout.page).padding(.bottom, UFitSpace.xl).frame(maxWidth: .infinity, alignment: .leading)
             }
-        }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.white)
-            .confirmationDialog(Copy.publishTitle, isPresented: $confirmingPublication, titleVisibility: .visible) {
-                Button(Copy.publish) { if let revision = decisionRevision { onApprove(revision) } }
-                Button(Copy.cancel, role: .cancel) {}
+        }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.ufitCanvas)
+            .ufitConfirmationDialog(Copy.publishTitle, isPresented: $confirmingPublication, titleVisibility: .visible) {
+                UFitButton(Copy.publish) { if let revision = decisionRevision { onApprove(revision) } }
+                UFitButton(Copy.cancel, role: .cancel) {}
             }
-            .confirmationDialog(Copy.archiveTitle, isPresented: $confirmingArchive, titleVisibility: .visible) {
-                Button(Copy.archive, role: .destructive) { if let revision = decisionRevision { onArchive(revision) } }
-                Button(Copy.cancel, role: .cancel) {}
+            .ufitConfirmationDialog(Copy.archiveTitle, isPresented: $confirmingArchive, titleVisibility: .visible) {
+                UFitButton(Copy.archive, role: .destructive) { if let revision = decisionRevision { onArchive(revision) } }
+                UFitButton(Copy.cancel, role: .cancel) {}
             }
-            .sheet(isPresented: $showingRejection) { rejectionSheet }
+            .ufitSheet(isPresented: $showingRejection) { rejectionSheet }
     }
     @ViewBuilder private var actions: some View {
         VStack(alignment: .leading, spacing: Layout.gap) {
             if outfit.status == .archived {
-                Button { onRestore(outfit.revision) } label: { Text(Copy.restore).frame(maxWidth: .infinity) }.buttonStyle(PrimaryButtonStyle())
+                UFitButton { onRestore(outfit.revision) } label: { Text(Copy.restore).frame(maxWidth: .infinity) }.ufitButtonStyle(.primary)
             } else {
                 if access == .author {
                     if outfit.status.canSubmit {
-                        if let issue = outfit.submissionIssue { Text(issue).font(.callout).foregroundStyle(Color.ufitMuted) }
-                        Button { onSubmit(outfit.revision) } label: { Text(Copy.submit).frame(maxWidth: .infinity) }.buttonStyle(PrimaryButtonStyle()).disabled(outfit.submissionIssue != nil)
-                        Button(Copy.edit, action: onEdit).frame(minHeight: Layout.touch)
+                        if let issue = outfit.submissionIssue { Text(issue).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
+                        UFitButton { onSubmit(outfit.revision) } label: { Text(Copy.submit).frame(maxWidth: .infinity) }.ufitButtonStyle(.primary).disabled(outfit.submissionIssue != nil)
+                        UFitButton(Copy.edit, action: onEdit).frame(minHeight: Layout.touch)
                     } else if outfit.status.canEdit {
-                        Button(action: onEdit) { Text(Copy.edit).frame(maxWidth: .infinity) }.buttonStyle(PrimaryButtonStyle())
+                        UFitButton(action: onEdit) { Text(Copy.edit).frame(maxWidth: .infinity) }.ufitButtonStyle(.primary)
                     }
                 } else if outfit.status == .underReview {
-                    if let issue = outfit.submissionIssue { Text(issue).font(.callout).foregroundStyle(Color.ufitMuted) }
-                    Button { decisionRevision = outfit.revision; confirmingPublication = true } label: { Text(Copy.publish).frame(maxWidth: .infinity) }.buttonStyle(PrimaryButtonStyle()).disabled(outfit.submissionIssue != nil)
-                    Button(Copy.reject) { decisionRevision = outfit.revision; rejection = String(); rejectionError = nil; showingRejection = true }.frame(minHeight: Layout.touch)
+                    if let issue = outfit.submissionIssue { Text(issue).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
+                    UFitButton { decisionRevision = outfit.revision; confirmingPublication = true } label: { Text(Copy.publish).frame(maxWidth: .infinity) }.ufitButtonStyle(.primary).disabled(outfit.submissionIssue != nil)
+                    UFitButton(Copy.reject) { decisionRevision = outfit.revision; rejection = String(); rejectionError = nil; showingRejection = true }.frame(minHeight: Layout.touch)
                 }
-                Button(Copy.archive) { decisionRevision = outfit.revision; confirmingArchive = true }.frame(minHeight: Layout.touch)
+                UFitButton(Copy.archive) { decisionRevision = outfit.revision; confirmingArchive = true }.frame(minHeight: Layout.touch)
             }
         }
     }
     private var rejectionSheet: some View {
-        NavigationStack {
+        VStack(spacing: .zero) {
+            UFitSheetHeader(title: Copy.reject, onClose: { showingRejection = false })
             VStack(alignment: .leading, spacing: Layout.gap) {
-                Text(Copy.reason).font(.headline)
-                TextEditor(text: $rejection).frame(minHeight: Layout.editor).padding(Layout.small)
-                    .overlay { RoundedRectangle(cornerRadius: Layout.radius).stroke(Color.ufitBorder) }.accessibilityLabel(Copy.reason)
-                if let rejectionError { Text(rejectionError).font(.caption) }
-                Button {
+                UFitMultilineField(label: Copy.reason, text: $rejection, error: rejectionError)
+                UFitButton {
                     guard UFitOutfitInput.textValid(rejection, minimum: UFitOutfitInput.labelMin, maximum: UFitOutfitInput.noteMax) else { rejectionError = Copy.reasonRequired; return }
                     if let revision = decisionRevision { onReject(revision, UFitOutfitInput.trimmed(rejection)); showingRejection = false }
-                } label: { Text(Copy.reject).frame(maxWidth: .infinity) }.buttonStyle(PrimaryButtonStyle())
+                } label: { Text(Copy.reject).frame(maxWidth: .infinity) }.ufitButtonStyle(.primary)
                 Spacer()
-            }.padding(Layout.page).navigationTitle(Copy.reject).navigationBarTitleDisplayMode(.inline)
-                .toolbar { ToolbarItem(placement: .cancellationAction) { Button(Copy.cancel) { showingRejection = false } } }
+            }.padding(Layout.page)
         }.tint(Color.ufitInk)
     }
 }

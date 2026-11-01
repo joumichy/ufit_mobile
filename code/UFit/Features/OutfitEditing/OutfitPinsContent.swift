@@ -17,7 +17,7 @@ struct UFitOutfitPinsContent: View {
         static let vertical = String(localized: "Position verticale")
         static let done = String(localized: "Terminé")
     }
-    private enum Layout { static let gap: CGFloat = 16; static let photo: CGFloat = 420; static let touch: CGFloat = 44; static let step = 100.0 }
+    private enum Layout { static let gap: CGFloat = UFitSpace.md; static let photo: CGFloat = 420; static let touch: CGFloat = UFitControlSize.touch; static let step = 100.0 }
     private var annotations: [UFitPhotoPinPresentation] {
         photo.pins.compactMap { pin in
             guard let piece = pieces.first(where: { $0.id == pin.pieceID }) else { return nil }
@@ -25,39 +25,36 @@ struct UFitOutfitPinsContent: View {
         }
     }
     var body: some View {
-        NavigationStack {
+        VStack(spacing: .zero) {
+            UFitSheetHeader(title: Copy.title, onClose: { onClose() })
             ScrollView {
                 VStack(alignment: .leading, spacing: Layout.gap) {
-                    if pieces.isEmpty { Text(Copy.empty).foregroundStyle(Color.ufitMuted) }
+                    if pieces.isEmpty { Text(Copy.empty).foregroundStyle(Color.ufitSecondaryText) }
                     else {
                         piecePicker
-                        if selectedID != nil { Text(Copy.place).font(.callout).foregroundStyle(Color.ufitMuted) }
+                        if selectedID != nil { Text(Copy.place).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
                     }
                     UFitPinnedPhotoContent(source: photo.source, previewData: photo.previewData, pins: annotations, contentMode: .fit,
                         onPin: { selectedID = UUID(uuidString: $0) }, onPlace: selectedID == nil ? nil : place, renewSource: renewSource)
                         .frame(height: Layout.photo)
                     if let selectedID, let pin = photo.pins.first(where: { $0.pieceID == selectedID }) {
-                        Text(pieces.first(where: { $0.id == selectedID })?.title ?? String()).font(.headline)
+                        Text(pieces.first(where: { $0.id == selectedID })?.title ?? String()).font(UFitTypography.headline)
                         coordinate(Copy.horizontal, value: pin.x, keyPath: \.x)
                         coordinate(Copy.vertical, value: pin.y, keyPath: \.y)
-                        Button(Copy.remove, role: .destructive) { photo.pins.removeAll { $0.pieceID == selectedID } }.frame(minHeight: Layout.touch)
+                        UFitButton(Copy.remove, role: .destructive) { photo.pins.removeAll { $0.pieceID == selectedID } }.frame(minHeight: Layout.touch)
                     }
                     ForEach(photo.pins.filter { $0.pieceID != selectedID }) { pin in
                         if let piece = pieces.first(where: { $0.id == pin.pieceID }) {
-                            Button { selectedID = pin.pieceID } label: { HStack { UFitOutfitItemIcon(symbol: piece.type.symbol); Text(piece.title) }.frame(minHeight: Layout.touch) }
+                            UFitButton { selectedID = pin.pieceID } label: { HStack { UFitOutfitItemIcon(symbol: piece.type.symbol); Text(piece.title) }.frame(minHeight: Layout.touch) }
                         }
                     }
                 }.padding(Layout.gap)
-            }.navigationTitle(Copy.title).navigationBarTitleDisplayMode(.inline)
-                .toolbar { ToolbarItem(placement: .confirmationAction) { Button(Copy.done, action: onClose) } }
-                .foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.white)
+            }
+                .foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.ufitCanvas)
         }
     }
     private var piecePicker: some View {
-                        Picker(Copy.piece, selection: $selectedID) {
-                            Text(Copy.choose).tag(Optional<UUID>.none)
-                            ForEach(pieces) { piece in HStack { UFitOutfitItemIcon(symbol: piece.type.symbol); Text(piece.title) }.tag(Optional(piece.id)) }
-                        }.pickerStyle(.menu).frame(minHeight: Layout.touch)
+                        UFitSelection(Copy.piece, selection: $selectedID, options: [.init(value: nil, title: Copy.choose)] + pieces.map { .init(value: Optional($0.id), title: $0.title) }).frame(minHeight: Layout.touch)
     }
     private func place(_ x: Int, _ y: Int) {
         guard let selectedID else { return }
@@ -66,8 +63,8 @@ struct UFitOutfitPinsContent: View {
     }
     private func coordinate(_ title: String, value: Int, keyPath: WritableKeyPath<UFitOutfitDraftPin, Int>) -> some View {
         VStack(alignment: .leading) {
-            Text(title).font(.caption)
-            Slider(value: Binding(get: { Double(photo.pins.first(where: { $0.pieceID == selectedID })?[keyPath: keyPath] ?? value) }, set: { next in
+            Text(title).font(UFitTypography.caption)
+            UFitSlider(value: Binding(get: { Double(photo.pins.first(where: { $0.pieceID == selectedID })?[keyPath: keyPath] ?? value) }, set: { next in
                 guard let index = photo.pins.firstIndex(where: { $0.pieceID == selectedID }) else { return }
                 photo.pins[index][keyPath: keyPath] = Int(next)
             }), in: .zero...Double(UFitOutfitPin.coordinateMax), step: Layout.step).accessibilityLabel(title)

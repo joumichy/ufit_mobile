@@ -16,6 +16,7 @@ struct MarketplaceRootView: View {
     @State private var showExperienceChooser = false
     @State private var preserveCustomerContextOnSignIn = false
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var routeHistory: [AppRoute] = []
     @State private var showAuthentication = false
 
@@ -41,10 +42,10 @@ struct MarketplaceRootView: View {
             if showOnboarding {
                 OnboardingView(onComplete: completeOnboarding)
             } else {
-                ZStack(alignment: .bottom) {
-                    routedContent.environment(\.ufitPrimarySection, routeHistory.isEmpty)
-                    if !hidesTabBar { BottomNavBar(activeTab: activeTab, experience: experience.kind, cartCount: cart.count, onSelect: selectTab) }
-                }
+                routedContent.environment(\.ufitPrimarySection, routeHistory.isEmpty)
+                    .safeAreaInset(edge: .bottom, spacing: .zero) {
+                        if !hidesTabBar { BottomNavBar(activeTab: activeTab, experience: experience.kind, cartCount: cart.count, onSelect: selectTab) }
+                    }
                 .background(Color.ufitBackground)
             }
         }
@@ -85,10 +86,10 @@ struct MarketplaceRootView: View {
                 if case .publicProfile(let profile) = activeRoute { Task { await profile.loadFollow(refreshProfile: true) } }
             }
         }
-        .sheet(isPresented: $showAuthentication) {
+        .ufitSheet(isPresented: $showAuthentication) {
             UFitAuthenticationHost(session: session, onBrowse: { showAuthentication = false })
         }
-        .sheet(isPresented: $showExperienceChooser, onDismiss: experience.dismissChoiceRequest) { experienceChooser }
+        .ufitSheet(isPresented: $showExperienceChooser, onDismiss: experience.dismissChoiceRequest) { experienceChooser }
     }
 
     @ViewBuilder
@@ -113,7 +114,7 @@ struct MarketplaceRootView: View {
             } else { experienceChooser }
         case .administratorHome:
             UFitAdminActivityHost(store: adminActivity, onChooseExperience: showExperiencePicker, onApplications: showAdminApplications,
-                onProducts: showAdminProducts, onOutfits: showAdminOutfits, onReturns: showAdminReturns)
+                onProducts: showAdminProducts, onOutfits: showAdminOutfits, onReturns: showAdminReturns, onCommissions: showCommissionRules)
         case .workspaceDashboard(let dashboard):
             UFitWorkspaceDashboardHost(store: dashboard, title: dashboard.workspace.isCreator ? AppTab.creatorEarnings.title : ExperienceCopy.sales, onBack: goBack, onCommissions: showWorkspaceCommissions)
         case .workspaceCommissions(let commissions):
@@ -153,11 +154,11 @@ struct MarketplaceRootView: View {
                 onAuthor: { author in showPublicProfile(.init(id: author.id, kind: author.kind)) },
                 onBrand: { id in showPublicProfile(.init(id: id, kind: .brand)) }, onBack: goBack, onCart: showCart, onSignIn: { requestSignIn(keepCustomerContext: true) }, focusedItemID: itemID)
         case .cart:
-            UFitCartHost(store: cart, onBack: goBack, onCheckout: showCheckout)
+            UFitCartHost(store: cart, onBack: goBack, onBrowse: returnToFeed, onCheckout: showCheckout)
         case .checkout(let checkout):
             UFitCheckoutHost(store: checkout, onBack: goBack, onFinish: {showPurchasedOrder(checkout)})
         case .saved:
-            SavedOutfitsView(store: store, onOutfitTap: showOutfitDetail)
+            SavedOutfitsView(store: store, onOutfitTap: showOutfitDetail, onBrowse: returnToFeed)
         case .account:
             UFitAccountHost(session: session, onSignedOut: returnToFeed,
                 onOrders: experience.kind == .customer ? showOrders : nil,
@@ -172,6 +173,12 @@ struct MarketplaceRootView: View {
             UFitApplicationQueueHost(store: adminApplications, onBack: goBack, onOpen: showAdminApplication)
         case .adminApplication(let review):
             UFitApplicationReviewHost(store: review, onBack: goBack)
+        case .commissionRules(let list):
+            UFitCommissionRulesHost(store: list, onBack: goBack, onCreate: showCommissionRuleCreation, onOpen: showCommissionRuleDetail)
+        case .commissionRule(let detail):
+            UFitCommissionRuleDetailHost(store: detail, onBack: goBack, onEdit: showCommissionRuleEditor)
+        case .commissionRuleForm(let form):
+            UFitCommissionRuleFormHost(store: form, onBack: goBack, onSaved: { finishCommissionRuleForm(form, result: $0) })
         case .connect(let connect):
             UFitConnectHost(store: connect, onBack: goBack)
         case .orders:
@@ -186,7 +193,7 @@ struct MarketplaceRootView: View {
 
 private extension MarketplaceRootView {
     func completeOnboarding() {
-        withAnimation(.spring(response: 0.45, dampingFraction: 0.9)) {
+        withAnimation(reduceMotion ? nil : .easeInOut(duration: UFitMotion.transition)) {
             showOnboarding = false
         }
     }
@@ -414,6 +421,37 @@ private extension MarketplaceRootView {
         activeRoute = .adminApplication(UFitApplicationReviewStore(kind: item.type, id: item.id, client: session.api, session: session, queue: adminApplications))
     }
 
+    func showCommissionRules() {
+        guard experience.kind == .administrator, session.user?.canAdminister == true else { return }
+        routeHistory.append(activeRoute); activeRoute = .commissionRules(UFitCommissionRulesStore(session: session))
+    }
+    func showCommissionRuleCreation() {
+        guard case .commissionRules(let list) = activeRoute, list.isCurrentAccount else { return }
+        do {
+            let form = try UFitCommissionRuleFormStore(collection: list, original: nil)
+            routeHistory.append(activeRoute); activeRoute = .commissionRuleForm(form)
+        } catch { list.report(error) }
+    }
+    func showCommissionRuleDetail(_ detail: UFitCommissionRuleDetailStore) {
+        guard case .commissionRules(let list) = activeRoute, list.isCurrentAccount, detail.collection === list else { return }
+        routeHistory.append(activeRoute); activeRoute = .commissionRule(detail)
+    }
+    func showCommissionRuleEditor() {
+        guard case .commissionRule(let detail) = activeRoute, detail.isCurrentAccount else { return }
+        do {
+            let form = try UFitCommissionRuleFormStore(collection: detail.collection, original: detail.rule)
+            routeHistory.append(activeRoute); activeRoute = .commissionRuleForm(form)
+        } catch { detail.report(error) }
+    }
+    func finishCommissionRuleForm(_ form: UFitCommissionRuleFormStore, result: UFitCommissionRuleDTO) {
+        guard case .commissionRuleForm(let current) = activeRoute, current === form, form.isCurrentAccount else { return }
+        if form.isNew { activeRoute = .commissionRule(UFitCommissionRuleDetailStore(rule: result, collection: form.collection)) }
+        else if let previous = routeHistory.last, case .commissionRule(let detail) = previous {
+            do { try detail.receive(result); goBack() }
+            catch { form.report(error) }
+        }
+    }
+
     func showCheckout() {
         guard session.user != nil else { requestSignIn(keepCustomerContext: true); return }
         routeHistory.append(activeRoute)
@@ -511,6 +549,7 @@ private extension MarketplaceRootView {
     func cancelCurrentForm() {
         if case .catalogForm(let form) = activeRoute { form.cancelPhotoUploads() }
         if case .outfitForm(let form) = activeRoute { form.cancelPhotoUploads() }
+        if case .commissionRuleForm(let form) = activeRoute { form.cancelLoading() }
     }
     func outfitCollection(_ space: UFitWorkspaceReference, status: UFitOutfitStatus? = nil) -> UFitManagedOutfitsStore {
         UFitManagedOutfitsStore(scope: .init(workspace: space), title: space.isCreator ? OutfitCopy.title : AppTab.brandPublications.title,
@@ -593,6 +632,9 @@ private enum AppRoute {
     case adminApplications
     case adminApplication(UFitApplicationReviewStore)
     case connect(UFitConnectStore)
+    case commissionRules(UFitCommissionRulesStore)
+    case commissionRule(UFitCommissionRuleDetailStore)
+    case commissionRuleForm(UFitCommissionRuleFormStore)
     case orders
     case order(UFitOrderDetailStore)
     case publicProfile(UFitPublicProfileStore)
@@ -602,7 +644,8 @@ private struct SearchOutfitsView: View {
     let store: MarketplaceStore
     let onOutfitTap: (Outfit) -> Void
     var body: some View {
-        SearchOutfitsContentView(outfits: store.outfits, onOutfitTap: onOutfitTap)
+        SearchOutfitsContentView(outfits: store.outfits, isLoading: store.isLoadingFeed, hasLoaded: store.hasLoadedFeed,
+            message: store.feedErrorMessage, onRefresh: { await store.refreshFeed() }, onOutfitTap: onOutfitTap)
             .task { await store.loadFeedIfNeeded() }
     }
 }
@@ -610,8 +653,11 @@ private struct SearchOutfitsView: View {
 private struct SavedOutfitsView: View {
     let store: MarketplaceStore
     let onOutfitTap: (Outfit) -> Void
+    let onBrowse: () -> Void
     var body: some View {
-        SavedOutfitsContentView(outfits: store.savedOutfits, onOutfitTap: onOutfitTap)
+        SavedOutfitsContentView(outfits: store.savedOutfits, isLoading: store.isLoadingSavedOutfits,
+            hasLoaded: store.hasLoadedSavedOutfits, message: store.savedErrorMessage,
+            onOutfitTap: onOutfitTap, onBrowse: onBrowse, onRefresh: { await store.loadSavedOutfits() })
             .task { await store.loadSavedOutfits() }
     }
 }

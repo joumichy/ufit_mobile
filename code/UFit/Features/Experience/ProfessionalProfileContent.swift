@@ -17,7 +17,7 @@ struct UFitProfessionalProfileContent: View {
         static let edit = "pencil"; static let preview = "arrow.up.right.square"; static let sales = "chart.line.uptrend.xyaxis"
         static let policy = "doc.text"; static let payments = "creditcard"; static let account = "person.crop.circle"
     }
-    private enum Layout { static let page: CGFloat = 24; static let gap: CGFloat = 16; static let bottom: CGFloat = 110 }
+    private enum Layout { static let page: CGFloat = UFitSpace.xl; static let gap: CGFloat = UFitSpace.md; static let bottom: CGFloat = 110 }
     var body: some View {
         VStack(spacing: .zero) {
             UFitExperienceHeader(title: workspace.isCreator ? Copy.creatorTitle : Copy.brandTitle, name: workspace.name,
@@ -27,8 +27,8 @@ struct UFitProfessionalProfileContent: View {
                     HStack {
                         Text(workspace.status.label)
                         if let role = workspace.roleLabel { Text(role) }
-                    }.font(.subheadline).foregroundStyle(Color.ufitMuted)
-                    if let message { Text(message).font(.callout).foregroundStyle(Color.ufitMuted) }
+                    }.font(UFitTypography.subheadline).foregroundStyle(Color.ufitSecondaryText)
+                    if let message { Text(message).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
                     VStack(spacing: .zero) {
                         UFitExperienceActionRow(title: Copy.edit, systemImage: Icon.edit, isBusy: isOpening) { onAction(.edit) }
                         Divider()
@@ -48,8 +48,8 @@ struct UFitProfessionalProfileContent: View {
                     }
                     Divider().padding(.vertical, Layout.gap)
                     UFitExperienceActionRow(title: Copy.account, systemImage: Icon.account) { onAction(.personalAccount) }
-                }.padding(.horizontal, Layout.page).padding(.bottom, Layout.bottom)
+                }.padding(.horizontal, Layout.page).padding(.bottom, UFitSpace.xl)
             }
-        }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.white)
+        }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.ufitCanvas)
     }
 }

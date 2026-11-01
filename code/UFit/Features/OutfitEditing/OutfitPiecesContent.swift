@@ -14,12 +14,12 @@ struct UFitOutfitPiecesContent: View {
         static let unavailable = String(localized: "Produit indisponible")
         static let up = String(localized: "Déplacer la pièce avant"); static let down = String(localized: "Déplacer la pièce après"); static let remove = String(localized: "Retirer la pièce")
     }
-    private enum Layout { static let gap: CGFloat = 16; static let small: CGFloat = 8; static let touch: CGFloat = 44; static let thumbnail: CGFloat = 68; static let radius: CGFloat = 12 }
+    private enum Layout { static let gap: CGFloat = UFitSpace.md; static let small: CGFloat = UFitSpace.xs; static let touch: CGFloat = UFitControlSize.touch; static let thumbnail: CGFloat = 68; static let radius: CGFloat = UFitRadius.field }
     private enum Icon { static let up = "arrow.up"; static let down = "arrow.down"; static let photo = "tshirt" }
     var body: some View {
         VStack(alignment: .leading, spacing: Layout.gap) {
-            Text(Copy.title).font(.title2.weight(.medium))
-            if pieces.isEmpty { Text(Copy.empty).font(.callout).foregroundStyle(Color.ufitMuted) }
+            Text(Copy.title).font(UFitTypography.title2.weight(.medium)).accessibilityAddTraits(.isHeader)
+            if pieces.isEmpty { Text(Copy.empty).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
             ForEach(pieces) { snapshot in
                 PieceRow(piece: binding(for: snapshot), canMoveBefore: pieces.first?.id != snapshot.id,
                     canMoveAfter: pieces.last?.id != snapshot.id,
@@ -29,10 +29,10 @@ struct UFitOutfitPiecesContent: View {
                 Divider()
             }
             if pieces.count < UFitOutfitInput.itemsMax {
-                Button(Copy.product, action: onSelectProduct).frame(minHeight: Layout.touch)
-                Button(Copy.inspiration) { pieces.append(UFitOutfitPieceDraft()) }.frame(minHeight: Layout.touch)
+                UFitButton(Copy.product, action: onSelectProduct).frame(minHeight: Layout.touch)
+                UFitButton(Copy.inspiration) { pieces.append(UFitOutfitPieceDraft()) }.frame(minHeight: Layout.touch)
             }
-            if let error { Text(error).font(.caption) }
+            if let error { UFitFieldError(message: error) }
         }
     }
     private func binding(for snapshot: UFitOutfitPieceDraft) -> Binding<UFitOutfitPieceDraft> {
@@ -58,29 +58,29 @@ struct UFitOutfitPiecesContent: View {
                     HStack(spacing: Layout.gap) {
                         Group {
                             if let source = product.image { FashionImage(source: source) }
-                            else { Rectangle().fill(Color.ufitBackground).overlay { Image(systemName: Icon.photo) } }
+                            else { Rectangle().fill(Color.ufitCanvas).overlay { UFitIcon(systemName: Icon.photo) } }
                         }.frame(width: Layout.thumbnail, height: Layout.thumbnail).clipShape(RoundedRectangle(cornerRadius: Layout.radius))
                         VStack(alignment: .leading, spacing: Layout.small) {
-                            Text(product.name).font(.headline)
-                            if let brand = product.brandName { Text(brand).font(.caption).foregroundStyle(Color.ufitMuted) }
-                            Text(product.price ?? Copy.unavailable).font(.subheadline)
+                            Text(product.name).font(UFitTypography.headline)
+                            if let brand = product.brandName { Text(brand).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText) }
+                            Text(product.price ?? Copy.unavailable).font(UFitTypography.subheadline)
                         }
                     }
                 } else {
                     UFitTextField(label: Copy.label, text: $piece.externalLabel)
-                    Text(Copy.notForSale).font(.caption).foregroundStyle(Color.ufitMuted)
+                    Text(Copy.notForSale).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText)
                 }
-                Picker(Copy.type, selection: $piece.type) { ForEach(UFitOutfitItemType.allCases) { Text($0.label).tag($0) } }.frame(minHeight: Layout.touch)
-                Toggle(Copy.required, isOn: $piece.isRequired).frame(minHeight: Layout.touch)
-                DisclosureGroup(Copy.note) { UFitTextField(label: Copy.note, text: $piece.note).padding(.top, Layout.small) }.frame(minHeight: Layout.touch)
+                UFitSelection(Copy.type, selection: $piece.type, options: UFitOutfitItemType.allCases.map { .init(value: $0, title: $0.label) }).frame(minHeight: Layout.touch)
+                UFitToggle(Copy.required, isOn: $piece.isRequired).frame(minHeight: Layout.touch)
+                UFitDisclosure(Copy.note) { UFitTextField(label: Copy.note, text: $piece.note).padding(.top, Layout.small) }.frame(minHeight: Layout.touch)
                 if piece.isProduct {
-                    Button(Copy.replace) { piece.externalLabel = piece.title; piece.product = nil }.font(.callout).frame(minHeight: Layout.touch)
+                    UFitButton(Copy.replace) { piece.externalLabel = piece.title; piece.product = nil }.font(UFitTypography.callout).frame(minHeight: Layout.touch)
                 }
                 HStack {
-                    Button(action: onBefore) { Image(systemName: Icon.up).frame(minWidth: Layout.touch, minHeight: Layout.touch) }.accessibilityLabel(Copy.up).disabled(!canMoveBefore)
-                    Button(action: onAfter) { Image(systemName: Icon.down).frame(minWidth: Layout.touch, minHeight: Layout.touch) }.accessibilityLabel(Copy.down).disabled(!canMoveAfter)
+                    UFitButton(action: onBefore) { UFitIcon(systemName: Icon.up).frame(minWidth: Layout.touch, minHeight: Layout.touch) }.accessibilityLabel(Copy.up).disabled(!canMoveBefore)
+                    UFitButton(action: onAfter) { UFitIcon(systemName: Icon.down).frame(minWidth: Layout.touch, minHeight: Layout.touch) }.accessibilityLabel(Copy.down).disabled(!canMoveAfter)
                     Spacer()
-                    Button(Copy.remove, action: onRemove).frame(minHeight: Layout.touch)
+                    UFitButton(Copy.remove, action: onRemove).frame(minHeight: Layout.touch)
                 }
             }
         }

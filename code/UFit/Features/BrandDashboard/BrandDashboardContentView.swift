@@ -16,11 +16,11 @@ struct BrandDashboardContentView: View {
     let onBack: () -> Void
 
     var body: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: .zero) {
             DetailHeader(title: "Brand Dashboard", onBack: onBack)
 
             ScrollView {
-                VStack(alignment: .leading, spacing: 24) {
+                VStack(alignment: .leading, spacing: UFitSpace.xl) {
                     BrandDashboardHeader(brandName: brandName, subtitle: subtitle)
                     if let message = workspaceMessage {
                         BrandWorkspaceNotice(message: message)
@@ -29,14 +29,14 @@ struct BrandDashboardContentView: View {
                     RevenueSummaryCard(summary: summary)
                     RecentOrdersSection(orders: orders)
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, UFitSpace.xl)
                 .padding(.top, 26)
-                .padding(.bottom, 104)
+                .padding(.bottom, UFitSpace.xl)
             }
             .scrollIndicators(.hidden)
-            .background(Color.white)
+            .background(Color.ufitCanvas)
         }
-        .background(Color.white)
+        .background(Color.ufitCanvas)
     }
 }
 
@@ -45,12 +45,12 @@ struct BrandDashboardHeader: View {
     let subtitle: String
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: UFitSpace.xxs) {
             Text(brandName)
-                .font(.system(size: 28, weight: .regular))
+                .ufitFont(size: UFitTypography.Size.title, weight: .regular)
             Text(subtitle)
-                .font(.system(size: 14))
-                .foregroundStyle(Color.ufitMuted)
+                .ufitFont(size: UFitTypography.Size.small)
+                .foregroundStyle(Color.ufitSecondaryText)
         }
     }
 }
@@ -59,7 +59,7 @@ struct BrandMetricsSection: View {
     let summary: BrandDashboardSummary
 
     var body: some View {
-        HStack(spacing: 14) {
+        HStack(spacing: UFitSpace.md) {
             MetricCard(icon: "shippingbox", value: "\(summary.pendingOrders)", label: "Pending Orders")
             MetricCard(icon: "eurosign.circle", value: summary.revenue, label: "Revenue")
         }
@@ -71,14 +71,14 @@ struct RevenueSummaryCard: View {
     let summary: BrandDashboardSummary
 
     var body: some View {
-        VStack(spacing: 13) {
+        VStack(spacing: UFitSpace.sm) {
             DashboardRow(label: "Total Revenue", value: summary.revenue, valueSize: 22)
             DashboardRow(label: "Products active", value: summary.activeProducts, muted: true)
             Divider()
             DashboardRow(label: "Low stock variants", value: summary.lowStock, valueSize: 22)
         }
         .padding(18)
-        .background(Color.ufitSecondary, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background(Color.ufitSecondary, in: RoundedRectangle(cornerRadius: UFitRadius.card, style: .continuous))
     }
 
 }
@@ -87,14 +87,14 @@ struct RecentOrdersSection: View {
     let orders: [BrandOrder]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: UFitSpace.md) {
             HStack {
                 Text("Recent Orders")
-                    .font(.system(size: 20, weight: .medium))
+                    .ufitFont(size: UFitTypography.Size.section, weight: .medium)
                 Spacer()
-                Button("View all") {}
-                    .font(.system(size: 14))
-                    .foregroundStyle(Color.ufitMuted)
+                UFitButton("View all") {}
+                    .ufitFont(size: UFitTypography.Size.small)
+                    .foregroundStyle(Color.ufitSecondaryText)
             }
 
             ForEach(orders) { order in
@@ -109,10 +109,10 @@ struct BrandWorkspaceNotice: View {
 
     var body: some View {
         Text(message)
-            .font(.system(size: 13))
-            .foregroundStyle(Color.ufitMuted)
+            .ufitFont(size: UFitTypography.Size.small)
+            .foregroundStyle(Color.ufitSecondaryText)
             .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color.ufitSecondary, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .background(Color.ufitSecondary, in: RoundedRectangle(cornerRadius: UFitRadius.action, style: .continuous))
     }
 }

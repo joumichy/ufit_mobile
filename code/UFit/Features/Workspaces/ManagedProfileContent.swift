@@ -32,57 +32,48 @@ struct UFitManagedProfileContent: View {
         static let suspended = String(localized: "Ce profil est suspendu. Les modifications sont désactivées.")
     }
     private enum Layout {
-        static let page: CGFloat = 24; static let gap: CGFloat = 16; static let small: CGFloat = 8; static let touch: CGFloat = 44
-        static let title: CGFloat = 32; static let field: CGFloat = 48; static let editor: CGFloat = 130; static let radius: CGFloat = 12
+        static let page: CGFloat = UFitSpace.xl; static let gap: CGFloat = UFitSpace.md; static let small: CGFloat = UFitSpace.xs; static let touch: CGFloat = UFitControlSize.touch
+        static let title: CGFloat = UFitTypography.Size.editorial; static let field: CGFloat = UFitControlSize.input; static let editor: CGFloat = 130; static let radius: CGFloat = UFitRadius.field
     }
     var body: some View {
         VStack(spacing: .zero) {
             DetailHeader(title: Copy.title, onBack: { if hasChanges { confirmingDiscard = true } else { onBack() } }) {
-                if isBusy { ProgressView().frame(minWidth: Layout.touch, minHeight: Layout.touch) }
-                else if draft.status.canEdit { Button(Copy.save, action: onSave).font(.subheadline.weight(.semibold)).frame(minHeight: Layout.touch).disabled(!hasChanges) }
+                if isBusy { UFitLoading().frame(minWidth: Layout.touch, minHeight: Layout.touch) }
+                else if draft.status.canEdit { UFitButton(Copy.save, action: onSave).font(UFitTypography.subheadline.weight(.semibold)).frame(minHeight: Layout.touch).disabled(!hasChanges) }
             }.disabled(isBusy)
-            if let message { Text(message).font(.callout).frame(maxWidth: .infinity, alignment: .leading).padding(Layout.gap).background(Color.ufitBackground).accessibilityAddTraits(.updatesFrequently) }
+            if let message { Text(message).font(UFitTypography.callout).frame(maxWidth: .infinity, alignment: .leading).padding(Layout.gap).background(Color.ufitCanvas).accessibilityAddTraits(.updatesFrequently) }
             ScrollView {
                 VStack(alignment: .leading, spacing: Layout.page) {
-                    Text(isCreator ? Copy.creator : Copy.brand).font(.system(size: Layout.title, design: .serif))
-                    if !draft.status.canEdit { Text(Copy.suspended).font(.callout).foregroundStyle(Color.ufitMuted) }
+                    Text(isCreator ? Copy.creator : Copy.brand).ufitFont(size: Layout.title, design: .serif)
+                    if !draft.status.canEdit { Text(Copy.suspended).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
                     field(isCreator ? Copy.creatorName : Copy.brandName, text: $draft.name, error: errors[.name])
-                    VStack(alignment: .leading, spacing: Layout.small) {
-                        Text(Copy.bio).font(.subheadline.weight(.medium))
-                        TextEditor(text: $draft.bio).frame(minHeight: Layout.editor).padding(Layout.small)
-                            .overlay { RoundedRectangle(cornerRadius: Layout.radius).stroke(Color.ufitBorder) }
-                            .accessibilityLabel(Copy.bio)
-                        errorText(errors[.bio])
-                    }
+                    UFitMultilineField(label: Copy.bio, text: $draft.bio, error: errors[.bio])
                     if !isCreator { field(Copy.website, text: $draft.website, error: errors[.website], isURL: true) }
                     VStack(alignment: .leading, spacing: Layout.small) {
                         if draft.status.canChangeVisibility {
-                            Text(Copy.visibility).font(.subheadline.weight(.medium))
-                            Picker(Copy.visibility, selection: $draft.status) {
-                                Text(UFitProfileStatus.active.label).tag(UFitProfileStatus.active)
-                                Text(UFitProfileStatus.paused.label).tag(UFitProfileStatus.paused)
-                            }.pickerStyle(.menu).frame(minHeight: Layout.touch)
-                        } else { LabeledContent(Copy.visibility, value: draft.status.label) }
+                            Text(Copy.visibility).font(UFitTypography.subheadline.weight(.medium))
+                            UFitSelection(Copy.visibility, selection: $draft.status, options: [UFitProfileStatus.active, .paused].map { .init(value: $0, title: $0.label) }).frame(minHeight: Layout.touch)
+                        } else { UFitLabeledValue(Copy.visibility, value: draft.status.label) }
                     }
                     if isCreator { socialFields }
                 }.padding(Layout.page).frame(maxWidth: .infinity, alignment: .leading)
                     .disabled(isBusy || !draft.status.canEdit)
             }.scrollDismissesKeyboard(.interactively)
-        }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.white)
-            .confirmationDialog(Copy.discardTitle, isPresented: $confirmingDiscard, titleVisibility: .visible) {
-                Button(Copy.discard, role: .destructive, action: onBack)
-                Button(Copy.keepEditing, role: .cancel) {}
+        }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.ufitCanvas)
+            .ufitConfirmationDialog(Copy.discardTitle, isPresented: $confirmingDiscard, titleVisibility: .visible) {
+                UFitButton(Copy.discard, role: .destructive, action: onBack)
+                UFitButton(Copy.keepEditing, role: .cancel) {}
             }
     }
     private var socialFields: some View {
         VStack(alignment: .leading, spacing: Layout.gap) {
-            Text(Copy.socials).font(.title2.weight(.medium))
+            Text(Copy.socials).font(UFitTypography.title2.weight(.medium))
             ForEach($draft.socials) { $social in
                 VStack(alignment: .leading, spacing: Layout.gap) {
                     HStack {
-                        Text(social.platform.label).font(.headline)
+                        Text(social.platform.label).font(UFitTypography.headline)
                         Spacer()
-                        Button(Copy.remove) { draft.socials.removeAll { $0.platform == social.platform } }
+                        UFitButton(Copy.remove) { draft.socials.removeAll { $0.platform == social.platform } }
                             .frame(minHeight: Layout.touch).accessibilityLabel(Copy.remove + Copy.separator + social.platform.label)
                     }
                     field(Copy.handle, text: $social.handle, error: errors[.handle(social.platform)], isIdentifier: true)
@@ -90,24 +81,22 @@ struct UFitManagedProfileContent: View {
                 }.padding(Layout.gap).overlay { RoundedRectangle(cornerRadius: Layout.radius).stroke(Color.ufitBorder) }
             }
             if !draft.availablePlatforms.isEmpty {
-                Menu(Copy.add) {
-                    ForEach(draft.availablePlatforms) { platform in Button(platform.label) { draft.socials.append(UFitSocialDraft(platform: platform)) } }
+                UFitActionMenu(Copy.add) {
+                    ForEach(draft.availablePlatforms) { platform in UFitButton(platform.label) { draft.socials.append(UFitSocialDraft(platform: platform)) } }
                 }.frame(minHeight: Layout.touch)
             }
         }
     }
     private func field(_ label: String, text: Binding<String>, error: String?, isURL: Bool = false, isIdentifier: Bool = false) -> some View {
         VStack(alignment: .leading, spacing: Layout.small) {
-            Text(label).font(.subheadline.weight(.medium))
-            TextField(label, text: text).textInputAutocapitalization(isURL || isIdentifier ? .never : .words)
+            Text(label).font(UFitTypography.subheadline.weight(.medium))
+            UFitInput(label, text: text, error: error).textInputAutocapitalization(isURL || isIdentifier ? .never : .words)
                 .autocorrectionDisabled(isURL || isIdentifier).keyboardType(isURL ? .URL : .default)
-                .padding(.horizontal, Layout.gap).frame(minHeight: Layout.field)
-                .overlay { RoundedRectangle(cornerRadius: Layout.radius).stroke(Color.ufitBorder) }
                 .accessibilityLabel(label)
             errorText(error)
         }
     }
     @ViewBuilder private func errorText(_ error: String?) -> some View {
-        if let error { Text(error).font(.caption).foregroundStyle(Color.ufitInk) }
+        if let error { UFitFieldError(message: error).foregroundStyle(Color.ufitInk) }
     }
 }

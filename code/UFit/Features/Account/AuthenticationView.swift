@@ -41,7 +41,7 @@ struct UFitAuthenticationView: View {
         static let forgotten = String(localized: "Mot de passe oublié ?")
         static let existing = String(localized: "J’ai déjà un compte")
         static let create = String(localized: "Créer un compte")
-        static let browse = String(localized: "Explorer les outfits")
+        static let browse = String(localized: "Découvrir les tenues")
         static let send = String(localized: "Envoyer le lien")
         static let save = String(localized: "Enregistrer le mot de passe")
         static let separator = String(localized: "ou")
@@ -49,13 +49,13 @@ struct UFitAuthenticationView: View {
     }
     private enum Layout {
         static let page: CGFloat = 28
-        static let spacing: CGFloat = 20
+        static let spacing: CGFloat = UFitSpace.lg
         static let fieldHeight: CGFloat = 54
-        static let radius: CGFloat = 14
-        static let titleSize: CGFloat = 34
-        static let logoSize: CGFloat = 24
+        static let radius: CGFloat = UFitRadius.action
+        static let titleSize: CGFloat = UFitTypography.Size.display
+        static let logoSize: CGFloat = UFitTypography.Size.section
         static let tracking: CGFloat = 7
-        static let border: CGFloat = 1
+        static let border: CGFloat = UFitSpace.hairline
         static let minimumPassword = 8
     }
 
@@ -76,79 +76,61 @@ struct UFitAuthenticationView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Layout.spacing) {
-                Text(Copy.brand).font(.system(size: Layout.logoSize, weight: .semibold)).tracking(Layout.tracking)
+                Text(Copy.brand).ufitFont(size: Layout.logoSize, weight: .semibold).tracking(Layout.tracking)
                 Text(mode == .signIn || mode == .signUp ? Copy.introduction : mode.title)
-                    .font(.system(size: Layout.titleSize, weight: .regular, design: .serif))
+                    .ufitFont(size: Layout.titleSize, weight: .regular, design: .serif)
                     .fixedSize(horizontal: false, vertical: true)
                     .padding(.vertical, Layout.spacing)
                 if mode == .signIn || mode == .signUp {
-                    SignInWithAppleButton(.continue, onRequest: onAppleRequest, onCompletion: onAppleComplete)
-                        .signInWithAppleButtonStyle(.black)
-                        .frame(height: Layout.fieldHeight)
-                        .clipShape(RoundedRectangle(cornerRadius: Layout.radius))
+                    UFitAppleSignIn(onRequest: onAppleRequest, onCompletion: onAppleComplete)
                         .disabled(isBusy)
                     HStack {
                         Rectangle().frame(height: Layout.border)
-                        Text(Copy.separator).font(.caption)
+                        Text(Copy.separator).font(UFitTypography.caption)
                         Rectangle().frame(height: Layout.border)
-                    }.foregroundStyle(Color.ufitMuted)
+                    }.foregroundStyle(Color.ufitSecondaryText)
                 }
                 VStack(alignment: .leading, spacing: Layout.spacing) {
                     if mode == .signUp {
                         fieldLabel(Copy.name)
-                        TextField(Copy.name, text: $name).textContentType(.name).fieldStyle()
+                        UFitInput(Copy.name, text: $name).textContentType(.name)
                     }
                     if mode != .newPassword {
                         fieldLabel(Copy.email)
-                        TextField(Copy.email, text: $email)
+                        UFitInput(Copy.email, text: $email)
                             .textContentType(.emailAddress).keyboardType(.emailAddress)
-                            .textInputAutocapitalization(.never).autocorrectionDisabled().fieldStyle()
+                            .textInputAutocapitalization(.never).autocorrectionDisabled()
                     }
                     if mode != .recovery {
                         fieldLabel(Copy.password)
-                        SecureField(mode == .signUp || mode == .newPassword ? Copy.passwordMinimum : Copy.password, text: $password)
-                            .textContentType(mode == .signIn ? .password : .newPassword).fieldStyle()
+                        UFitInput(mode == .signUp || mode == .newPassword ? Copy.passwordMinimum : Copy.password, text: $password, isSecure: true)
+                            .textContentType(mode == .signIn ? .password : .newPassword)
                     }
                 }.disabled(isBusy)
                 if let message {
-                    Text(message).font(.callout).foregroundStyle(Color.ufitInk)
+                    Text(message).font(UFitTypography.callout).foregroundStyle(Color.ufitInk)
                         .accessibilityAddTraits(.updatesFrequently)
                 }
-                Button(action: onSubmit) {
-                    HStack {
-                        Spacer()
-                        if isBusy { ProgressView().tint(.white) } else { Text(actionTitle); Image(systemName: Copy.arrow) }
-                        Spacer()
-                    }
-                }
-                .buttonStyle(PrimaryButtonStyle()).disabled(isBusy || !canSubmit)
-                .opacity(canSubmit ? 1 : 0.5)
+                UFitActionButton(title: actionTitle, isBusy: isBusy, disabled: !canSubmit, action: onSubmit)
                 if mode == .signIn {
-                    Button(Copy.forgotten) { mode = .recovery; password = String() }
+                    UFitButton(Copy.forgotten) { mode = .recovery; password = String() }
                 }
                 if mode != .newPassword {
-                    Button(mode == .signIn ? Copy.create : Copy.existing) {
+                    UFitButton(mode == .signIn ? Copy.create : Copy.existing) {
                         mode = mode == .signIn ? .signUp : .signIn
                         password = String()
                     }
-                    Button(Copy.browse, action: onBrowse).foregroundStyle(Color.ufitMuted)
+                    UFitButton(Copy.browse, action: onBrowse).foregroundStyle(Color.ufitSecondaryText)
                 }
             }
-            .buttonStyle(.plain)
+            .ufitButtonStyle(.text)
             .foregroundStyle(Color.ufitInk)
             .padding(Layout.page)
         }
-        .background(Color.white)
+        .background(Color.ufitCanvas)
         .scrollDismissesKeyboard(.interactively)
     }
     private func fieldLabel(_ label: String) -> some View {
-        Text(label).font(.subheadline.weight(.medium))
-    }
-}
-
-private extension View {
-    func fieldStyle() -> some View {
-        self.padding().background(Color.ufitBackground, in: RoundedRectangle(cornerRadius: 14))
-            .overlay(RoundedRectangle(cornerRadius: 14).stroke(Color.ufitBorder, lineWidth: 1))
+        Text(label).font(UFitTypography.subheadline.weight(.medium))
     }
 }

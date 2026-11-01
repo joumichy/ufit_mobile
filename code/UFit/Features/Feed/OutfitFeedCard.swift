@@ -12,6 +12,7 @@ struct OutfitFeedCard: View {
     @State private var pendingArticleID: String?
     @State private var selectedReference: OutfitProduct?
     @Binding var selectedPhotoID: String?
+    @Environment(\.dynamicTypeSize) private var typeSize
 
     private enum Copy {
         static let save = String(localized: "Sauvegarder la tenue")
@@ -29,20 +30,21 @@ struct OutfitFeedCard: View {
         static let bag = "bag"
     }
     private enum Layout {
-        static let spacing: CGFloat = 20
+        static let spacing: CGFloat = UFitSpace.lg
         static let captionSpacing: CGFloat = 14
-        static let horizontal: CGFloat = 24
-        static let bottom: CGFloat = 132
+        static let horizontal: CGFloat = UFitSpace.xl
+        static let bottom: CGFloat = UFitSpace.xxl
         static let avatar: CGFloat = 44
-        static let title: CGFloat = 26
-        static let initials: CGFloat = 14
+        static let title: CGFloat = UFitTypography.Size.title
+        static let initials: CGFloat = UFitTypography.Size.small
         static let overlayOpacity = 0.72
         static let avatarOpacity = 0.18
         static let unavailableOpacity = 0.4; static let availableOpacity = 1.0
-        static let ribbonWidth: CGFloat = 50; static let ribbonHeight: CGFloat = 320; static let ribbonBottom: CGFloat = 265
+        static let ribbonWidth: CGFloat = 50; static let ribbonHeight: CGFloat = 320; static let ribbonBottom: CGFloat = 190
         static let ribbonGap: CGFloat = 11;
         static let referenceImage: CGFloat = 92
-        static let dotsBottom: CGFloat = 88; static let step = 1
+        static let titleLines = 3
+        static let dotsBottom: CGFloat = UFitSpace.xs; static let step = 1
     }
 
     var body: some View {
@@ -51,12 +53,7 @@ struct OutfitFeedCard: View {
                 if outfit.photos.isEmpty {
                     FashionImage(source: outfit.imageName).frame(width: proxy.size.width, height: proxy.size.height).clipped()
                 } else {
-                    TabView(selection: photoSelection) {
-                        ForEach(outfit.photos) { photo in
-                            FashionImage(source: photo.url)
-                                .frame(width: proxy.size.width, height: proxy.size.height).clipped().tag(Optional(photo.id))
-                        }
-                    }.tabViewStyle(.page(indexDisplayMode: .never))
+                    UFitOutfitPhotoPages(photos: outfit.photos, selection: photoSelection, size: proxy.size)
                 }
                 LinearGradient(colors: [.clear, .clear, .black.opacity(Layout.overlayOpacity)], startPoint: .top, endPoint: .bottom).allowsHitTesting(false)
                 if outfit.photos.count > Layout.step {
@@ -66,57 +63,79 @@ struct OutfitFeedCard: View {
                     VStack { Spacer(); HStack { Spacer(); ribbon }.padding(.horizontal, Layout.horizontal) }
                         .padding(.bottom, Layout.ribbonBottom)
                 }
-                HStack(alignment: .bottom, spacing: Layout.spacing) {
-                    VStack(alignment: .leading, spacing: Layout.captionSpacing) {
-                        if outfit.author != nil {
-                            Button(action: onAuthorTap) { author }.buttonStyle(.plain)
-                        } else { author }
-                        Button(action: onOutfitTap) {
-                            Text(outfit.title).font(.system(size: Layout.title, weight: .medium)).multilineTextAlignment(.leading)
-                        }.buttonStyle(.plain)
-                    }
-                    Spacer(minLength: .zero)
-                    VStack(spacing: Layout.spacing) {
-                        Button { showingPieces.toggle() } label: {
-                            CircularIconButton(systemImage: Copy.bag, accessibilityLabel: outfit.products.isEmpty ? Copy.empty : (showingPieces ? Copy.hide : Copy.pieces))
-                        }.buttonStyle(.plain).disabled(outfit.products.isEmpty)
-                            .opacity(outfit.products.isEmpty ? Layout.unavailableOpacity : Layout.availableOpacity)
-                        Button(action: onLike) {
-                            if isSaving {
-                                ProgressView().tint(.white).frame(width: Layout.avatar, height: Layout.avatar)
-                            } else {
-                                CircularIconButton(systemImage: isLiked ? Copy.savedBookmark : Copy.bookmark, accessibilityLabel: isLiked ? Copy.unsave : Copy.save)
-                            }
+                Group {
+                    if typeSize.isAccessibilitySize {
+                        VStack(alignment: .leading, spacing: Layout.spacing) {
+                            captionInformation
+                            HStack(spacing: Layout.spacing) { Spacer(minLength: .zero); captionActions }
                         }
-                        .buttonStyle(.plain).disabled(isSaving)
-                        .accessibilityLabel(isSaving ? Copy.saving : (isLiked ? Copy.unsave : Copy.save))
+                    } else {
+                        HStack(alignment: .bottom, spacing: Layout.spacing) {
+                            captionInformation
+                            Spacer(minLength: .zero)
+                            VStack(spacing: Layout.spacing) { captionActions }
+                        }
                     }
                 }
                 .foregroundStyle(.white)
                 .padding(.horizontal, Layout.horizontal)
-                .padding(.bottom, Layout.bottom)
+                .padding(.bottom, UFitSpace.xl)
             }
         }.clipped()
-        .sheet(item: $selectedReference, onDismiss: openArticle) { item in
+        .ufitSheet(item: $selectedReference, onDismiss: openArticle) { item in
             VStack(alignment: .leading, spacing: Layout.captionSpacing) {
                 HStack {
                     Spacer()
-                    Button { selectedReference = nil } label: { Image(systemName: Copy.closeIcon).frame(width: Layout.avatar, height: Layout.avatar) }
+                    UFitButton { selectedReference = nil } label: { UFitIcon(systemName: Copy.closeIcon).frame(width: Layout.avatar, height: Layout.avatar) }
                         .accessibilityLabel(Copy.close)
                 }
-                HStack(spacing: Layout.spacing) {
-                    if let image = item.image { FashionImage(source: image).frame(width: Layout.referenceImage, height: Layout.referenceImage).clipped() }
+                ScrollView {
                     VStack(alignment: .leading, spacing: Layout.captionSpacing) {
-                        if let brand = item.brandName { Text(brand).font(.caption).foregroundStyle(Color.ufitMuted) }
-                        Text(item.name).font(.title2)
-                        if let price = item.price { Text(price).font(.subheadline) }
+                        if typeSize.isAccessibilitySize {
+                            if let image = item.image { FashionImage(source: image).frame(width: Layout.referenceImage, height: Layout.referenceImage).clipped() }
+                            referenceInformation(item)
+                        } else {
+                            HStack(spacing: Layout.spacing) {
+                                if let image = item.image { FashionImage(source: image).frame(width: Layout.referenceImage, height: Layout.referenceImage).clipped() }
+                                referenceInformation(item)
+                            }
+                        }
+                        UFitButton { pendingArticleID = item.id; selectedReference = nil } label: { Text(item.productID == nil ? Copy.piece : Copy.article).frame(maxWidth: .infinity) }.ufitButtonStyle(.primary)
                     }
                 }
-                Button { pendingArticleID = item.id; selectedReference = nil } label: { Text(item.productID == nil ? Copy.piece : Copy.article).frame(maxWidth: .infinity) }.buttonStyle(PrimaryButtonStyle())
-                Spacer(minLength: .zero)
+
             }.padding(Layout.horizontal).foregroundStyle(Color.ufitInk).tint(Color.ufitInk)
-                .presentationDetents([.medium, .large]).presentationDragIndicator(.visible)
+                .presentationDetents(typeSize.isAccessibilitySize ? [.large] : [.medium, .large]).presentationDragIndicator(.hidden)
         }
+    }
+
+    private func referenceInformation(_ item: OutfitProduct) -> some View {
+        VStack(alignment: .leading, spacing: Layout.captionSpacing) {
+            if let brand = item.brandName { Text(brand).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText) }
+            Text(item.name).font(UFitTypography.title2)
+            if let price = item.price { Text(price).font(UFitTypography.subheadline) }
+        }.frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var captionInformation: some View {
+        VStack(alignment: .leading, spacing: Layout.captionSpacing) {
+            if outfit.author != nil { UFitButton(action: onAuthorTap) { author }.ufitButtonStyle(.text) }
+            else { author }
+            UFitButton(action: onOutfitTap) {
+                Text(outfit.title).ufitFont(size: Layout.title, weight: .medium).multilineTextAlignment(.leading).lineLimit(Layout.titleLines)
+            }.ufitButtonStyle(.text).accessibilityLabel(outfit.title)
+        }.frame(maxWidth: .infinity, alignment: .leading)
+    }
+    @ViewBuilder private var captionActions: some View {
+        UFitButton { showingPieces.toggle() } label: {
+            CircularIconButton(systemImage: Copy.bag, accessibilityLabel: outfit.products.isEmpty ? Copy.empty : (showingPieces ? Copy.hide : Copy.pieces))
+        }.ufitButtonStyle(.text).disabled(outfit.products.isEmpty)
+            .opacity(outfit.products.isEmpty ? Layout.unavailableOpacity : Layout.availableOpacity)
+        UFitButton(action: onLike) {
+            if isSaving { UFitLoading().foregroundStyle(.white).frame(width: UFitControlSize.circularAction, height: UFitControlSize.circularAction) }
+            else { CircularIconButton(systemImage: isLiked ? Copy.savedBookmark : Copy.bookmark, accessibilityLabel: isLiked ? Copy.unsave : Copy.save) }
+        }.ufitButtonStyle(.text).environment(\.ufitButtonIsBusy, isSaving).disabled(isSaving)
+            .accessibilityLabel(isSaving ? Copy.saving : (isLiked ? Copy.unsave : Copy.save))
     }
 
     private var selectedPhoto: UFitOutfitGalleryPhoto? {
@@ -136,10 +155,10 @@ struct OutfitFeedCard: View {
         return ScrollView(.vertical) {
             VStack(spacing: Layout.ribbonGap) {
                 ForEach(outfit.products) { item in
-                    Button { selectReference(item.id) } label: {
+                    UFitButton { selectReference(item.id) } label: {
                         UFitOutfitItemIcon(symbol: item.systemImage).frame(width: Layout.ribbonWidth, height: Layout.ribbonWidth)
                             .background(.white.opacity(Layout.avatarOpacity), in: Circle()).accessibilityLabel(item.name)
-                    }.buttonStyle(.plain)
+                    }.ufitButtonStyle(.text)
                 }
             }
         }.scrollIndicators(.hidden).frame(width: Layout.ribbonWidth, height: height).foregroundStyle(.white)
@@ -157,9 +176,9 @@ struct OutfitFeedCard: View {
         HStack(spacing: Layout.captionSpacing) {
             Group {
                 if let avatar = outfit.author?.avatarUrl { FashionImage(source: avatar) }
-                else { Text(outfit.creatorAvatar).font(.system(size: Layout.initials, weight: .semibold)).frame(maxWidth: .infinity, maxHeight: .infinity).background(.white.opacity(Layout.avatarOpacity)) }
+                else { Text(outfit.creatorAvatar).ufitFont(size: Layout.initials, weight: .semibold).frame(maxWidth: .infinity, maxHeight: .infinity).background(.white.opacity(Layout.avatarOpacity)) }
             }.frame(width: Layout.avatar, height: Layout.avatar).clipShape(Circle()).accessibilityHidden(true)
-            Text(outfit.creator).font(.body.weight(.medium))
+            Text(outfit.creator).font(UFitTypography.body.weight(.medium))
         }
     }
 }

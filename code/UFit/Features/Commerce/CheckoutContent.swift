@@ -14,26 +14,26 @@ struct UFitCheckoutContent: View {
     let onPay: () -> Void
     let onRefresh: () -> Void
     let onFinish: () -> Void
-    private enum Layout { static let spacing: CGFloat = 24; static let fieldSpacing: CGFloat = 16; static let bottom: CGFloat = 110; static let fieldHeight: CGFloat = 48 }
+    private enum Layout { static let spacing: CGFloat = UFitSpace.xl; static let fieldSpacing: CGFloat = UFitSpace.md; static let bottom: CGFloat = 110; static let fieldHeight: CGFloat = UFitControlSize.input }
     var body: some View {
         VStack(spacing: .zero) {
-            DetailHeader(onBack: onBack) { Text(String(localized: "Livraison et paiement")).font(.headline) }
+            DetailHeader(title: String(localized: "Livraison et paiement"), onBack: onBack)
                 .disabled(isBusy)
             ScrollView {
                 VStack(alignment: .leading, spacing: Layout.spacing) {
                     if step == .address { addressForm }
                     else if step == .review { review }
                     else { confirmation }
-                    if isBusy { ProgressView().frame(maxWidth: .infinity) }
-                    if let message { Text(message).font(.callout).foregroundStyle(Color.ufitMuted).accessibilityIdentifier("checkout-message") }
-                }.padding(Layout.spacing).padding(.bottom, Layout.bottom)
+                    if isBusy { UFitLoading().frame(maxWidth: .infinity) }
+                    if let message { Text(message).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText).accessibilityIdentifier("checkout-message") }
+                }.padding(Layout.spacing).padding(.bottom, UFitSpace.xl)
             }.scrollDismissesKeyboard(.interactively).id(step)
-        }.foregroundStyle(Color.ufitInk).background(Color.white)
+        }.foregroundStyle(Color.ufitInk).background(Color.ufitCanvas)
     }
 
     private var addressForm: some View {
         VStack(alignment: .leading, spacing: Layout.spacing) {
-            Text(String(localized: "Où livrer votre sélection ?")).font(.title2.weight(.semibold))
+            Text(String(localized: "Où livrer votre sélection ?")).font(UFitTypography.title2.weight(.semibold))
             VStack(spacing: Layout.fieldSpacing) {
                 field(String(localized: "Nom complet"), text: $address.fullName, content: .name)
                 field(String(localized: "Adresse"), text: $address.line1, content: .streetAddressLine1)
@@ -43,42 +43,40 @@ struct UFitCheckoutContent: View {
                 HStack {
                     Text(String(localized: "Pays"))
                     Spacer()
-                    Picker(String(localized: "Pays de livraison"), selection: $address.country) {
-                        ForEach(destinations) { destination in Text(destination.name).tag(destination.id) }
-                    }.tint(Color.ufitInk)
+                    UFitSelection(String(localized: "Pays de livraison"), selection: $address.country, options: destinations.map { .init(value: $0.id, title: $0.name) }).tint(Color.ufitInk)
                 }.frame(minHeight: Layout.fieldHeight)
                 field(String(localized: "Téléphone (facultatif)"), text: optional($address.phone), content: .telephoneNumber)
                     .keyboardType(.phonePad)
             }
             Text(String(localized: "Les frais et les conditions de la marque seront affichés avant paiement."))
-                .font(.callout).foregroundStyle(Color.ufitMuted)
-            Button(action: onReview) { Text(String(localized: "Vérifier ma commande")).frame(maxWidth: .infinity) }
-                .buttonStyle(PrimaryButtonStyle()).disabled(isBusy || destinations.isEmpty)
+                .font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText)
+            UFitButton(action: onReview) { Text(String(localized: "Vérifier ma commande")).frame(maxWidth: .infinity) }
+                .ufitButtonStyle(.primary).disabled(isBusy || destinations.isEmpty)
         }.disabled(isBusy)
     }
 
     @ViewBuilder private var review: some View {
         if let summary {
-            Text(String(localized: "Votre commande")).font(.title2.weight(.semibold))
+            Text(String(localized: "Votre commande")).font(UFitTypography.title2.weight(.semibold))
             ForEach(lines) { line in
                 HStack(alignment: .top, spacing: Layout.fieldSpacing) {
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text(line.name).font(.headline)
-                        Text("\(line.variant) · \(line.quantity)").font(.subheadline).foregroundStyle(Color.ufitMuted)
+                    VStack(alignment: .leading, spacing: UFitSpace.xs) {
+                        Text(line.name).font(UFitTypography.headline)
+                        Text("\(line.variant) · \(line.quantity)").font(UFitTypography.subheadline).foregroundStyle(Color.ufitSecondaryText)
                     }
                     Spacer()
-                    Text(line.amount).font(.subheadline.weight(.medium)).fixedSize()
+                    Text(line.amount).font(UFitTypography.subheadline.weight(.medium)).fixedSize()
                 }
             }
             Divider()
-            VStack(alignment: .leading, spacing: 6) {
-                Text(String(localized: "Adresse de livraison")).font(.headline)
+            VStack(alignment: .leading, spacing: UFitSpace.xs) {
+                Text(String(localized: "Adresse de livraison")).font(UFitTypography.headline)
                 Text(address.fullName)
                 Text(address.line1)
                 if let line2 = address.line2, !line2.isEmpty { Text(line2) }
                 Text(address.postalCode + " " + address.city)
                 Text(destinations.first { $0.id == address.country }?.name ?? address.country)
-            }.font(.subheadline)
+            }.font(UFitTypography.subheadline)
             Divider()
             VStack(spacing: Layout.fieldSpacing) {
                 amount(String(localized: "Pièces"), summary.subtotal)
@@ -93,31 +91,29 @@ struct UFitCheckoutContent: View {
                 Text(String(localized: "Retours")).fontWeight(.semibold)
                 Text(summary.returnPolicy)
                 Text(summary.refundPolicy.explanation)
-            }.font(.callout).foregroundStyle(Color.ufitMuted)
-            Button(action: onPay) { Text(String(localized: "Payer \(summary.total)")).frame(maxWidth: .infinity) }
-                .buttonStyle(PrimaryButtonStyle()).disabled(isBusy)
+            }.font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText)
+            UFitButton(action: onPay) { Text(String(localized: "Payer \(summary.total)")).frame(maxWidth: .infinity) }
+                .ufitButtonStyle(.primary).disabled(isBusy)
         }
     }
 
     private var confirmation: some View {
         VStack(alignment: .leading, spacing: Layout.spacing) {
-            Image(systemName: step == .paid ? "checkmark.circle" : "clock").font(.largeTitle)
+            UFitIcon(systemName: step == .paid ? "checkmark.circle" : "clock").font(UFitTypography.largeTitle)
             Text(step == .paid ? String(localized: "Votre commande est confirmée") : String(localized: "Confirmation en cours"))
-                .font(.title2.weight(.semibold))
-            if let orderNumber { Text(orderNumber).font(.headline) }
+                .font(UFitTypography.title2.weight(.semibold))
+            if let orderNumber { Text(orderNumber).font(UFitTypography.headline) }
             Text(step == .paid ? String(localized: "La marque va préparer votre sélection. Vous pourrez suivre son expédition dans vos commandes.") : String(localized: "Nous attendons la confirmation du paiement. Vous pouvez actualiser le statut de votre commande."))
-                .foregroundStyle(Color.ufitMuted)
-            Button(action: step == .paid ? onFinish : onRefresh) {
+                .foregroundStyle(Color.ufitSecondaryText)
+            UFitButton(action: step == .paid ? onFinish : onRefresh) {
                 Text(step == .paid ? String(localized: "Continuer") : String(localized: "Actualiser le statut")).frame(maxWidth: .infinity)
-            }.buttonStyle(PrimaryButtonStyle()).disabled(isBusy)
+            }.ufitButtonStyle(.primary).disabled(isBusy)
         }
     }
 
     private func amount(_ label: String, _ value: String) -> some View { HStack { Text(label); Spacer(); Text(value) } }
     private func field(_ label: String, text: Binding<String>, content: UITextContentType) -> some View {
-        TextField(label, text: text).textContentType(content).autocorrectionDisabled()
-            .padding(.horizontal, Layout.fieldSpacing).frame(minHeight: Layout.fieldHeight)
-            .background(Color.ufitBackground).overlay(Rectangle().stroke(Color.ufitBorder))
+        UFitTextField(label: label, text: text, contentType: content).autocorrectionDisabled()
             .accessibilityLabel(label)
     }
     private func optional(_ value: Binding<String?>) -> Binding<String> {

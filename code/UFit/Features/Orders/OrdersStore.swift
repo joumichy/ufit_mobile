@@ -5,6 +5,7 @@ import Observation
 final class UFitOrdersStore {
     private(set) var orders = [UFitOrderDTO]()
     private(set) var isLoading = false
+    private(set) var hasLoaded = false
     private(set) var nextCursor: String?
     var message: String?
     @ObservationIgnored private let client: UFitAPIClient
@@ -12,7 +13,7 @@ final class UFitOrdersStore {
     @ObservationIgnored private var generation = UUID()
     init(client: UFitAPIClient, session: UFitSessionStore) { self.client = client; self.session = session }
     var summaries: [UFitOrderSummary] { orders.map(UFitOrderPresentationAdapter.summary) }
-    func reset() { generation = UUID(); isLoading = false; orders = []; nextCursor = nil; message = nil }
+    func reset() { generation = UUID(); isLoading = false; hasLoaded = false; orders = []; nextCursor = nil; message = nil }
     func receive(_ order: UFitOrderDTO) {
         if let index = orders.firstIndex(where: { $0.id == order.id }) { orders[index] = order }
         else { orders.append(order) }
@@ -30,6 +31,7 @@ final class UFitOrdersStore {
             if reset { orders = page.items }
             else { for order in page.items { receive(order) } }
             nextCursor = page.nextCursor
+            hasLoaded = true
         } catch { if session.user?.id == userID && generation == requestGeneration { message = error.localizedDescription } }
     }
 }

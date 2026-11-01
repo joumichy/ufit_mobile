@@ -11,9 +11,14 @@ struct HomeFeedContentView: View {
     let onOutfitTap: (Outfit) -> Void
     let onAuthorTap: (OutfitAuthor) -> Void
     let onItemTap: (Outfit, String) -> Void
+    var feedback: String? = nil
+    var loadError: String? = nil
+    var onDismissFeedback: (() -> Void)? = nil
+    var onRetry: (() -> Void)? = nil
+    private enum Copy { static let retry = String(localized: "Réessayer") }
     var body: some View {
         ScrollView(.vertical) {
-            LazyVStack(spacing: 0) {
+            LazyVStack(spacing: .zero) {
                 ForEach(outfits) { outfit in
                     OutfitFeedCard(
                         outfit: outfit,
@@ -34,7 +39,15 @@ struct HomeFeedContentView: View {
         .scrollIndicators(.hidden)
         .scrollTargetBehavior(.paging)
         .scrollPosition(id: $visibleOutfitID)
-        .background(Color.black)
-        .ignoresSafeArea()
+        .background(Color.ufitInk)
+        .ignoresSafeArea(edges: .top)
+        .overlay(alignment: .top) {
+            VStack(spacing: UFitSpace.xs) {
+                if !outfits.isEmpty, let loadError {
+                    UFitNotice(message: loadError, kind: .error)
+                    if let onRetry { UFitActionButton(title: Copy.retry, kind: .secondary, action: onRetry) }
+                } else if let feedback { UFitNotice(message: feedback, onDismiss: onDismissFeedback) }
+            }.padding(.horizontal, UFitSpace.page).padding(.top, UFitSpace.md)
+        }
     }
 }

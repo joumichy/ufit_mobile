@@ -15,7 +15,7 @@ struct UFitCatalogVariantFormContent: View {
         static let discardTitle = String(localized: "Abandonner cette variante ?"); static let discard = String(localized: "Abandonner"); static let keep = String(localized: "Continuer la saisie")
         static let status = String(localized: "Statut")
     }
-    private enum Layout { static let page: CGFloat = 24; static let gap: CGFloat = 16; static let small: CGFloat = 8; static let touch: CGFloat = 44 }
+    private enum Layout { static let page: CGFloat = UFitSpace.xl; static let gap: CGFloat = UFitSpace.md; static let small: CGFloat = UFitSpace.xs; static let touch: CGFloat = UFitControlSize.touch }
     var body: some View {
         VStack(spacing: .zero) {
             DetailHeader(title: Copy.title, onBack: { if hasChanges { confirmingDiscard = true } else { onBack() } })
@@ -27,24 +27,22 @@ struct UFitCatalogVariantFormContent: View {
                     UFitTextField(label: Copy.stock, text: $draft.stock, error: errors[.stock], keyboard: .numberPad, isIdentifier: true)
                     VStack(alignment: .leading, spacing: Layout.small) {
                         UFitTextField(label: Copy.price, text: $draft.priceOverride, error: errors[.price], keyboard: .decimalPad, isIdentifier: true)
-                        Text(currency.code).font(.caption.weight(.semibold))
-                        Text(Copy.basePrice).font(.caption).foregroundStyle(Color.ufitMuted)
+                        Text(currency.code).font(UFitTypography.caption.weight(.semibold))
+                        Text(Copy.basePrice).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText)
                     }
                     if draft.serverID != nil {
                         VStack(alignment: .leading, spacing: Layout.small) {
-                            Text(Copy.status).font(.subheadline.weight(.medium))
-                            Picker(Copy.status, selection: $draft.status) {
-                                ForEach(UFitCatalogVariantStatus.allCases) { Text($0.label).tag($0) }
-                            }.pickerStyle(.menu).frame(minHeight: Layout.touch)
+                            Text(Copy.status).font(UFitTypography.subheadline.weight(.medium))
+                            UFitSelection(Copy.status, selection: $draft.status, options: UFitCatalogVariantStatus.allCases.map { .init(value: $0, title: $0.label) }).frame(minHeight: Layout.touch)
                         }
                     }
-                    Button(action: onSave) { Text(Copy.save).frame(maxWidth: .infinity) }.buttonStyle(PrimaryButtonStyle())
+                    UFitButton(action: onSave) { Text(Copy.save).frame(maxWidth: .infinity) }.ufitButtonStyle(.primary)
                 }.padding(Layout.page)
             }.scrollDismissesKeyboard(.interactively)
-        }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.white)
-            .confirmationDialog(Copy.discardTitle, isPresented: $confirmingDiscard, titleVisibility: .visible) {
-                Button(Copy.discard, role: .destructive, action: onBack)
-                Button(Copy.keep, role: .cancel) {}
+        }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.ufitCanvas)
+            .ufitConfirmationDialog(Copy.discardTitle, isPresented: $confirmingDiscard, titleVisibility: .visible) {
+                UFitButton(Copy.discard, role: .destructive, action: onBack)
+                UFitButton(Copy.keep, role: .cancel) {}
             }
     }
 }
@@ -63,24 +61,24 @@ struct UFitCatalogStockContent: View {
         static let save = String(localized: "Enregistrer le stock"); static let saving = String(localized: "Enregistrement du stock")
         static let discardTitle = String(localized: "Abandonner la modification du stock ?"); static let discard = String(localized: "Abandonner"); static let keep = String(localized: "Continuer la saisie")
     }
-    private enum Layout { static let page: CGFloat = 24; static let gap: CGFloat = 16; static let small: CGFloat = 8; static let title: CGFloat = 28 }
+    private enum Layout { static let page: CGFloat = UFitSpace.xl; static let gap: CGFloat = UFitSpace.md; static let small: CGFloat = UFitSpace.xs; static let title: CGFloat = UFitTypography.Size.title }
     var body: some View {
         VStack(spacing: .zero) {
             DetailHeader(title: Copy.title, onBack: { if hasChanges { confirmingDiscard = true } else { onBack() } }).disabled(isBusy)
             ScrollView {
                 VStack(alignment: .leading, spacing: Layout.page) {
-                    VStack(alignment: .leading, spacing: Layout.small) { Text(variant.title).font(.system(size: Layout.title, design: .serif)); Text(variant.sku).font(.caption).foregroundStyle(Color.ufitMuted) }
-                    LabeledContent(Copy.current, value: variant.stockQuantity.formatted())
+                    VStack(alignment: .leading, spacing: Layout.small) { Text(variant.title).ufitFont(size: Layout.title, design: .serif); Text(variant.sku).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText) }
+                    UFitLabeledValue(Copy.current, value: variant.stockQuantity.formatted())
                     UFitTextField(label: Copy.quantity, text: $quantity, error: error, keyboard: .numberPad, isIdentifier: true)
-                    if let message { Text(message).font(.callout) }
-                    if isBusy { ProgressView(Copy.saving) }
-                    else { Button(action: onSave) { Text(Copy.save).frame(maxWidth: .infinity) }.buttonStyle(PrimaryButtonStyle()).disabled(!hasChanges) }
+                    if let message { Text(message).font(UFitTypography.callout) }
+                    if isBusy { UFitLoading(Copy.saving) }
+                    else { UFitButton(action: onSave) { Text(Copy.save).frame(maxWidth: .infinity) }.ufitButtonStyle(.primary).disabled(!hasChanges) }
                 }.padding(Layout.page).disabled(isBusy)
             }.scrollDismissesKeyboard(.interactively)
-        }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.white)
-            .confirmationDialog(Copy.discardTitle, isPresented: $confirmingDiscard, titleVisibility: .visible) {
-                Button(Copy.discard, role: .destructive, action: onBack)
-                Button(Copy.keep, role: .cancel) {}
+        }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.ufitCanvas)
+            .ufitConfirmationDialog(Copy.discardTitle, isPresented: $confirmingDiscard, titleVisibility: .visible) {
+                UFitButton(Copy.discard, role: .destructive, action: onBack)
+                UFitButton(Copy.keep, role: .cancel) {}
             }
     }
 }

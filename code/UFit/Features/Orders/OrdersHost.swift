@@ -5,8 +5,8 @@ struct UFitOrdersHost: View {
     let onBack: () -> Void
     let onSelect: (String) -> Void
     var body: some View {
-        UFitOrdersContent(orders: store.summaries, isLoading: store.isLoading, hasMore: store.nextCursor != nil, message: store.message,
-            onBack: onBack, onSelect: onSelect, onRefresh: {Task {await store.load()}}, onMore: {Task {await store.load(reset: false)}})
+        UFitOrdersContent(orders: store.summaries, isLoading: store.isLoading, hasLoaded: store.hasLoaded, hasMore: store.nextCursor != nil, message: store.message,
+            onBack: onBack, onSelect: onSelect, onRefresh: {await store.load()}, onMore: {Task {await store.load(reset: false)}})
             .task {await store.load()}
     }
 }

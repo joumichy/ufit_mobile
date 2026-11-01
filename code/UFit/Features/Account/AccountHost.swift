@@ -19,12 +19,10 @@ struct UFitAccountHost: View {
                         if !session.isSignedIn { onSignedOut() }
                     } }, onOrders: onOrders, onApplications: onApplications, onChooseExperience: onChooseExperience, onBack: onBack)
             } else if let message = session.message {
-                ContentUnavailableView {
-                    Label(String(localized: "Compte indisponible"), systemImage: "person.crop.circle.badge.exclamationmark")
-                } description: { Text(message) } actions: {
-                    Button(String(localized: "Réessayer")) { Task { await session.reloadProfile() } }
-                }
-            } else { ProgressView() }
+                UFitEmptyState(title: String(localized: "Compte indisponible"), message: message,
+                    symbol: "person.crop.circle.badge.exclamationmark", actionTitle: String(localized: "Réessayer"),
+                    action: { Task { await session.reloadProfile() } })
+            } else { UFitLoading() }
         }
         .task { if session.user == nil { await session.reloadProfile() } }
     }

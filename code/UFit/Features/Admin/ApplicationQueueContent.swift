@@ -23,40 +23,40 @@ struct UFitApplicationQueueContent: View {
         static let separator = " · "
         static let chevron = "chevron.right"
     }
-    private enum Layout { static let spacing: CGFloat = 24; static let inline: CGFloat = 10; static let title: CGFloat = 32; static let touch: CGFloat = 44; static let bottom: CGFloat = 110 }
+    private enum Layout { static let spacing: CGFloat = UFitSpace.xl; static let inline: CGFloat = 10; static let title: CGFloat = UFitTypography.Size.editorial; static let touch: CGFloat = UFitControlSize.touch; static let bottom: CGFloat = 110 }
     var body: some View {
         VStack(spacing: .zero) {
-            DetailHeader(onBack: onBack) { if isLoading { ProgressView() } else { Button(Copy.refresh, action: onRefresh).frame(minHeight: Layout.touch) } }
+            DetailHeader(onBack: onBack) { if isLoading { UFitLoading() } else { UFitButton(Copy.refresh, action: onRefresh).frame(minHeight: Layout.touch) } }
             ScrollView {
                 VStack(alignment: .leading, spacing: Layout.spacing) {
-                    Text(Copy.title).font(.system(size: Layout.title, design: .serif))
+                    Text(Copy.title).ufitFont(size: Layout.title, design: .serif).accessibilityAddTraits(.isHeader)
                     VStack(alignment: .leading, spacing: Layout.inline) {
-                        Menu(filter.label) { ForEach(UFitApplicationQueueFilter.allCases) { item in Button(item.label) { onFilter(item) } } }.frame(minHeight: Layout.touch)
-                        Menu(kind?.label ?? Copy.allKinds) {
-                            Button(Copy.allKinds) { onKind(nil) }
-                            ForEach(UFitApplicationKind.allCases) { item in Button(item.label) { onKind(item) } }
+                        UFitActionMenu(filter.label) { ForEach(UFitApplicationQueueFilter.allCases) { item in UFitButton(item.label) { onFilter(item) } } }.frame(minHeight: Layout.touch)
+                        UFitActionMenu(kind?.label ?? Copy.allKinds) {
+                            UFitButton(Copy.allKinds) { onKind(nil) }
+                            ForEach(UFitApplicationKind.allCases) { item in UFitButton(item.label) { onKind(item) } }
                         }.frame(minHeight: Layout.touch)
                     }.tint(Color.ufitInk)
-                    if let message { Text(message).font(.callout).foregroundStyle(Color.ufitMuted) }
-                    if hasLoaded && items.isEmpty { Text(Copy.empty).foregroundStyle(Color.ufitMuted) }
+                    if let message { Text(message).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
+                    if hasLoaded && items.isEmpty && message == nil && !isLoading { Text(Copy.empty).foregroundStyle(Color.ufitSecondaryText) }
                     LazyVStack(spacing: .zero) {
                         ForEach(items, id: \.identity) { item in
-                            Button { onOpen(item) } label: {
+                            UFitButton { onOpen(item) } label: {
                                 HStack {
                                     VStack(alignment: .leading, spacing: Layout.inline) {
-                                        Text(item.name).font(.headline)
-                                        Text(item.type.label + Copy.separator + item.status.label).font(.subheadline)
-                                        Text(item.submittedAt.label).font(.caption).foregroundStyle(Color.ufitMuted)
+                                        Text(item.name).font(UFitTypography.headline)
+                                        Text(item.type.label + Copy.separator + item.status.label).font(UFitTypography.subheadline)
+                                        Text(item.submittedAt.label).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText)
                                     }.frame(maxWidth: .infinity, alignment: .leading)
-                                    Image(systemName: Copy.chevron).accessibilityHidden(true)
+                                    UFitIcon(systemName: Copy.chevron).accessibilityHidden(true)
                                 }.frame(minHeight: Layout.touch).padding(.vertical, Layout.inline)
-                            }.buttonStyle(.plain)
+                            }.ufitButtonStyle(.text)
                             Divider()
                         }
                     }
-                    if hasMore { Button(Copy.more, action: onMore).frame(minHeight: Layout.touch).disabled(isLoading) }
-                }.padding(Layout.spacing).padding(.bottom, Layout.bottom).frame(maxWidth: .infinity, alignment: .leading)
+                    if hasMore { UFitButton(Copy.more, action: onMore).frame(minHeight: Layout.touch).disabled(isLoading) }
+                }.padding(Layout.spacing).padding(.bottom, UFitSpace.xl).frame(maxWidth: .infinity, alignment: .leading)
             }
-        }.foregroundStyle(Color.ufitInk).background(Color.white)
+        }.foregroundStyle(Color.ufitInk).background(Color.ufitCanvas)
     }
 }

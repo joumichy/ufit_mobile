@@ -43,82 +43,82 @@ struct UFitWorkspacesContent: View {
         static let adminProducts = String(localized: "Produits à examiner")
     }
     private enum Layout {
-        static let page: CGFloat = 24; static let gap: CGFloat = 16; static let small: CGFloat = 8
-        static let touch: CGFloat = 44; static let bottom: CGFloat = 110; static let title: CGFloat = 32; static let radius: CGFloat = 16
+        static let page: CGFloat = UFitSpace.xl; static let gap: CGFloat = UFitSpace.md; static let small: CGFloat = UFitSpace.xs
+        static let touch: CGFloat = UFitControlSize.touch; static let bottom: CGFloat = 110; static let title: CGFloat = UFitTypography.Size.editorial; static let radius: CGFloat = UFitRadius.card
     }
     private enum Icon { static let refresh = "arrow.clockwise"; static let chevron = "chevron.right" }
     var body: some View {
         VStack(spacing: .zero) {
             HStack {
-                Text(Copy.title).font(.system(size: Layout.title, design: .serif))
+                Text(Copy.title).ufitFont(size: Layout.title, design: .serif)
                 Spacer()
-                if isLoading { ProgressView().frame(width: Layout.touch, height: Layout.touch) }
-                else { Button(action: onRefresh) { Image(systemName: Icon.refresh).frame(width: Layout.touch, height: Layout.touch) }.accessibilityLabel(Copy.refresh) }
+                if isLoading { UFitLoading().frame(width: Layout.touch, height: Layout.touch) }
+                else { UFitButton(action: onRefresh) { UFitIcon(systemName: Icon.refresh).frame(width: Layout.touch, height: Layout.touch) }.accessibilityLabel(Copy.refresh) }
             }.padding(.horizontal, Layout.page).padding(.top, Layout.gap)
             ScrollView {
                 VStack(alignment: .leading, spacing: Layout.page) {
-                    if let message { Text(message).font(.callout).foregroundStyle(Color.ufitMuted).accessibilityAddTraits(.updatesFrequently) }
-                    if !hasLoaded && isLoading { Text(Copy.loading).foregroundStyle(Color.ufitMuted) }
+                    if let message { Text(message).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText).accessibilityAddTraits(.updatesFrequently) }
+                    if !hasLoaded && isLoading { Text(Copy.loading).foregroundStyle(Color.ufitSecondaryText) }
                     if hasLoaded {
-                        if spaces.isEmpty { Text(Copy.empty).font(.title2).padding(.vertical, Layout.page) }
+                        if spaces.isEmpty && message == nil && !isLoading { Text(Copy.empty).font(UFitTypography.title2).padding(.vertical, Layout.page) }
                         ForEach(spaces) { space in
                             VStack(alignment: .leading, spacing: Layout.gap) {
                                 HStack(alignment: .top, spacing: Layout.gap) {
-                                    Image(systemName: space.systemImage).font(.title2).frame(width: Layout.touch, height: Layout.touch)
+                                    UFitIcon(systemName: space.systemImage).font(UFitTypography.title2).frame(width: Layout.touch, height: Layout.touch)
                                     VStack(alignment: .leading, spacing: Layout.small) {
-                                        Text(space.kindLabel).font(.caption).foregroundStyle(Color.ufitMuted)
-                                        Text(space.name).font(.title2.weight(.medium))
-                                        HStack { Text(space.status.label); if let role = space.roleLabel { Text(role) } }.font(.subheadline).foregroundStyle(Color.ufitMuted)
+                                        Text(space.kindLabel).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText)
+                                        Text(space.name).font(UFitTypography.title2.weight(.medium))
+                                        HStack { Text(space.status.label); if let role = space.roleLabel { Text(role) } }.font(UFitTypography.subheadline).foregroundStyle(Color.ufitSecondaryText)
                                     }
                                 }
-                                Button(action: { onDashboard(space) }) {
-                                    HStack { Text(Copy.dashboard); Spacer(); Image(systemName: Icon.chevron) }.frame(minHeight: Layout.touch).contentShape(Rectangle())
+                                UFitButton(action: { onDashboard(space) }) {
+                                    HStack { Text(Copy.dashboard); Spacer(); UFitIcon(systemName: Icon.chevron) }.frame(minHeight: Layout.touch).contentShape(Rectangle())
                                 }.disabled(space.status == .suspended)
-                                Button(action: { onOpen(space) }) {
-                                    HStack { Text(Copy.profile); Spacer(); if busyIDs.contains(space.id) { ProgressView() } else { Image(systemName: Icon.chevron) } }
+                                UFitButton(action: { onOpen(space) }) {
+                                    HStack { Text(Copy.profile); Spacer(); if busyIDs.contains(space.id) { UFitLoading() } else { UFitIcon(systemName: Icon.chevron) } }
                                         .frame(minHeight: Layout.touch).contentShape(Rectangle())
                                 }.disabled(busyIDs.contains(space.id))
                                 if space.status == .active {
-                                    Button(action: { onPublicProfile(space) }) {
-                                        HStack { Text(Copy.publicProfile); Spacer(); Image(systemName: Icon.chevron) }.frame(minHeight: Layout.touch).contentShape(Rectangle())
+                                    UFitButton(action: { onPublicProfile(space) }) {
+                                        HStack { Text(Copy.publicProfile); Spacer(); UFitIcon(systemName: Icon.chevron) }.frame(minHeight: Layout.touch).contentShape(Rectangle())
                                     }
                                 }
-                                Button(action: { onOutfits(space) }) {
-                                    HStack { Text(Copy.outfits); Spacer(); Image(systemName: Icon.chevron) }.frame(minHeight: Layout.touch).contentShape(Rectangle())
+                                UFitButton(action: { onOutfits(space) }) {
+                                    HStack { Text(Copy.outfits); Spacer(); UFitIcon(systemName: Icon.chevron) }.frame(minHeight: Layout.touch).contentShape(Rectangle())
                                 }.disabled(space.status != .active && space.status != .paused)
                                 if !space.isCreator {
-                                    Button(action: { onCatalog(space) }) {
-                                        HStack { Text(Copy.catalog); Spacer(); Image(systemName: Icon.chevron) }.frame(minHeight: Layout.touch).contentShape(Rectangle())
+                                    UFitButton(action: { onCatalog(space) }) {
+                                        HStack { Text(Copy.catalog); Spacer(); UFitIcon(systemName: Icon.chevron) }.frame(minHeight: Layout.touch).contentShape(Rectangle())
                                     }.disabled(space.status == .suspended)
-                                    Button(action: { onOrders(space) }) {
-                                        HStack { Text(Copy.orders); Spacer(); Image(systemName: Icon.chevron) }.frame(minHeight: Layout.touch).contentShape(Rectangle())
+                                    UFitButton(action: { onOrders(space) }) {
+                                        HStack { Text(Copy.orders); Spacer(); UFitIcon(systemName: Icon.chevron) }.frame(minHeight: Layout.touch).contentShape(Rectangle())
                                     }.disabled(space.status != .active && space.status != .paused)
-                                    Button(action: { onReturns(space) }) {
-                                        HStack { Text(Copy.returns); Spacer(); Image(systemName: Icon.chevron) }.frame(minHeight: Layout.touch).contentShape(Rectangle())
+                                    UFitButton(action: { onReturns(space) }) {
+                                        HStack { Text(Copy.returns); Spacer(); UFitIcon(systemName: Icon.chevron) }.frame(minHeight: Layout.touch).contentShape(Rectangle())
                                     }.disabled(space.status != .active && space.status != .paused)
-                                    Button(action: { onCommercePolicy(space) }) {
-                                        HStack { Text(Copy.commercePolicy); Spacer(); Image(systemName: Icon.chevron) }.frame(minHeight: Layout.touch).contentShape(Rectangle())
+                                    UFitButton(action: { onCommercePolicy(space) }) {
+                                        HStack { Text(Copy.commercePolicy); Spacer(); UFitIcon(systemName: Icon.chevron) }.frame(minHeight: Layout.touch).contentShape(Rectangle())
                                     }.disabled(space.status != .active && space.status != .paused)
                                 }
                             }.padding(Layout.gap).frame(maxWidth: .infinity, alignment: .leading)
                                 .overlay { RoundedRectangle(cornerRadius: Layout.radius).stroke(Color.ufitBorder) }
                         }
                         VStack(alignment: .leading, spacing: Layout.small) {
-                            if spaces.contains(where: { $0.status == .active }) { Button(Copy.payments, action: onPayments).frame(minHeight: Layout.touch) }
-                            Button(Copy.apply, action: onApplications).frame(minHeight: Layout.touch)
+                            if spaces.contains(where: { $0.status == .active }) { UFitButton(Copy.payments, action: onPayments).frame(minHeight: Layout.touch) }
+                            UFitButton(Copy.apply, action: onApplications).frame(minHeight: Layout.touch)
                         }
                     }
                     if canAdminister {
                         Divider()
                         VStack(alignment: .leading, spacing: Layout.small) {
-                            Button(Copy.admin, action: onAdminApplications).frame(minHeight: Layout.touch)
-                            Button(Copy.adminProducts, action: onAdminProducts).frame(minHeight: Layout.touch)
-                            Button(Copy.adminOutfits, action: onAdminOutfits).frame(minHeight: Layout.touch)
-                            Button(Copy.adminReturns, action: onAdminReturns).frame(minHeight: Layout.touch)
+                            UFitButton(Copy.admin, action: onAdminApplications).frame(minHeight: Layout.touch)
+                            UFitButton(Copy.adminProducts, action: onAdminProducts).frame(minHeight: Layout.touch)
+                            UFitButton(Copy.adminOutfits, action: onAdminOutfits).frame(minHeight: Layout.touch)
+                            UFitButton(Copy.adminReturns, action: onAdminReturns).frame(minHeight: Layout.touch)
                         }
                     }
-                }.padding(Layout.page).padding(.bottom, Layout.bottom).frame(maxWidth: .infinity, alignment: .leading)
+                }.padding(Layout.page).padding(.bottom, UFitSpace.xl).frame(maxWidth: .infinity, alignment: .leading)
             }
-        }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.white)
+        }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.ufitCanvas)
     }
 }

@@ -10,11 +10,11 @@ struct CreateWorkspaceContentView: View {
     let onBrandTap: () -> Void
 
     var body: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: .zero) {
             RootScreenHeader(title: "Create", subtitle: "Compose looks and manage partner workspaces.")
 
             ScrollView {
-                VStack(spacing: 14) {
+                VStack(spacing: UFitSpace.md) {
                     WorkspaceEntryCard(
                         systemImage: "sparkles",
                         title: "Creator studio",
@@ -35,12 +35,12 @@ struct CreateWorkspaceContentView: View {
 
                     WorkspaceNotice(text: noticeText)
                 }
-                .padding(.horizontal, 24)
-                .padding(.bottom, 104)
+                .padding(.horizontal, UFitSpace.xl)
+                .padding(.bottom, UFitSpace.xl)
             }
             .scrollIndicators(.hidden)
-            .background(Color.white)
+            .background(Color.ufitCanvas)
         }
-        .background(Color.white)
+        .background(Color.ufitCanvas)
     }
 }

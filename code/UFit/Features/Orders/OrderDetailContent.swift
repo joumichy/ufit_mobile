@@ -23,36 +23,36 @@ struct UFitOrderDetailContent: View {
         static let returns = String(localized: "Retours")
         static let returnDossiers = String(localized: "Retours et remboursements")
     }
-    private enum Layout { static let spacing: CGFloat = 24; static let rowSpacing: CGFloat = 16; static let bottom: CGFloat = 110; static let touch: CGFloat = 44; static let inline: CGFloat = 8 }
+    private enum Layout { static let spacing: CGFloat = UFitSpace.xl; static let rowSpacing: CGFloat = UFitSpace.md; static let bottom: CGFloat = 110; static let touch: CGFloat = UFitControlSize.touch; static let inline: CGFloat = 8 }
     var body: some View {
         VStack(spacing: .zero) {
             DetailHeader(onBack: onBack) {
-                if isBusy { ProgressView().frame(minWidth: Layout.touch, minHeight: Layout.touch) }
-                else { Button(Copy.refresh, action: onRefresh).frame(minHeight: Layout.touch) }
+                if isBusy { UFitLoading().frame(minWidth: Layout.touch, minHeight: Layout.touch) }
+                else { UFitButton(Copy.refresh, action: onRefresh).frame(minHeight: Layout.touch) }
             }
-            if let message { Text(message).font(.callout).foregroundStyle(Color.ufitMuted).padding(.horizontal, Layout.spacing).padding(.top, Layout.rowSpacing) }
+            if let message { Text(message).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText).padding(.horizontal, Layout.spacing).padding(.top, Layout.rowSpacing) }
             ScrollView {
                 VStack(alignment: .leading, spacing: Layout.spacing) {
                     if let order { detail(order) }
-                    else if !isBusy { ContentUnavailableView(Copy.unavailable, systemImage: Copy.bag) }
-                }.padding(Layout.spacing).padding(.bottom, Layout.bottom)
-            }.refreshable { onRefresh() }.id(order?.status)
-        }.foregroundStyle(Color.ufitInk).background(Color.white)
-        .confirmationDialog(Copy.cancel, isPresented: $confirmingCancellation, titleVisibility: .visible) {
-            Button(Copy.confirmCancel, role: .destructive, action: onCancel)
-            Button(Copy.keep, role: .cancel) {}
+                    else if !isBusy { UFitEmptyState(title: Copy.unavailable, symbol: Copy.bag) }
+                }.padding(Layout.spacing).padding(.bottom, UFitSpace.xl)
+            }.ufitRefreshable { onRefresh() }.id(order?.status)
+        }.foregroundStyle(Color.ufitInk).background(Color.ufitCanvas)
+        .ufitConfirmationDialog(Copy.cancel, isPresented: $confirmingCancellation, titleVisibility: .visible) {
+            UFitButton(Copy.confirmCancel, role: .destructive, action: onCancel)
+            UFitButton(Copy.keep, role: .cancel) {}
         } message: { if let order { Text(order.cancellationPrompt) } }
     }
     private func detail(_ order: UFitOrderDetailPresentation) -> some View {
         VStack(alignment: .leading, spacing: Layout.spacing) {
             VStack(alignment: .leading, spacing: Layout.inline) {
-                Text(order.reference).font(.title2.weight(.semibold))
-                Text(order.date).font(.subheadline).foregroundStyle(Color.ufitMuted)
-                Text(order.status).font(.headline)
+                Text(order.reference).font(UFitTypography.title2.weight(.semibold))
+                Text(order.date).font(UFitTypography.subheadline).foregroundStyle(Color.ufitSecondaryText)
+                Text(order.status).font(UFitTypography.headline)
             }
-            if let note = order.cancellationNote { Text(note).font(.callout).foregroundStyle(Color.ufitMuted) }
+            if let note = order.cancellationNote { Text(note).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
             if order.canResumePayment {
-                Button(action: onPay) { Text(Copy.resume).frame(maxWidth: .infinity) }.buttonStyle(PrimaryButtonStyle()).disabled(isBusy)
+                UFitButton(action: onPay) { Text(Copy.resume).frame(maxWidth: .infinity) }.ufitButtonStyle(.primary).disabled(isBusy)
             }
             ForEach(order.items) { UFitOrderPieceContent(item: $0) }
             Divider()
@@ -61,11 +61,11 @@ struct UFitOrderDetailContent: View {
             UFitOrderAddressContent(lines: order.address)
             if let shipment = order.shipment { UFitOrderTrackingContent(shipment: shipment) }
             if let policy = order.returnPolicy {
-                VStack(alignment: .leading, spacing: Layout.inline) { Text(Copy.returns).font(.headline); Text(policy).font(.callout).foregroundStyle(Color.ufitMuted) }
+                VStack(alignment: .leading, spacing: Layout.inline) { Text(Copy.returns).font(UFitTypography.headline); Text(policy).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
             }
-            Button(Copy.returnDossiers, action: onReturns).frame(minHeight: Layout.touch).disabled(isBusy)
+            UFitButton(Copy.returnDossiers, action: onReturns).frame(minHeight: Layout.touch).disabled(isBusy)
             if order.canCancel {
-                Button(order.cancellationPending ? Copy.continueCancel : Copy.cancel, role: .destructive) {
+                UFitButton(order.cancellationPending ? Copy.continueCancel : Copy.cancel, role: .destructive) {
                     if order.cancellationPending { onCancel() } else { confirmingCancellation = true }
                 }.frame(minHeight: Layout.touch).disabled(isBusy)
             }

@@ -29,12 +29,13 @@ struct UFitReturnActionContent: View {
         static let receiptNote = String(localized: "Confirmez seulement après réception des pièces. Choisissez explicitement la quantité revendable pour chaque ligne. Le remboursement sera déclenché sur le moyen de paiement d’origine et restera en cours jusqu’à confirmation du prestataire.")
     }
     private enum Layout {
-        static let page: CGFloat = 24; static let gap: CGFloat = 16; static let small: CGFloat = 8; static let touch: CGFloat = 44
+        static let page: CGFloat = UFitSpace.xl; static let gap: CGFloat = UFitSpace.md; static let small: CGFloat = UFitSpace.xs; static let touch: CGFloat = UFitControlSize.touch
         static let disabledOpacity = 0.4; static let enabledOpacity = 1.0; static let quantityStep = 1
     }
     private var saveDisabled: Bool { isSaving || isStale || (action == .updateTracking && !hasChanges) }
     var body: some View {
-        NavigationStack {
+        VStack(spacing: .zero) {
+            UFitSheetHeader(title: action.label, onClose: { requestLeaving(.close) }).disabled(isSaving)
             ScrollView {
                 VStack(alignment: .leading, spacing: Layout.page) {
                     if action.needsReason { UFitMultilineField(label: action == .dispute ? Copy.disputeReason : Copy.reason, text: $draft.reason, error: errors[.reason]) }
@@ -45,24 +46,24 @@ struct UFitReturnActionContent: View {
                         UFitTextField(label: Copy.url, text: $draft.trackingURL, error: errors[.trackingURL], keyboard: .URL, isIdentifier: true)
                     }
                     if action == .receive {
-                        Text(Copy.receiptNote).font(.callout)
-                        Text(String(localized: "Remboursement : \(amount)")).font(.headline)
+                        Text(Copy.receiptNote).font(UFitTypography.callout)
+                        Text(String(localized: "Remboursement : \(amount)")).font(UFitTypography.headline)
                         ForEach(items) { item in
                             UFitOrderPieceContent(item: item)
                             VStack(alignment: .leading, spacing: Layout.small) {
                                 HStack {
-                                    Text(Copy.restock).font(.subheadline.weight(.medium)); Spacer()
+                                    Text(Copy.restock).font(UFitTypography.subheadline.weight(.medium)); Spacer()
                                     if let quantity = draft.restockQuantities[item.id] {
                                         Text(String(localized: "\(quantity) sur \(item.quantity)"))
-                                    } else { Text(Copy.choose).foregroundStyle(Color.ufitMuted) }
+                                    } else { Text(Copy.choose).foregroundStyle(Color.ufitSecondaryText) }
                                 }
                                 if draft.restockQuantities[item.id] == nil {
-                                    Button(Copy.noRestock) { draft.restockQuantities[item.id] = .zero }.frame(minHeight: Layout.touch)
+                                    UFitButton(Copy.noRestock) { draft.restockQuantities[item.id] = .zero }.frame(minHeight: Layout.touch)
                                 }
-                                Stepper(value: stock(item), in: .zero...item.quantity, step: Layout.quantityStep) {
+                                UFitQuantityControl(value: stock(item), in: .zero...item.quantity, step: Layout.quantityStep) {
                                     Text(String(localized: "Quantité revendable de \(item.name)"))
                                 }.frame(minHeight: Layout.touch)
-                                if let error = errors[.restock(item.id)] { Text(error).font(.caption) }
+                                if let error = errors[.restock(item.id)] { UFitFieldError(message: error) }
                             }
                             Divider()
                         }
@@ -71,17 +72,16 @@ struct UFitReturnActionContent: View {
             }.scrollDismissesKeyboard(.interactively)
                 .safeAreaInset(edge: .bottom, spacing: .zero) {
                     VStack(alignment: .leading, spacing: Layout.small) {
-                        if let message { Text(message).font(.callout) }
-                        if canRefresh { Button(Copy.refresh) { requestLeaving(.refresh) }.frame(minHeight: Layout.touch).disabled(isSaving) }
-                        if isSaving { ProgressView(Copy.saving).frame(maxWidth: .infinity, minHeight: Layout.touch) }
-                        else { Button(action: onSave) { Text(action.saveLabel).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true).padding(.horizontal, Layout.gap).frame(maxWidth: .infinity) }.buttonStyle(PrimaryButtonStyle()).disabled(saveDisabled).opacity(saveDisabled ? Layout.disabledOpacity : Layout.enabledOpacity) }
-                    }.padding(Layout.gap).background(Color.white).overlay(alignment: .top) { Divider() }
-                }.navigationTitle(action.label).navigationBarTitleDisplayMode(.inline)
-                .toolbar { ToolbarItem(placement: .cancellationAction) { Button(Copy.close) { requestLeaving(.close) }.disabled(isSaving) } }
-        }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.white).interactiveDismissDisabled(hasChanges || isSaving)
-            .confirmationDialog(leaving == .refresh ? Copy.refreshTitle : Copy.discardTitle, isPresented: Binding(get: { leaving != nil }, set: { if !$0 { leaving = nil } }), titleVisibility: .visible, presenting: leaving) { value in
-                Button(value == .refresh ? Copy.refreshDiscard : Copy.discard, role: .destructive) { if value == .refresh { onRefresh() } else { onClose() }; leaving = nil }
-                Button(Copy.keep, role: .cancel) { leaving = nil }
+                        if let message { Text(message).font(UFitTypography.callout) }
+                        if canRefresh { UFitButton(Copy.refresh) { requestLeaving(.refresh) }.frame(minHeight: Layout.touch).disabled(isSaving) }
+                        if isSaving { UFitLoading(Copy.saving).frame(maxWidth: .infinity, minHeight: Layout.touch) }
+                        else { UFitButton(action: onSave) { Text(action.saveLabel).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true).padding(.horizontal, Layout.gap).frame(maxWidth: .infinity) }.ufitButtonStyle(.primary).disabled(saveDisabled).opacity(saveDisabled ? Layout.disabledOpacity : Layout.enabledOpacity) }
+                    }.padding(Layout.gap).background(Color.ufitCanvas).overlay(alignment: .top) { Divider() }
+                }
+        }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.ufitCanvas).interactiveDismissDisabled(hasChanges || isSaving)
+            .ufitConfirmationDialog(leaving == .refresh ? Copy.refreshTitle : Copy.discardTitle, isPresented: Binding(get: { leaving != nil }, set: { if !$0 { leaving = nil } }), titleVisibility: .visible, presenting: leaving) { value in
+                UFitButton(value == .refresh ? Copy.refreshDiscard : Copy.discard, role: .destructive) { if value == .refresh { onRefresh() } else { onClose() }; leaving = nil }
+                UFitButton(Copy.keep, role: .cancel) { leaving = nil }
             }
     }
     private func stock(_ item: UFitOrderPiece) -> Binding<Int> { Binding(get: { draft.restockQuantities[item.id] ?? .zero }, set: { draft.restockQuantities[item.id] = $0 }) }

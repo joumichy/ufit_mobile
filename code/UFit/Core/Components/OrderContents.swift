@@ -1,7 +1,7 @@
 import SwiftUI
 
 private enum OrderContentLayout {
-    static let gap: CGFloat = 16; static let small: CGFloat = 8; static let imageWidth: CGFloat = 72; static let imageHeight: CGFloat = 94; static let touch: CGFloat = 44
+    static let gap: CGFloat = UFitSpace.md; static let small: CGFloat = UFitSpace.xs; static let imageWidth: CGFloat = 72; static let imageHeight: CGFloat = 94; static let touch: CGFloat = UFitControlSize.touch
 }
 struct UFitOrderPieceContent: View {
     let item: UFitOrderPiece
@@ -9,10 +9,10 @@ struct UFitOrderPieceContent: View {
         HStack(alignment: .top, spacing: OrderContentLayout.gap) {
             if let image = item.image { FashionImage(source: image).frame(width: OrderContentLayout.imageWidth, height: OrderContentLayout.imageHeight).clipped() }
             VStack(alignment: .leading, spacing: OrderContentLayout.small) {
-                Text(item.name).font(.headline)
-                Text(item.options).font(.subheadline).foregroundStyle(Color.ufitMuted)
-                Text(String(localized: "Quantité : \(item.quantity)")).font(.subheadline)
-                Text(item.amount).font(.subheadline.weight(.medium))
+                Text(item.name).font(UFitTypography.headline)
+                Text(item.options).font(UFitTypography.subheadline).foregroundStyle(Color.ufitSecondaryText)
+                Text(String(localized: "Quantité : \(item.quantity)")).font(UFitTypography.subheadline)
+                Text(item.amount).font(UFitTypography.subheadline.weight(.medium))
             }.frame(maxWidth: .infinity, alignment: .leading)
         }
     }
@@ -37,9 +37,9 @@ struct UFitOrderAddressContent: View {
     private enum Copy { static let title = String(localized: "Livraison") }
     var body: some View {
         VStack(alignment: .leading, spacing: OrderContentLayout.small) {
-            Text(Copy.title).font(.headline)
-            ForEach(Array(lines.enumerated()), id: \.offset) { _, line in Text(line).font(.subheadline) }
-            if let phone, !phone.isEmpty { Text(phone).font(.subheadline) }
+            Text(Copy.title).font(UFitTypography.headline)
+            ForEach(Array(lines.enumerated()), id: \.offset) { _, line in Text(line).font(UFitTypography.subheadline) }
+            if let phone, !phone.isEmpty { Text(phone).font(UFitTypography.subheadline) }
         }
     }
 }
@@ -51,20 +51,35 @@ struct UFitOrderTrackingContent: View {
     }
     var body: some View {
         VStack(alignment: .leading, spacing: OrderContentLayout.gap) {
-            Text(Copy.title).font(.headline)
+            Text(Copy.title).font(UFitTypography.headline)
             Text(shipment.status.label)
-            if let carrier = shipment.carrier { Text(carrier).font(.subheadline) }
-            if let number = shipment.trackingNumber { Text(number).font(.subheadline).textSelection(.enabled) }
-            if let date = shipment.shippedDate { Text(String(localized: "Expédition : \(date)")).font(.subheadline).foregroundStyle(Color.ufitMuted) }
-            if let date = shipment.deliveredDate { Text(String(localized: "Livraison : \(date)")).font(.subheadline).foregroundStyle(Color.ufitMuted) }
+            if let carrier = shipment.carrier { Text(carrier).font(UFitTypography.subheadline) }
+            if let number = shipment.trackingNumber { Text(number).font(UFitTypography.subheadline).textSelection(.enabled) }
+            if let date = shipment.shippedDate { Text(String(localized: "Expédition : \(date)")).font(UFitTypography.subheadline).foregroundStyle(Color.ufitSecondaryText) }
+            if let date = shipment.deliveredDate { Text(String(localized: "Livraison : \(date)")).font(UFitTypography.subheadline).foregroundStyle(Color.ufitSecondaryText) }
             if let url = shipment.trackingURL { Link(Copy.follow, destination: url).frame(minHeight: OrderContentLayout.touch) }
             if let reason = shipment.incidentReason {
                 VStack(alignment: .leading, spacing: OrderContentLayout.small) {
-                    Text(shipment.status == .failed ? Copy.incident : Copy.lastIncident).font(.headline)
-                    Text(reason).font(.callout).fixedSize(horizontal: false, vertical: true)
-                    if let date = shipment.incidentDate { Text(date).font(.caption).foregroundStyle(Color.ufitMuted) }
+                    Text(shipment.status == .failed ? Copy.incident : Copy.lastIncident).font(UFitTypography.headline)
+                    Text(reason).font(UFitTypography.callout).fixedSize(horizontal: false, vertical: true)
+                    if let date = shipment.incidentDate { Text(date).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText) }
                 }
             }
         }
     }
+}
+
+struct UFitLabeledValue<Content: View>: View {
+    let title: String
+    let content: Content
+    init(_ title: String, @ViewBuilder content: () -> Content) { self.title = title; self.content = content() }
+    var body: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .firstTextBaseline, spacing: UFitSpace.md) { Text(title).foregroundStyle(Color.ufitSecondaryText); Spacer(minLength: UFitSpace.xs); content }
+            VStack(alignment: .leading, spacing: UFitSpace.xxs) { Text(title).foregroundStyle(Color.ufitSecondaryText); content }
+        }.fixedSize(horizontal: false, vertical: true).accessibilityElement(children: .combine)
+    }
+}
+extension UFitLabeledValue where Content == Text {
+    init(_ title: String, value: String) { self.init(title) { Text(value) } }
 }

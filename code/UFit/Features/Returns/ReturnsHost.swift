@@ -27,7 +27,7 @@ struct UFitReturnDetailHost: View {
                     do { form = try .init(parent: store, command: command) } catch { openingMessage = error.localizedDescription }
                 } else { Task { _ = await store.perform(command) } }
             }).task { await store.load() }
-            .sheet(item: $form) { item in
+            .ufitSheet(item: $form) { item in
                 UFitReturnActionHost(store: item, onClose: { form = nil }, onRefresh: { form = nil; Task { await store.load() } })
             }
     }

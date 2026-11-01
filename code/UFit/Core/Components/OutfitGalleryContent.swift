@@ -2,6 +2,9 @@ import SwiftUI
 
 struct UFitOutfitGalleryContent: View {
     let photos: [UFitOutfitGalleryPhoto]
+    var contentMode: ContentMode = .fill
+    var imageHeight: CGFloat = Layout.hero
+    var renewPhotoSource: ((String) async throws -> String)? = nil
     @State private var selectedPosition: Int?
     private enum Copy {
         static let empty = String(localized: "Aucune photo")
@@ -20,15 +23,20 @@ struct UFitOutfitGalleryContent: View {
     var body: some View {
         VStack(spacing: .zero) {
             if photos.isEmpty {
-                Color.ufitBackground.overlay { Label(Copy.empty, systemImage: Icon.photo).foregroundStyle(Color.ufitMuted) }.frame(height: Layout.hero)
+                Color.ufitCanvas.overlay { Label(Copy.empty, systemImage: Icon.photo).foregroundStyle(Color.ufitSecondaryText) }.frame(height: imageHeight)
             } else {
                 TabView(selection: selection) {
                     ForEach(photos) { photo in
-                        FashionImage(source: photo.url).clipped()
+                        Group {
+                            if contentMode == .fit || renewPhotoSource != nil {
+                                UFitPinnedPhotoContent(source: photo.url, pins: [], contentMode: contentMode, onPin: {_ in},
+                                    renewSource: renewPhotoSource.map { renew in { () async throws -> String in try await renew(photo.id) } })
+                            } else { FashionImage(source: photo.url).clipped() }
+                        }
                             .accessibilityLabel(Copy.page((photos.firstIndex(where: { $0.id == photo.id }) ?? .zero) + Layout.step, count: photos.count))
                             .tag(Optional(photo.position))
                     }
-                }.tabViewStyle(.page(indexDisplayMode: .never)).frame(height: Layout.hero)
+                }.tabViewStyle(.page(indexDisplayMode: .never)).frame(height: imageHeight)
                 if photos.count > Layout.step {
                     UFitPhotoPageControl(count: photos.count, selection: Binding(get: { pageIndex }, set: { index in
                         if photos.indices.contains(index) { selectedPosition = photos[index].position }
@@ -36,6 +44,19 @@ struct UFitOutfitGalleryContent: View {
 
                 }
             }
-        }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.white)
+        }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.ufitCanvas)
+    }
+}
+
+struct UFitOutfitPhotoPages: View {
+    let photos: [UFitOutfitGalleryPhoto]
+    @Binding var selection: String?
+    let size: CGSize
+    var body: some View {
+        TabView(selection: $selection) {
+            ForEach(photos) { photo in
+                FashionImage(source: photo.url).frame(width: size.width, height: size.height).clipped().tag(Optional(photo.id))
+            }
+        }.tabViewStyle(.page(indexDisplayMode: .never))
     }
 }

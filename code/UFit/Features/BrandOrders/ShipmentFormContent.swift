@@ -24,21 +24,17 @@ struct UFitShipmentFormContent: View {
         static let keep = String(localized: "Continuer la saisie")
     }
     private enum Layout {
-        static let page: CGFloat = 24; static let gap: CGFloat = 16; static let small: CGFloat = 8; static let touch: CGFloat = 44; static let radius: CGFloat = 12
+        static let page: CGFloat = UFitSpace.xl; static let gap: CGFloat = UFitSpace.md; static let small: CGFloat = UFitSpace.xs; static let touch: CGFloat = UFitControlSize.touch; static let radius: CGFloat = UFitRadius.field
         static let minimumLines = 4; static let maximumLines = 10; static let disabledOpacity = 0.4; static let enabledOpacity = 1.0
     }
     private var saveDisabled: Bool { isSaving || isStale || (action == .updateTracking && !hasChanges) }
     var body: some View {
-        NavigationStack {
+        VStack(spacing: .zero) {
+            UFitSheetHeader(title: action.label, onClose: { requestLeaving(.close) }).disabled(isSaving)
             ScrollView {
                 VStack(alignment: .leading, spacing: Layout.page) {
                     if action == .reportIncident {
-                        VStack(alignment: .leading, spacing: Layout.small) {
-                            Text(Copy.incident).font(.subheadline.weight(.medium))
-                            TextField(Copy.incident, text: $draft.incidentReason, axis: .vertical).lineLimit(Layout.minimumLines...Layout.maximumLines).padding(Layout.gap)
-                                .overlay { RoundedRectangle(cornerRadius: Layout.radius).stroke(Color.ufitBorder) }.accessibilityLabel(Copy.incident)
-                            if let error = errors[.incidentReason] { Text(error).font(.caption) }
-                        }
+                        UFitMultilineField(label: Copy.incident, text: $draft.incidentReason, error: errors[.incidentReason])
                     } else {
                         UFitTextField(label: Copy.carrier, text: $draft.carrier, error: errors[.carrier])
                         UFitTextField(label: Copy.tracking, text: $draft.trackingNumber, error: errors[.trackingNumber], isIdentifier: true)
@@ -48,24 +44,22 @@ struct UFitShipmentFormContent: View {
             }.scrollDismissesKeyboard(.interactively)
                 .safeAreaInset(edge: .bottom, spacing: .zero) {
                     VStack(alignment: .leading, spacing: Layout.small) {
-                        if let message { Text(message).font(.callout) }
-                        if canRefresh { Button(Copy.refresh) { requestLeaving(.refresh) }.frame(minHeight: Layout.touch).disabled(isSaving) }
-                        if isSaving { ProgressView(Copy.saving).frame(maxWidth: .infinity, minHeight: Layout.touch) }
+                        if let message { Text(message).font(UFitTypography.callout) }
+                        if canRefresh { UFitButton(Copy.refresh) { requestLeaving(.refresh) }.frame(minHeight: Layout.touch).disabled(isSaving) }
+                        if isSaving { UFitLoading(Copy.saving).frame(maxWidth: .infinity, minHeight: Layout.touch) }
                         else {
-                            Button(action: onSave) { Text(action.saveLabel).frame(maxWidth: .infinity) }.buttonStyle(PrimaryButtonStyle())
+                            UFitButton(action: onSave) { Text(action.saveLabel).frame(maxWidth: .infinity) }.ufitButtonStyle(.primary)
                                 .disabled(saveDisabled).opacity(saveDisabled ? Layout.disabledOpacity : Layout.enabledOpacity)
                         }
-                    }.padding(Layout.gap).background(Color.white).overlay(alignment: .top) { Divider() }
+                    }.padding(Layout.gap).background(Color.ufitCanvas).overlay(alignment: .top) { Divider() }
                 }
-                .navigationTitle(action.label).navigationBarTitleDisplayMode(.inline)
-                .toolbar { ToolbarItem(placement: .cancellationAction) { Button(Copy.close) { requestLeaving(.close) }.disabled(isSaving) } }
-        }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.white)
+        }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.ufitCanvas)
             .interactiveDismissDisabled(hasChanges || isSaving)
-            .confirmationDialog(leaving == .refresh ? Copy.refreshTitle : Copy.discardTitle, isPresented: Binding(get: { leaving != nil }, set: { if !$0 { leaving = nil } }), titleVisibility: .visible, presenting: leaving) { action in
-                Button(action == .refresh ? Copy.refreshDiscard : Copy.discard, role: .destructive) {
+            .ufitConfirmationDialog(leaving == .refresh ? Copy.refreshTitle : Copy.discardTitle, isPresented: Binding(get: { leaving != nil }, set: { if !$0 { leaving = nil } }), titleVisibility: .visible, presenting: leaving) { action in
+                UFitButton(action == .refresh ? Copy.refreshDiscard : Copy.discard, role: .destructive) {
                     if action == .refresh { onRefresh() } else { onClose() }; leaving = nil
                 }
-                Button(Copy.keep, role: .cancel) { leaving = nil }
+                UFitButton(Copy.keep, role: .cancel) { leaving = nil }
             }
     }
     private func requestLeaving(_ action: Leaving) {

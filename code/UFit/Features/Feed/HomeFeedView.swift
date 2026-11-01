@@ -10,11 +10,13 @@ struct HomeFeedView: View {
     var body: some View {
         HomeFeedContentView(outfits: store.outfits, savedOutfitIDs: store.savedOutfitIDs, savingOutfitIDs: store.savingOutfitIDs,
             expandedOutfitIDs: $store.expandedFeedIDs, photoIDs: $store.feedPhotoIDs, visibleOutfitID: $store.visibleFeedOutfitID,
-            onToggleSaved: toggleLike, onOutfitTap: onOutfitTap, onAuthorTap: onAuthorTap, onItemTap: onItemTap)
+            onToggleSaved: toggleLike, onOutfitTap: onOutfitTap, onAuthorTap: onAuthorTap, onItemTap: onItemTap,
+            feedback: store.actionMessage, loadError: store.feedErrorMessage,
+            onDismissFeedback: { store.actionMessage = nil }, onRetry: { Task { await store.refreshFeed() } })
         .task {
             await store.loadFeedIfNeeded()
         }
-        .refreshable {
+        .ufitRefreshable {
             await store.refreshFeed()
         }
         .overlay {
@@ -26,9 +28,10 @@ struct HomeFeedView: View {
     }
 }
 
+
 private extension HomeFeedView {
     var status: UFitFeedStatus {
-        if store.isLoadingFeed { return .loading }
+        if store.isLoadingFeed || (!store.hasLoadedFeed && store.feedErrorMessage == nil) { return .loading }
         if let message = store.feedErrorMessage { return .failed(message) }
         return .empty
     }

@@ -45,54 +45,54 @@ struct UFitCatalogProductContent: View {
         static let restore = String(localized: "Remettre en brouillon"); static let cancel = String(localized: "Annuler")
         static let emptyVariants = String(localized: "Aucune variante."); static let loading = String(localized: "Chargement de la fiche")
     }
-    private enum Layout { static let page: CGFloat = 24; static let gap: CGFloat = 16; static let small: CGFloat = 8; static let title: CGFloat = 28; static let image: CGFloat = 240; static let touch: CGFloat = 44; static let editor: CGFloat = 130; static let bottom: CGFloat = 110; static let radius: CGFloat = 12; static let thumbnail: CGFloat = 64; static let border: CGFloat = 1 }
+    private enum Layout { static let page: CGFloat = UFitSpace.xl; static let gap: CGFloat = UFitSpace.md; static let small: CGFloat = UFitSpace.xs; static let title: CGFloat = UFitTypography.Size.title; static let image: CGFloat = 240; static let touch: CGFloat = UFitControlSize.touch; static let editor: CGFloat = 130; static let bottom: CGFloat = 110; static let radius: CGFloat = UFitRadius.field; static let thumbnail: CGFloat = 64; static let border: CGFloat = UFitSpace.hairline }
     private enum Icon { static let photo = "photo"; static let refresh = "arrow.clockwise" }
     var body: some View {
         VStack(spacing: .zero) {
             DetailHeader(title: Copy.title, onBack: { requestLeave(.back) }) {
                 HStack {
-                    if isLoading || isMutatingProduct { ProgressView().frame(minWidth: Layout.touch, minHeight: Layout.touch) }
-                    else { Button(action: { requestLeave(.refresh) }) { Image(systemName: Icon.refresh).frame(width: Layout.touch, height: Layout.touch) }.accessibilityLabel(Copy.refresh) }
-                    if access == .member, product?.status.canEdit == true { Button(Copy.edit, action: onEdit).frame(minHeight: Layout.touch) }
+                    if isLoading || isMutatingProduct { UFitLoading().frame(minWidth: Layout.touch, minHeight: Layout.touch) }
+                    else { UFitButton(action: { requestLeave(.refresh) }) { UFitIcon(systemName: Icon.refresh).frame(width: Layout.touch, height: Layout.touch) }.accessibilityLabel(Copy.refresh) }
+                    if access == .member, product?.status.canEdit == true { UFitButton(Copy.edit, action: onEdit).frame(minHeight: Layout.touch) }
                 }
             }.disabled(isMutatingProduct)
-                .confirmationDialog(Copy.discardReason, isPresented: $confirmingLeave, titleVisibility: .visible) {
-                    Button(Copy.discard, role: .destructive) { if let action = pendingLeave { resetRefusal(); performLeave(action) } }
-                    Button(Copy.keepEditing, role: .cancel) { pendingLeave = nil }
+                .ufitConfirmationDialog(Copy.discardReason, isPresented: $confirmingLeave, titleVisibility: .visible) {
+                    UFitButton(Copy.discard, role: .destructive) { if let action = pendingLeave { resetRefusal(); performLeave(action) } }
+                    UFitButton(Copy.keepEditing, role: .cancel) { pendingLeave = nil }
                 }
-            if let message { Text(message).font(.callout).padding(Layout.gap).frame(maxWidth: .infinity, alignment: .leading) }
+            if let message { Text(message).font(UFitTypography.callout).padding(Layout.gap).frame(maxWidth: .infinity, alignment: .leading) }
             ScrollView {
                 if let product {
                     VStack(alignment: .leading, spacing: Layout.page) {
                         photos(product)
                         VStack(alignment: .leading, spacing: Layout.small) {
-                            LabeledContent(Copy.brand) {
+                            UFitLabeledValue(Copy.brand) {
                                 VStack(alignment: .trailing, spacing: Layout.small) {
                                     Text(product.brandName)
-                                    Text(product.brandStatus.label).foregroundStyle(Color.ufitMuted)
+                                    Text(product.brandStatus.label).foregroundStyle(Color.ufitSecondaryText)
                                 }
-                            }.font(.callout)
-                            Text(product.status.label).font(.caption.weight(.semibold)).foregroundStyle(Color.ufitMuted)
-                            Text(product.name).font(.system(size: Layout.title, design: .serif))
-                            Text(product.price).font(.title3.weight(.medium))
-                            Text(product.category).font(.callout).foregroundStyle(Color.ufitMuted)
+                            }.font(UFitTypography.callout)
+                            Text(product.status.label).font(UFitTypography.caption.weight(.semibold)).foregroundStyle(Color.ufitSecondaryText)
+                            Text(product.name).ufitFont(size: Layout.title, design: .serif)
+                            Text(product.price).font(UFitTypography.title3.weight(.medium))
+                            Text(product.category).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText)
                         }
                         if let reason = product.rejectionReason {
-                            VStack(alignment: .leading, spacing: Layout.small) { Text(Copy.feedback).font(.headline); Text(reason).font(.callout) }
+                            VStack(alignment: .leading, spacing: Layout.small) { Text(Copy.feedback).font(UFitTypography.headline); Text(reason).font(UFitTypography.callout) }
                         }
                         variants(product)
-                        VStack(alignment: .leading, spacing: Layout.small) { Text(Copy.description).font(.headline); Text(product.description).font(.callout) }
-                        if let material = product.material { LabeledContent(Copy.material, value: material).font(.callout) }
-                        if let care = product.careInstructions { VStack(alignment: .leading, spacing: Layout.small) { Text(Copy.care).font(.headline); Text(care).font(.callout) } }
+                        VStack(alignment: .leading, spacing: Layout.small) { Text(Copy.description).font(UFitTypography.headline); Text(product.description).font(UFitTypography.callout) }
+                        if let material = product.material { UFitLabeledValue(Copy.material, value: material).font(UFitTypography.callout) }
+                        if let care = product.careInstructions { VStack(alignment: .leading, spacing: Layout.small) { Text(Copy.care).font(UFitTypography.headline); Text(care).font(UFitTypography.callout) } }
                         actions(product)
-                    }.padding(Layout.page).padding(.bottom, Layout.bottom).frame(maxWidth: .infinity, alignment: .leading)
-                } else if isLoading { ProgressView(Copy.loading).padding(Layout.page) }
-                else { Button(Copy.retry, action: onRefresh).frame(minHeight: Layout.touch) }
+                    }.padding(Layout.page).padding(.bottom, UFitSpace.xl).frame(maxWidth: .infinity, alignment: .leading)
+                } else if isLoading { UFitLoading(Copy.loading).padding(Layout.page) }
+                else { UFitButton(Copy.retry, action: onRefresh).frame(minHeight: Layout.touch) }
             }
-        }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.white)
-            .confirmationDialog(Copy.archiveTitle, isPresented: $confirmingArchive, titleVisibility: .visible) {
-                Button(Copy.archive, role: .destructive) { if let revision = archiveRevision { onArchive(revision) } }
-                Button(Copy.cancel, role: .cancel) {}
+        }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.ufitCanvas)
+            .ufitConfirmationDialog(Copy.archiveTitle, isPresented: $confirmingArchive, titleVisibility: .visible) {
+                UFitButton(Copy.archive, role: .destructive) { if let revision = archiveRevision { onArchive(revision) } }
+                UFitButton(Copy.cancel, role: .cancel) {}
             } message: { Text(Copy.archiveConsequence) }
             .onChange(of: product?.id) { _, _ in selectedImageID = nil; confirmingArchive = false; archiveRevision = nil; resetRefusal() }
             .onChange(of: product?.version) { _, _ in confirmingArchive = false; archiveRevision = nil; resetRefusal() }
@@ -108,7 +108,7 @@ struct UFitCatalogProductContent: View {
     private enum Input { static let reasonMin = 1; static let reasonMax = 2000 }
     @ViewBuilder private func photos(_ product: UFitCatalogProductPresentation) -> some View {
         if product.images.isEmpty {
-            VStack(spacing: Layout.small) { Image(systemName: Icon.photo); Text(Copy.noImage) }.frame(maxWidth: .infinity, minHeight: Layout.image).foregroundStyle(Color.ufitMuted)
+            VStack(spacing: Layout.small) { UFitIcon(systemName: Icon.photo); Text(Copy.noImage) }.frame(maxWidth: .infinity, minHeight: Layout.image).foregroundStyle(Color.ufitSecondaryText)
         } else {
             VStack(spacing: Layout.small) {
                 if let selected = product.images.first(where: { $0.id == selectedImageID }) {
@@ -120,10 +120,10 @@ struct UFitCatalogProductContent: View {
                     ScrollView(.horizontal) {
                         HStack(spacing: Layout.small) {
                             ForEach(product.images) { image in
-                                Button { selectedImageID = image.id } label: {
+                                UFitButton { selectedImageID = image.id } label: {
                                     FashionImage(source: image.source).frame(width: Layout.thumbnail, height: Layout.thumbnail).clipped().clipShape(RoundedRectangle(cornerRadius: Layout.radius))
                                         .overlay { RoundedRectangle(cornerRadius: Layout.radius).stroke(selectedImageID == image.id ? Color.ufitInk : Color.ufitBorder, lineWidth: Layout.border) }
-                                }.buttonStyle(.plain).accessibilityLabel(image.kindLabel)
+                                }.ufitButtonStyle(.text).accessibilityLabel(image.kindLabel)
                             }
                         }
                     }
@@ -134,15 +134,15 @@ struct UFitCatalogProductContent: View {
     private enum Gallery { static let minimumForThumbnails = 1 }
     private func variants(_ product: UFitCatalogProductPresentation) -> some View {
         VStack(alignment: .leading, spacing: Layout.gap) {
-            Text(Copy.stock).font(.title2.weight(.medium))
-            if product.variants.isEmpty { Text(Copy.emptyVariants).font(.callout).foregroundStyle(Color.ufitMuted) }
+            Text(Copy.stock).font(UFitTypography.title2.weight(.medium))
+            if product.variants.isEmpty { Text(Copy.emptyVariants).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
             ForEach(product.variants) { variant in
                 VStack(alignment: .leading, spacing: Layout.small) {
-                    HStack { Text(variant.title).font(.headline); Spacer(); Text(variant.status.label).font(.caption).foregroundStyle(Color.ufitMuted) }
-                    Text(variant.sku).font(.caption).foregroundStyle(Color.ufitMuted)
-                    HStack { Text(variant.price); Spacer(); HStack(spacing: Layout.small) { Text(Copy.stockLabel).foregroundStyle(Color.ufitMuted); Text(variant.stockQuantity, format: .number) } }.font(.callout)
+                    HStack { Text(variant.title).font(UFitTypography.headline); Spacer(); Text(variant.status.label).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText) }
+                    Text(variant.sku).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText)
+                    HStack { Text(variant.price); Spacer(); HStack(spacing: Layout.small) { Text(Copy.stockLabel).foregroundStyle(Color.ufitSecondaryText); Text(variant.stockQuantity, format: .number) } }.font(UFitTypography.callout)
                     if access == .member && product.status != .archived && variant.status != .archived {
-                        Button(Copy.changeStock) { onStock(variant.id) }.frame(minHeight: Layout.touch).disabled(isMutatingProduct)
+                        UFitButton(Copy.changeStock) { onStock(variant.id) }.frame(minHeight: Layout.touch).disabled(isMutatingProduct)
                     }
                 }.padding(.vertical, Layout.small)
                 Divider()
@@ -152,32 +152,29 @@ struct UFitCatalogProductContent: View {
     private func actions(_ product: UFitCatalogProductPresentation) -> some View {
         VStack(alignment: .leading, spacing: Layout.gap) {
             if access == .member && product.status.canSubmit {
-                if let issue = product.submissionIssue { Text(issue).font(.callout).foregroundStyle(Color.ufitMuted) }
-                Button(action: { onSubmit(product.revision) }) { Text(Copy.submit).frame(maxWidth: .infinity) }.buttonStyle(PrimaryButtonStyle()).disabled(isMutatingProduct || product.submissionIssue != nil)
+                if let issue = product.submissionIssue { Text(issue).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
+                UFitButton(action: { onSubmit(product.revision) }) { Text(Copy.submit).frame(maxWidth: .infinity) }.ufitButtonStyle(.primary).disabled(isMutatingProduct || product.submissionIssue != nil)
             }
             if access == .moderator && product.status == .underReview {
                 if !showingRefusal {
-                    Button(action: { onApprove(product.revision) }) { Text(Copy.approve).frame(maxWidth: .infinity) }.buttonStyle(PrimaryButtonStyle()).disabled(isMutatingProduct)
-                    Button(Copy.refuse) { refusalRevision = product.revision; showingRefusal = true }.frame(minHeight: Layout.touch).disabled(isMutatingProduct)
+                    UFitButton(action: { onApprove(product.revision) }) { Text(Copy.approve).frame(maxWidth: .infinity) }.ufitButtonStyle(.primary).disabled(isMutatingProduct)
+                    UFitButton(Copy.refuse) { refusalRevision = product.revision; showingRefusal = true }.frame(minHeight: Layout.touch).disabled(isMutatingProduct)
                 }
                 if showingRefusal {
-                    Text(Copy.reason).font(.headline)
-                    TextEditor(text: $rejectionReason).frame(minHeight: Layout.editor).padding(Layout.small)
-                        .overlay { RoundedRectangle(cornerRadius: Layout.radius).stroke(Color.ufitBorder) }.accessibilityLabel(Copy.reason)
+                    UFitMultilineField(label: Copy.reason, text: $rejectionReason, error: invalidReason ? Copy.reasonInvalid : nil)
                         .onChange(of: rejectionReason) { _, value in if invalidReason { invalidReason = !validReason(value) } }
-                    if invalidReason { Text(Copy.reasonInvalid).font(.caption) }
-                    Button(Copy.confirmRefusal) {
+                    UFitButton(Copy.confirmRefusal) {
                         let reason = rejectionReason.trimmingCharacters(in: .whitespacesAndNewlines)
                         invalidReason = !validReason(reason)
                         if !invalidReason, let revision = refusalRevision { onReject(revision, reason) }
-                    }.buttonStyle(PrimaryButtonStyle()).disabled(isMutatingProduct)
-                    Button(Copy.decisions) { showingRefusal = false }.frame(minHeight: Layout.touch).disabled(isMutatingProduct)
+                    }.ufitButtonStyle(.primary).disabled(isMutatingProduct)
+                    UFitButton(Copy.decisions) { showingRefusal = false }.frame(minHeight: Layout.touch).disabled(isMutatingProduct)
                 }
             }
             if product.status == .archived {
-                Button(action: { onRestore(product.revision) }) { Text(Copy.restore).frame(maxWidth: .infinity) }.buttonStyle(PrimaryButtonStyle()).disabled(isMutatingProduct)
+                UFitButton(action: { onRestore(product.revision) }) { Text(Copy.restore).frame(maxWidth: .infinity) }.ufitButtonStyle(.primary).disabled(isMutatingProduct)
             } else if access == .member || product.status == .active {
-                Button(Copy.archive) { archiveRevision = product.revision; confirmingArchive = true }.frame(minHeight: Layout.touch).disabled(isMutatingProduct)
+                UFitButton(Copy.archive) { archiveRevision = product.revision; confirmingArchive = true }.frame(minHeight: Layout.touch).disabled(isMutatingProduct)
             }
         }
     }

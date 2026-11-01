@@ -31,11 +31,11 @@ struct OutfitDetailView: View {
                 if shopping.detail == nil { await shopping.load(id: outfit.id) }
                 if session.user != nil { await cart.load() }
             }
-            .confirmationDialog(Copy.replace, isPresented: Binding(get: { shopping.pendingReplacementItemID != nil }, set: { if !$0 { shopping.pendingReplacementItemID = nil } }), titleVisibility: .visible) {
+            .ufitConfirmationDialog(Copy.replace, isPresented: Binding(get: { shopping.pendingReplacementItemID != nil }, set: { if !$0 { shopping.pendingReplacementItemID = nil } }), titleVisibility: .visible) {
                 if let id = shopping.pendingReplacementItemID {
-                    Button(Copy.confirm, role: .destructive) { add(id: id, replacing: true) }
+                    UFitButton(Copy.confirm, role: .destructive) { add(id: id, replacing: true) }
                 }
-                Button(Copy.cancel, role: .cancel) { shopping.pendingReplacementItemID = nil }
+                UFitButton(Copy.cancel, role: .cancel) { shopping.pendingReplacementItemID = nil }
             } message: { Text(Copy.consequence) }
     }
     private var presentedAuthor: OutfitAuthor? { if let detail = shopping.detail { detail.author } else { outfit.author } }

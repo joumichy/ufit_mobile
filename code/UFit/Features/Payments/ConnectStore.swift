@@ -9,6 +9,7 @@ final class UFitConnectStore {
     private(set) var statuses = [String: UFitConnectAccountStatus]()
     private(set) var busyIDs = Set<String>()
     private(set) var loadingProfiles = false
+    private(set) var hasLoaded = false
     private(set) var messages = [String: String]()
     private(set) var loadError: String?
     var country = String()
@@ -45,6 +46,7 @@ final class UFitConnectStore {
             }
             if let requestedProfile { profiles = profiles.filter { $0.id == requestedProfile.id } }
             self.profiles = profiles
+            hasLoaded = true
             let eligibleIDs = Set(profiles.map(\.id))
             if let selectedID, !eligibleIDs.contains(selectedID) { self.selectedID = nil }
             statuses = statuses.filter { eligibleIDs.contains($0.key) }

@@ -9,12 +9,12 @@ struct CreatorProfileContentView: View {
     let onBack: () -> Void
 
     var body: some View {
-        VStack(spacing: 0) {
+        VStack(spacing: .zero) {
             CreatorProfileNavigationBar(title: displayName, onBack: onBack)
 
             ScrollViewReader { proxy in
                 ScrollView {
-                    VStack(alignment: .leading, spacing: 24) {
+                    VStack(alignment: .leading, spacing: UFitSpace.xl) {
                         CreatorHeaderSection(
                             displayName: displayName,
                             slug: creatorSlug,
@@ -27,13 +27,13 @@ struct CreatorProfileContentView: View {
                     }
                 }
                 .scrollIndicators(.hidden)
-                .background(Color.white)
+                .background(Color.ufitCanvas)
                 .onAppear {
                     scrollToTop(with: proxy)
                 }
             }
         }
-        .background(Color.white)
+        .background(Color.ufitCanvas)
     }
 
     private func scrollToTop(with proxy: ScrollViewProxy) {
@@ -53,23 +53,23 @@ struct CreatorProfileNavigationBar: View {
     let onBack: () -> Void
 
     var body: some View {
-        HStack(spacing: 13) {
-            Button(action: onBack) {
-                Image(systemName: "arrow.left")
-                    .font(.system(size: 19, weight: .regular))
+        HStack(spacing: UFitSpace.sm) {
+            UFitButton(action: onBack) {
+                UFitIcon(systemName: "arrow.left")
+                    .ufitFont(size: UFitTypography.Size.heading, weight: .regular)
                     .foregroundStyle(Color.ufitInk)
                     .frame(width: 30, height: 30)
             }
-            .buttonStyle(.plain)
+            .ufitButtonStyle(.text)
 
             Text(title)
-                .font(.system(size: 20, weight: .semibold))
+                .ufitFont(size: UFitTypography.Size.section, weight: .semibold)
                 .foregroundStyle(Color.ufitInk)
 
             Spacer()
         }
-        .padding(.horizontal, 24)
-        .padding(.vertical, 16)
+        .padding(.horizontal, UFitSpace.xl)
+        .padding(.vertical, UFitSpace.md)
         .background(.white.opacity(0.96))
         .overlay(alignment: .bottom) {
             Rectangle()
@@ -87,28 +87,28 @@ struct CreatorHeaderSection: View {
     let statusMessage: String?
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            HStack(alignment: .top, spacing: 16) {
+        VStack(alignment: .leading, spacing: UFitSpace.xl) {
+            HStack(alignment: .top, spacing: UFitSpace.md) {
                 Text(initials)
-                    .font(.system(size: 24, weight: .medium))
+                    .ufitFont(size: UFitTypography.Size.section, weight: .medium)
                     .foregroundStyle(Color.ufitInk)
                     .frame(width: 82, height: 82)
                     .background(Color.ufitSecondary, in: Circle())
 
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: UFitSpace.sm) {
                     VStack(alignment: .leading, spacing: 3) {
                         Text(displayName)
-                            .font(.system(size: 22, weight: .medium))
+                            .ufitFont(size: UFitTypography.Size.section, weight: .medium)
                         Text(slug)
-                            .font(.system(size: 14))
-                            .foregroundStyle(Color.ufitMuted)
+                            .ufitFont(size: UFitTypography.Size.small)
+                            .foregroundStyle(Color.ufitSecondaryText)
                     }
 
-                    Button(action: {}) {
+                    UFitButton(action: {}) {
                         Text("Follow")
                             .frame(maxWidth: .infinity)
                     }
-                    .buttonStyle(CompactPrimaryButtonStyle())
+                    .ufitButtonStyle(.primary, compact: true)
                 }
 
                 Spacer()
@@ -116,19 +116,19 @@ struct CreatorHeaderSection: View {
 
             if let statusMessage {
                 Text(statusMessage)
-                    .font(.system(size: 13))
-                    .foregroundStyle(Color.ufitMuted)
+                    .ufitFont(size: UFitTypography.Size.small)
+                    .foregroundStyle(Color.ufitSecondaryText)
                     .padding(14)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(Color.ufitSecondary, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .background(Color.ufitSecondary, in: RoundedRectangle(cornerRadius: UFitRadius.action, style: .continuous))
             }
 
             Text("Parisian fashion curator. Minimalist aesthetic, timeless pieces. Collaborating with independent European brands to bring you sustainable, high-quality fashion.")
-                .font(.system(size: 14))
+                .ufitFont(size: UFitTypography.Size.small)
                 .lineSpacing(4)
-                .foregroundStyle(Color.ufitMuted)
+                .foregroundStyle(Color.ufitSecondaryText)
 
-            HStack(spacing: 12) {
+            HStack(spacing: UFitSpace.sm) {
                 ForEach(stats) { stat in
                     CreatorStatCard(icon: stat.icon, value: stat.value, label: stat.label)
                 }
@@ -136,8 +136,8 @@ struct CreatorHeaderSection: View {
 
             CreatorGradeCard(grade: grade)
         }
-        .padding(.horizontal, 24)
-        .padding(.top, 32)
+        .padding(.horizontal, UFitSpace.xl)
+        .padding(.top, UFitSpace.xxl)
     }
 
     private var initials: String {
@@ -167,19 +167,19 @@ struct CreatorGradeCard: View {
     let grade: CreatorGradeSnapshot
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: UFitSpace.md) {
             HStack {
                 Text("Creator Grade")
-                    .font(.system(size: 14))
-                    .foregroundStyle(Color.ufitMuted)
+                    .ufitFont(size: UFitTypography.Size.small)
+                    .foregroundStyle(Color.ufitSecondaryText)
                 Spacer()
                 Label(grade.label, systemImage: "medal")
-                    .font(.system(size: 14, weight: .medium))
+                    .ufitFont(size: UFitTypography.Size.small, weight: .medium)
             }
 
             GeometryReader { proxy in
                 ZStack(alignment: .leading) {
-                    Capsule().fill(Color.white)
+                    Capsule().fill(Color.ufitCanvas)
                     Capsule()
                         .fill(Color.ufitInk)
                         .frame(width: proxy.size.width * 0.85)
@@ -189,18 +189,18 @@ struct CreatorGradeCard: View {
 
             HStack {
                 Text("Commission Rate")
-                    .foregroundStyle(Color.ufitMuted)
+                    .foregroundStyle(Color.ufitSecondaryText)
                 Spacer()
                 Text("\(grade.commissionRate) -> 15%")
             }
-            .font(.system(size: 12))
+            .ufitFont(size: UFitTypography.Size.caption)
 
             Text("Keep publishing high-quality outfits to unlock the next creator tier.")
-                .font(.system(size: 12))
-                .foregroundStyle(Color.ufitMuted)
+                .ufitFont(size: UFitTypography.Size.caption)
+                .foregroundStyle(Color.ufitSecondaryText)
         }
         .padding(18)
-        .background(Color.ufitSecondary, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .background(Color.ufitSecondary, in: RoundedRectangle(cornerRadius: UFitRadius.card, style: .continuous))
     }
 }
 
@@ -211,10 +211,10 @@ struct PublishedOutfitsSection: View {
     ]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: UFitSpace.md) {
             Text("Published Outfits")
-                .font(.system(size: 20, weight: .medium))
-                .padding(.horizontal, 24)
+                .ufitFont(size: UFitTypography.Size.section, weight: .medium)
+                .padding(.horizontal, UFitSpace.xl)
 
             LazyVGrid(columns: columns, spacing: 1) {
                 ForEach(SampleData.creatorImages, id: \.self) { imageName in
@@ -223,7 +223,7 @@ struct PublishedOutfitsSection: View {
             }
             .background(Color.ufitBorder)
         }
-        .padding(.bottom, 104)
+        .padding(.bottom, UFitSpace.xl)
     }
 }
 
@@ -232,7 +232,7 @@ struct CreatorOutfitGridImage: View {
 
     var body: some View {
         Rectangle()
-            .fill(Color.white)
+            .fill(Color.ufitCanvas)
             .aspectRatio(3.0 / 4.0, contentMode: .fit)
             .overlay {
                 Image(imageName)

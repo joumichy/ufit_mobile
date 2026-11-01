@@ -19,14 +19,14 @@ struct DetailHeader<Trailing: View>: View {
     var body: some View {
         HStack {
             if !isPrimarySection {
-                Button(action: onBack) {
-                    Image(systemName: DetailHeaderIcon.back).font(.system(size: DetailHeaderLayout.icon, weight: .medium))
+                UFitButton(action: onBack) {
+                    UFitIcon(systemName: DetailHeaderIcon.back).ufitFont(size: DetailHeaderLayout.icon, weight: .medium)
                         .foregroundStyle(Color.ufitInk).frame(width: DetailHeaderLayout.touch, height: DetailHeaderLayout.touch)
-                }.buttonStyle(.plain).accessibilityLabel(DetailHeaderCopy.back)
+                }.ufitButtonStyle(.text).accessibilityLabel(DetailHeaderCopy.back)
             }
             if let title {
                 Text(title)
-                    .font(isPrimarySection ? .system(size: DetailHeaderLayout.sectionTitle, weight: .regular, design: .serif) : .system(size: DetailHeaderLayout.title, weight: .medium))
+                    .ufitFont(size: isPrimarySection ? DetailHeaderLayout.sectionTitle : DetailHeaderLayout.title, weight: isPrimarySection ? .regular : .medium, design: isPrimarySection ? .serif : .default)
                     .foregroundStyle(Color.ufitInk).accessibilityAddTraits(.isHeader)
             }
             Spacer()
@@ -46,8 +46,8 @@ extension EnvironmentValues {
 }
 
 private enum DetailHeaderLayout {
-        static let icon: CGFloat = 22; static let touch: CGFloat = 44; static let title: CGFloat = 18; static let sectionTitle: CGFloat = 30
-        static let horizontal: CGFloat = 14; static let sectionHorizontal: CGFloat = 24; static let vertical: CGFloat = 7; static let sectionVertical: CGFloat = 16; static let border: CGFloat = 1
+        static let icon: CGFloat = 22; static let touch: CGFloat = UFitControlSize.touch; static let title: CGFloat = UFitTypography.Size.heading; static let sectionTitle: CGFloat = UFitTypography.Size.editorial
+        static let horizontal: CGFloat = 14; static let sectionHorizontal: CGFloat = UFitSpace.xl; static let vertical: CGFloat = 7; static let sectionVertical: CGFloat = UFitSpace.md; static let border: CGFloat = UFitSpace.hairline
         static let opacity = 0.95
     }
 private enum DetailHeaderCopy { static let back = String(localized: "Retour") }

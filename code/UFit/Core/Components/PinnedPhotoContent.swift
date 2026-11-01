@@ -18,7 +18,7 @@ struct UFitPinnedPhotoContent: View {
         static let retryIcon = "arrow.clockwise"
     }
     private enum Layout {
-        static let touch: CGFloat = 44; static let dot: CGFloat = 32; static let line: CGFloat = 1.5
+        static let touch: CGFloat = UFitControlSize.touch; static let dot: CGFloat = 32; static let line: CGFloat = 1.5
         static let centerDivisor: CGFloat = 2
         static let shadow: CGFloat = 4; static let shade = 0.45; static let minimum: CGFloat = 1
     }
@@ -43,17 +43,17 @@ struct UFitPinnedPhotoContent: View {
                         let x = rect.minX + CGFloat(pin.x) / CGFloat(UFitOutfitPin.coordinateMax) * rect.width
                         let y = rect.minY + CGFloat(pin.y) / CGFloat(UFitOutfitPin.coordinateMax) * rect.height
                         if x >= .zero && x <= geometry.size.width && y >= .zero && y <= geometry.size.height {
-                            Button { onPin(pin.id) } label: {
+                            UFitButton { onPin(pin.id) } label: {
                                 UFitOutfitItemIcon(symbol: pin.symbol).frame(width: Layout.dot, height: Layout.dot)
                                     .background(.black.opacity(Layout.shade), in: Circle()).overlay { Circle().stroke(.white, lineWidth: Layout.line) }
                                     .frame(width: Layout.touch, height: Layout.touch)
-                            }.buttonStyle(.plain).foregroundStyle(.white).shadow(radius: Layout.shadow)
+                            }.ufitButtonStyle(.text).foregroundStyle(.white).shadow(radius: Layout.shadow)
                                 .accessibilityLabel(pin.label).position(x: x, y: y)
                         }
                     }
                 } else if failed {
-                    Button { reload = UUID() } label: { Label(Copy.retry, systemImage: Copy.retryIcon).padding() }.tint(.white)
-                } else { ProgressView().tint(.white) }
+                    UFitButton { reload = UUID() } label: { Label(Copy.retry, systemImage: Copy.retryIcon).padding(UFitSpace.md) }.tint(.white)
+                } else { UFitLoading().tint(.white) }
             }.clipped()
         }.task(id: loadIdentity) { await load() }
     }

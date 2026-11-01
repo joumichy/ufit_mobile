@@ -8,6 +8,8 @@
     "lab:design": "npm --prefix design-lab run design --",
     "lab:native": "npm --prefix design-lab run native:preview --",
     "lab:open": "npm --prefix design-lab run open:native --",
-    "lab:web": "npm --prefix design-lab run web:storybook"
+    "lab:web": "npm --prefix design-lab run web:storybook",
+    "design:check": "node scripts/check-design-system.mjs",
+    "check": "npm run design:check"
   }
 }

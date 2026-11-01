@@ -32,75 +32,75 @@ struct UFitReturnCreationContent: View {
         static let reviewNote = String(localized: "Vérifiez les pièces et le montant avant d’envoyer. La marque examinera votre demande ; le remboursement suivra la réception du retour accepté.")
     }
     private enum Layout {
-        static let page: CGFloat = 24; static let gap: CGFloat = 16; static let small: CGFloat = 8; static let touch: CGFloat = 44
+        static let page: CGFloat = UFitSpace.xl; static let gap: CGFloat = UFitSpace.md; static let small: CGFloat = UFitSpace.xs; static let touch: CGFloat = UFitControlSize.touch
         static let imageWidth: CGFloat = 72; static let imageHeight: CGFloat = 94; static let singlePiece = 1
     }
     private enum Anchor { case amounts }
     private var locked: Bool { isLoading || isSaving || isUnresolved || preview != nil }
     var body: some View {
-        NavigationStack {
+        VStack(spacing: .zero) {
+            UFitSheetHeader(title: Copy.title, onClose: { if hasChanges && !isUnresolved { confirmingClose = true } else { onClose() } }).disabled(isSaving)
             ScrollViewReader { reader in
             ScrollView {
                 VStack(alignment: .leading, spacing: Layout.page) {
                     if let options {
-                        Text(options.orderNumber).font(.title2.weight(.semibold))
-                        if let date = options.deadline { Text(String(localized: "Demande possible jusqu’au \(date)")).font(.subheadline) }
-                        if let policy = options.returnPolicy { VStack(alignment: .leading, spacing: Layout.small) { Text(Copy.conditions).font(.headline); Text(policy).font(.callout) } }
-                        Text(options.refundPolicy.explanation).font(.footnote).foregroundStyle(Color.ufitMuted)
+                        Text(options.orderNumber).font(UFitTypography.title2.weight(.semibold))
+                        if let date = options.deadline { Text(String(localized: "Demande possible jusqu’au \(date)")).font(UFitTypography.subheadline) }
+                        if let policy = options.returnPolicy { VStack(alignment: .leading, spacing: Layout.small) { Text(Copy.conditions).font(UFitTypography.headline); Text(policy).font(UFitTypography.callout) } }
+                        Text(options.refundPolicy.explanation).font(UFitTypography.footnote).foregroundStyle(Color.ufitSecondaryText)
                         if options.canRequest || isUnresolved || preview != nil {
                             ForEach(options.items) { item in
                                 VStack(alignment: .leading, spacing: Layout.gap) {
                                     HStack(alignment: .top, spacing: Layout.gap) {
                                         if let image = item.image { FashionImage(source: image).frame(width: Layout.imageWidth, height: Layout.imageHeight).clipped() }
                                         VStack(alignment: .leading, spacing: Layout.small) {
-                                            Text(item.name).font(.headline); Text(item.options).font(.subheadline).foregroundStyle(Color.ufitMuted); Text(item.unitAmount).font(.subheadline)
-                                            Text(item.availableQuantity == Layout.singlePiece ? String(localized: "1 pièce éligible") : String(localized: "\(item.availableQuantity) pièces éligibles")).font(.caption)
+                                            Text(item.name).font(UFitTypography.headline); Text(item.options).font(UFitTypography.subheadline).foregroundStyle(Color.ufitSecondaryText); Text(item.unitAmount).font(UFitTypography.subheadline)
+                                            Text(item.availableQuantity == Layout.singlePiece ? String(localized: "1 pièce éligible") : String(localized: "\(item.availableQuantity) pièces éligibles")).font(UFitTypography.caption)
                                         }
                                     }
-                                    Stepper(value: quantity(item), in: .zero...item.availableQuantity) {
+                                    UFitQuantityControl(value: quantity(item), in: .zero...item.availableQuantity) {
                                         Text(String(localized: "\(Copy.quantity) : \(draft.quantities[item.id] ?? .zero)"))
                                     }.frame(minHeight: Layout.touch).disabled(locked)
-                                    if let error = errors[.quantity(item.id)] { Text(error).font(.caption) }
+                                    if let error = errors[.quantity(item.id)] { UFitFieldError(message: error) }
                                 }
                                 Divider()
                             }
-                            if let error = errors[.selection] { Text(error).font(.callout) }
+                            if let error = errors[.selection] { Text(error).font(UFitTypography.callout) }
                             UFitMultilineField(label: Copy.reason, text: $draft.reason, error: errors[.reason]).disabled(locked)
                         } else {
-                            Text(options.unavailableNote ?? Copy.unavailable).font(.callout)
-                            if options.openReturnID != nil { Button(Copy.existing, action: onOpenExisting).frame(minHeight: Layout.touch) }
+                            Text(options.unavailableNote ?? Copy.unavailable).font(UFitTypography.callout)
+                            if options.openReturnID != nil { UFitButton(Copy.existing, action: onOpenExisting).frame(minHeight: Layout.touch) }
                         }
                         if let preview {
                             VStack(spacing: Layout.gap) {
                                 amount(Copy.merchandise, preview.merchandise); amount(Copy.shipping, preview.shipping); amount(Copy.taxes, preview.taxes)
                                 Divider(); amount(Copy.total, preview.total).fontWeight(.semibold)
                             }.id(Anchor.amounts)
-                            Text(Copy.reviewNote).font(.callout)
+                            Text(Copy.reviewNote).font(UFitTypography.callout)
                         }
-                    } else if isLoading { ProgressView(Copy.loading).frame(maxWidth: .infinity) }
-                    else { Text(Copy.unavailable); Button(Copy.refresh, action: onRefresh).frame(minHeight: Layout.touch) }
+                    } else if isLoading { UFitLoading(Copy.loading).frame(maxWidth: .infinity) }
+                    else { Text(Copy.unavailable); UFitButton(Copy.refresh, action: onRefresh).frame(minHeight: Layout.touch) }
                 }.padding(Layout.page).frame(maxWidth: .infinity, alignment: .leading)
             }.scrollDismissesKeyboard(.interactively)
                 .onChange(of: preview != nil) { _, ready in if ready { reader.scrollTo(Anchor.amounts, anchor: .top) } }
                 .safeAreaInset(edge: .bottom, spacing: .zero) {
                     VStack(alignment: .leading, spacing: Layout.small) {
                         if let message {
-                            Text(message).font(.callout)
-                            if !isUnresolved { Button(Copy.refresh, action: onRefresh).frame(minHeight: Layout.touch).disabled(isLoading || isSaving) }
+                            Text(message).font(UFitTypography.callout)
+                            if !isUnresolved { UFitButton(Copy.refresh, action: onRefresh).frame(minHeight: Layout.touch).disabled(isLoading || isSaving) }
                         }
-                        if isUnresolved { Text(Copy.unresolved).font(.callout) }
-                        if isSaving || isLoading { ProgressView(isSaving ? Copy.saving : Copy.loading).frame(maxWidth: .infinity, minHeight: Layout.touch) }
+                        if isUnresolved { Text(Copy.unresolved).font(UFitTypography.callout) }
+                        if isSaving || isLoading { UFitLoading(isSaving ? Copy.saving : Copy.loading).frame(maxWidth: .infinity, minHeight: Layout.touch) }
                         else if options?.canRequest == true || isUnresolved {
-                            if preview != nil && !isUnresolved { Button(Copy.edit, action: onEdit).frame(minHeight: Layout.touch) }
-                            Button(action: preview == nil && !isUnresolved ? onPreview : onSubmit) { Text(preview == nil && !isUnresolved ? Copy.preview : Copy.submit).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true).padding(.horizontal, Layout.gap).frame(maxWidth: .infinity) }.buttonStyle(PrimaryButtonStyle())
+                            if preview != nil && !isUnresolved { UFitButton(Copy.edit, action: onEdit).frame(minHeight: Layout.touch) }
+                            UFitButton(action: preview == nil && !isUnresolved ? onPreview : onSubmit) { Text(preview == nil && !isUnresolved ? Copy.preview : Copy.submit).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true).padding(.horizontal, Layout.gap).frame(maxWidth: .infinity) }.ufitButtonStyle(.primary)
                         }
-                    }.padding(Layout.gap).background(Color.white).overlay(alignment: .top) { Divider() }
-                }.navigationTitle(Copy.title).navigationBarTitleDisplayMode(.inline)
-                .toolbar { ToolbarItem(placement: .cancellationAction) { Button(Copy.close) { if hasChanges && !isUnresolved { confirmingClose = true } else { onClose() } }.disabled(isSaving) } }
+                    }.padding(Layout.gap).background(Color.ufitCanvas).overlay(alignment: .top) { Divider() }
+                }
             }
-        }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.white).interactiveDismissDisabled(hasChanges || isSaving)
-            .confirmationDialog(Copy.discardTitle, isPresented: $confirmingClose, titleVisibility: .visible) {
-                Button(Copy.discard, role: .destructive, action: onClose); Button(Copy.keep, role: .cancel) {}
+        }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.ufitCanvas).interactiveDismissDisabled(hasChanges || isSaving)
+            .ufitConfirmationDialog(Copy.discardTitle, isPresented: $confirmingClose, titleVisibility: .visible) {
+                UFitButton(Copy.discard, role: .destructive, action: onClose); UFitButton(Copy.keep, role: .cancel) {}
             }
     }
     private func quantity(_ item: UFitReturnSelectablePiece) -> Binding<Int> { Binding(get: { draft.quantities[item.id] ?? .zero }, set: { draft.quantities[item.id] = $0 }) }
