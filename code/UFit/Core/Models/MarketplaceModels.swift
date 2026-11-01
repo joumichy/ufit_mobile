@@ -12,17 +12,22 @@ struct Outfit: Identifiable {
     let imageName: String
     let creator: String
     let creatorAvatar: String
+    let author: OutfitAuthor?
     let price: String
-    let likes: Int
-    let comments: Int
     let title: String
     let description: String
-    let currency: String
-    let totalPrice: Int?
     let sourceCreatorId: String?
     let sourceOutfitId: String?
     let products: [OutfitProduct]
     let pieces: [OutfitPiece]
+}
+
+struct OutfitAuthor: Decodable {
+    enum Kind: String, Codable, Hashable { case creator, brand }
+    let id: String
+    let kind: Kind
+    let name: String
+    let avatarUrl: String?
 }
 
 struct OutfitProduct: Identifiable {

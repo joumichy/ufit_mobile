@@ -3,44 +3,14 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 56;
+	objectVersion = 70;
 	objects = {
 
 /* Begin PBXBuildFile section */
 		1A2B3C4D5E6F700000000001 /* UFitApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000011 /* UFitApp.swift */; };
 		1A2B3C4D5E6F700000000003 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1A2B3C4D5E6F700000000013 /* Assets.xcassets */; };
-		2A2B3C4D5E6F000000000100 /* MarketplaceRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2B3C4D5E6F000000000100 /* MarketplaceRootView.swift */; };
-		2A2B3C4D5E6F000000000101 /* AppTab.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2B3C4D5E6F000000000101 /* AppTab.swift */; };
-		2A2B3C4D5E6F000000000102 /* MarketplaceModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2B3C4D5E6F000000000102 /* MarketplaceModels.swift */; };
-		2A2B3C4D5E6F000000000103 /* SampleData.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2B3C4D5E6F000000000103 /* SampleData.swift */; };
-		2A2B3C4D5E6F000000000104 /* Colors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2B3C4D5E6F000000000104 /* Colors.swift */; };
-		2A2B3C4D5E6F000000000105 /* ButtonStyles.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2B3C4D5E6F000000000105 /* ButtonStyles.swift */; };
-		2A2B3C4D5E6F000000000106 /* BottomNavBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2B3C4D5E6F000000000106 /* BottomNavBar.swift */; };
-		2A2B3C4D5E6F000000000107 /* DetailHeader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2B3C4D5E6F000000000107 /* DetailHeader.swift */; };
-		2A2B3C4D5E6F000000000108 /* CircularIconButton.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2B3C4D5E6F000000000108 /* CircularIconButton.swift */; };
-		2A2B3C4D5E6F000000000109 /* FlowLayout.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2B3C4D5E6F000000000109 /* FlowLayout.swift */; };
-		2A2B3C4D5E6F00000000010A /* OnboardingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2B3C4D5E6F00000000010A /* OnboardingView.swift */; };
-		2A2B3C4D5E6F00000000010B /* HomeFeedView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2B3C4D5E6F00000000010B /* HomeFeedView.swift */; };
-		2A2B3C4D5E6F00000000010C /* OutfitFeedCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2B3C4D5E6F00000000010C /* OutfitFeedCard.swift */; };
-		2A2B3C4D5E6F00000000010D /* OutfitDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2B3C4D5E6F00000000010D /* OutfitDetailView.swift */; };
-		2A2B3C4D5E6F00000000010E /* OutfitPieceCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2B3C4D5E6F00000000010E /* OutfitPieceCard.swift */; };
-		2A2B3C4D5E6F00000000010F /* CreatorProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2B3C4D5E6F00000000010F /* CreatorProfileView.swift */; };
-		2A2B3C4D5E6F000000000110 /* CreatorStatCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2B3C4D5E6F000000000110 /* CreatorStatCard.swift */; };
-		2A2B3C4D5E6F000000000111 /* BrandDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2B3C4D5E6F000000000111 /* BrandDashboardView.swift */; };
-		2A2B3C4D5E6F000000000112 /* BrandDashboardComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2B3C4D5E6F000000000112 /* BrandDashboardComponents.swift */; };
-		2A2B3C4D5E6F000000000113 /* UFitAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2B3C4D5E6F000000000113 /* UFitAPIClient.swift */; };
-		2A2B3C4D5E6F000000000114 /* MarketplaceStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2B3C4D5E6F000000000114 /* MarketplaceStore.swift */; };
-		2A2B3C4D5E6F000000000115 /* FashionImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A2B3C4D5E6F000000000115 /* FashionImage.swift */; };
-		C49FC548394C3B1023EF34AC = {isa = PBXBuildFile; fileRef = CDD70D010F0BCC3E9C19502E; };
-		9629F15B4C2FF31587889D63 = {isa = PBXBuildFile; fileRef = 7057E2B8C224B290227E5A9B; };
-		827CF2771D0FEC04852BF0AC = {isa = PBXBuildFile; fileRef = FC08259B5CFEA03C3B524539; };
-		BDE75360BC570237359BD8E2 = {isa = PBXBuildFile; fileRef = 43EACC5E49A30DFC24C25A00; };
-		95EAAD88220AF0497C746F43 = {isa = PBXBuildFile; fileRef = F9096DDD060E1642A1251404; };
-		DD503C2F36037096ED677CE9 = {isa = PBXBuildFile; fileRef = 8F03500F5AD9C4ED4C3BB5AE; };
-		A227591C2C8631417CEDD379 = {isa = PBXBuildFile; fileRef = 381BB667D089E344B848A40B; };
-		E185F88EB38FB267FD354876 = {isa = PBXBuildFile; fileRef = 9347C889BB002B7A85662324; };
-		A5E2106AD50736921910E480 = {isa = PBXBuildFile; fileRef = 4BB2B9939457F601DB26E876; };
-		012311A40D6570EF97603AEC = {isa = PBXBuildFile; fileRef = 7CDD25F07CF166F80C124A72; };
+		F10000000000000000000001 = {isa = PBXBuildFile; productRef = F10000000000000000000002; };
+        F20000000000000000000001 = {isa = PBXBuildFile; productRef = F20000000000000000000002; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -48,38 +18,7 @@
 		1A2B3C4D5E6F700000000011 /* UFitApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UFitApp.swift; sourceTree = "<group>"; };
 		1A2B3C4D5E6F700000000013 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		1A2B3C4D5E6F700000000014 /* Preview Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = "Preview Assets.xcassets"; sourceTree = "<group>"; };
-		3A2B3C4D5E6F000000000100 /* MarketplaceRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarketplaceRootView.swift; sourceTree = "<group>"; };
-		3A2B3C4D5E6F000000000101 /* AppTab.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppTab.swift; sourceTree = "<group>"; };
-		3A2B3C4D5E6F000000000102 /* MarketplaceModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarketplaceModels.swift; sourceTree = "<group>"; };
-		3A2B3C4D5E6F000000000103 /* SampleData.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SampleData.swift; sourceTree = "<group>"; };
-		3A2B3C4D5E6F000000000104 /* Colors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Colors.swift; sourceTree = "<group>"; };
-		3A2B3C4D5E6F000000000105 /* ButtonStyles.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ButtonStyles.swift; sourceTree = "<group>"; };
-		3A2B3C4D5E6F000000000106 /* BottomNavBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BottomNavBar.swift; sourceTree = "<group>"; };
-		3A2B3C4D5E6F000000000107 /* DetailHeader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DetailHeader.swift; sourceTree = "<group>"; };
-		3A2B3C4D5E6F000000000108 /* CircularIconButton.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CircularIconButton.swift; sourceTree = "<group>"; };
-		3A2B3C4D5E6F000000000109 /* FlowLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowLayout.swift; sourceTree = "<group>"; };
-		3A2B3C4D5E6F00000000010A /* OnboardingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingView.swift; sourceTree = "<group>"; };
-		3A2B3C4D5E6F00000000010B /* HomeFeedView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeFeedView.swift; sourceTree = "<group>"; };
-		3A2B3C4D5E6F00000000010C /* OutfitFeedCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutfitFeedCard.swift; sourceTree = "<group>"; };
-		3A2B3C4D5E6F00000000010D /* OutfitDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutfitDetailView.swift; sourceTree = "<group>"; };
-		3A2B3C4D5E6F00000000010E /* OutfitPieceCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutfitPieceCard.swift; sourceTree = "<group>"; };
-		3A2B3C4D5E6F00000000010F /* CreatorProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatorProfileView.swift; sourceTree = "<group>"; };
-		3A2B3C4D5E6F000000000110 /* CreatorStatCard.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreatorStatCard.swift; sourceTree = "<group>"; };
-		3A2B3C4D5E6F000000000111 /* BrandDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrandDashboardView.swift; sourceTree = "<group>"; };
-		3A2B3C4D5E6F000000000112 /* BrandDashboardComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrandDashboardComponents.swift; sourceTree = "<group>"; };
-		3A2B3C4D5E6F000000000113 /* UFitAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UFitAPIClient.swift; sourceTree = "<group>"; };
-		3A2B3C4D5E6F000000000114 /* MarketplaceStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarketplaceStore.swift; sourceTree = "<group>"; };
-		3A2B3C4D5E6F000000000115 /* FashionImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FashionImage.swift; sourceTree = "<group>"; };
-		CDD70D010F0BCC3E9C19502E = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Core/Models/UFitShippingAddress.swift"; sourceTree = SOURCE_ROOT; };
-		7057E2B8C224B290227E5A9B = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/BrandDashboard/BrandDashboardContentView.swift"; sourceTree = SOURCE_ROOT; };
-		FC08259B5CFEA03C3B524539 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/CreatorProfile/CreatorProfileContentView.swift"; sourceTree = SOURCE_ROOT; };
-		43EACC5E49A30DFC24C25A00 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Feed/HomeFeedContentView.swift"; sourceTree = SOURCE_ROOT; };
-		F9096DDD060E1642A1251404 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Marketplace/CreateWorkspaceContentView.swift"; sourceTree = SOURCE_ROOT; };
-		8F03500F5AD9C4ED4C3BB5AE = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Marketplace/MarketplaceComponents.swift"; sourceTree = SOURCE_ROOT; };
-		381BB667D089E344B848A40B = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Marketplace/SavedOutfitsContentView.swift"; sourceTree = SOURCE_ROOT; };
-		9347C889BB002B7A85662324 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/Marketplace/SearchOutfitsContentView.swift"; sourceTree = SOURCE_ROOT; };
-		4BB2B9939457F601DB26E876 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/OutfitDetail/CheckoutSheet.swift"; sourceTree = SOURCE_ROOT; };
-		7CDD25F07CF166F80C124A72 = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UFit/Features/OutfitDetail/OutfitDetailContentView.swift"; sourceTree = SOURCE_ROOT; };
+		F10000000000000000000004 = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Config/UFit.xcconfig; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -87,27 +26,26 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F10000000000000000000001,
+                F20000000000000000000001,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
+/* Begin PBXFileSystemSynchronizedRootGroup section */
+		4A2B3C4D5E6F000000000001 /* App */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = App; sourceTree = "<group>"; };
+		4A2B3C4D5E6F000000000002 /* Core */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Core; sourceTree = "<group>"; };
+		4A2B3C4D5E6F000000000007 /* Features */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Features; sourceTree = "<group>"; };
+/* End PBXFileSystemSynchronizedRootGroup section */
+
 /* Begin PBXGroup section */
 		1A2B3C4D5E6F700000000030 = {
 			isa = PBXGroup;
 			children = (
-				7CDD25F07CF166F80C124A72,
-				4BB2B9939457F601DB26E876,
-				9347C889BB002B7A85662324,
-				381BB667D089E344B848A40B,
-				8F03500F5AD9C4ED4C3BB5AE,
-				F9096DDD060E1642A1251404,
-				43EACC5E49A30DFC24C25A00,
-				FC08259B5CFEA03C3B524539,
-				7057E2B8C224B290227E5A9B,
-				CDD70D010F0BCC3E9C19502E,
-				1A2B3C4D5E6F700000000031 /* UFit */,
-				1A2B3C4D5E6F700000000035 /* Products */,
+				1A2B3C4D5E6F700000000031,
+				1A2B3C4D5E6F700000000035,
+
 			);
 			sourceTree = "<group>";
 		};
@@ -140,126 +78,16 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
-		4A2B3C4D5E6F000000000001 /* App */ = {
-			isa = PBXGroup;
-			children = (
-				3A2B3C4D5E6F000000000100 /* MarketplaceRootView.swift */,
-			);
-			path = App;
-			sourceTree = "<group>";
-		};
-		4A2B3C4D5E6F000000000002 /* Core */ = {
-			isa = PBXGroup;
-			children = (
-				4A2B3C4D5E6F000000000003 /* Models */,
-				4A2B3C4D5E6F000000000004 /* Data */,
-				4A2B3C4D5E6F000000000005 /* DesignSystem */,
-				4A2B3C4D5E6F000000000006 /* Components */,
-			);
-			path = Core;
-			sourceTree = "<group>";
-		};
-		4A2B3C4D5E6F000000000003 /* Models */ = {
-			isa = PBXGroup;
-			children = (
-				3A2B3C4D5E6F000000000101 /* AppTab.swift */,
-				3A2B3C4D5E6F000000000102 /* MarketplaceModels.swift */,
-			);
-			path = Models;
-			sourceTree = "<group>";
-		};
-		4A2B3C4D5E6F000000000004 /* Data */ = {
-			isa = PBXGroup;
-			children = (
-				3A2B3C4D5E6F000000000103 /* SampleData.swift */,
-				3A2B3C4D5E6F000000000113 /* UFitAPIClient.swift */,
-				3A2B3C4D5E6F000000000114 /* MarketplaceStore.swift */,
-			);
-			path = Data;
-			sourceTree = "<group>";
-		};
-		4A2B3C4D5E6F000000000005 /* DesignSystem */ = {
-			isa = PBXGroup;
-			children = (
-				3A2B3C4D5E6F000000000104 /* Colors.swift */,
-				3A2B3C4D5E6F000000000105 /* ButtonStyles.swift */,
-			);
-			path = DesignSystem;
-			sourceTree = "<group>";
-		};
-		4A2B3C4D5E6F000000000006 /* Components */ = {
-			isa = PBXGroup;
-			children = (
-				3A2B3C4D5E6F000000000106 /* BottomNavBar.swift */,
-				3A2B3C4D5E6F000000000107 /* DetailHeader.swift */,
-				3A2B3C4D5E6F000000000108 /* CircularIconButton.swift */,
-				3A2B3C4D5E6F000000000115 /* FashionImage.swift */,
-				3A2B3C4D5E6F000000000109 /* FlowLayout.swift */,
-			);
-			path = Components;
-			sourceTree = "<group>";
-		};
-		4A2B3C4D5E6F000000000007 /* Features */ = {
-			isa = PBXGroup;
-			children = (
-				4A2B3C4D5E6F000000000008 /* Onboarding */,
-				4A2B3C4D5E6F000000000009 /* Feed */,
-				4A2B3C4D5E6F00000000000A /* OutfitDetail */,
-				4A2B3C4D5E6F00000000000B /* CreatorProfile */,
-				4A2B3C4D5E6F00000000000C /* BrandDashboard */,
-			);
-			path = Features;
-			sourceTree = "<group>";
-		};
-		4A2B3C4D5E6F000000000008 /* Onboarding */ = {
-			isa = PBXGroup;
-			children = (
-				3A2B3C4D5E6F00000000010A /* OnboardingView.swift */,
-			);
-			path = Onboarding;
-			sourceTree = "<group>";
-		};
-		4A2B3C4D5E6F000000000009 /* Feed */ = {
-			isa = PBXGroup;
-			children = (
-				3A2B3C4D5E6F00000000010B /* HomeFeedView.swift */,
-				3A2B3C4D5E6F00000000010C /* OutfitFeedCard.swift */,
-			);
-			path = Feed;
-			sourceTree = "<group>";
-		};
-		4A2B3C4D5E6F00000000000A /* OutfitDetail */ = {
-			isa = PBXGroup;
-			children = (
-				3A2B3C4D5E6F00000000010D /* OutfitDetailView.swift */,
-				3A2B3C4D5E6F00000000010E /* OutfitPieceCard.swift */,
-			);
-			path = OutfitDetail;
-			sourceTree = "<group>";
-		};
-		4A2B3C4D5E6F00000000000B /* CreatorProfile */ = {
-			isa = PBXGroup;
-			children = (
-				3A2B3C4D5E6F00000000010F /* CreatorProfileView.swift */,
-				3A2B3C4D5E6F000000000110 /* CreatorStatCard.swift */,
-			);
-			path = CreatorProfile;
-			sourceTree = "<group>";
-		};
-		4A2B3C4D5E6F00000000000C /* BrandDashboard */ = {
-			isa = PBXGroup;
-			children = (
-				3A2B3C4D5E6F000000000111 /* BrandDashboardView.swift */,
-				3A2B3C4D5E6F000000000112 /* BrandDashboardComponents.swift */,
-			);
-			path = BrandDashboard;
-			sourceTree = "<group>";
-		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
 		1A2B3C4D5E6F700000000040 /* UFit */ = {
 			isa = PBXNativeTarget;
+			fileSystemSynchronizedGroups = (
+				4A2B3C4D5E6F000000000001,
+				4A2B3C4D5E6F000000000002,
+				4A2B3C4D5E6F000000000007,
+			);
 			buildConfigurationList = 1A2B3C4D5E6F700000000080 /* Build configuration list for PBXNativeTarget "UFit" */;
 			buildPhases = (
 				1A2B3C4D5E6F700000000050 /* Sources */,
@@ -271,6 +99,7 @@
 			dependencies = (
 			);
 			name = UFit;
+			packageProductDependencies = (F10000000000000000000002,F20000000000000000000002,);
 			productName = UFit;
 			productReference = 1A2B3C4D5E6F700000000010 /* UFit.app */;
 			productType = "com.apple.product-type.application";
@@ -300,6 +129,7 @@
 			);
 			mainGroup = 1A2B3C4D5E6F700000000030;
 			productRefGroup = 1A2B3C4D5E6F700000000035 /* Products */;
+			packageReferences = (F10000000000000000000003,F20000000000000000000003,);
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
@@ -324,44 +154,20 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				012311A40D6570EF97603AEC,
-				A5E2106AD50736921910E480,
-				E185F88EB38FB267FD354876,
-				A227591C2C8631417CEDD379,
-				DD503C2F36037096ED677CE9,
-				95EAAD88220AF0497C746F43,
-				BDE75360BC570237359BD8E2,
-				827CF2771D0FEC04852BF0AC,
-				9629F15B4C2FF31587889D63,
-				C49FC548394C3B1023EF34AC,
 				1A2B3C4D5E6F700000000001 /* UFitApp.swift in Sources */,
-				2A2B3C4D5E6F000000000100 /* MarketplaceRootView.swift in Sources */,
-				2A2B3C4D5E6F000000000101 /* AppTab.swift in Sources */,
-				2A2B3C4D5E6F000000000102 /* MarketplaceModels.swift in Sources */,
-				2A2B3C4D5E6F000000000103 /* SampleData.swift in Sources */,
-				2A2B3C4D5E6F000000000104 /* Colors.swift in Sources */,
-				2A2B3C4D5E6F000000000105 /* ButtonStyles.swift in Sources */,
-				2A2B3C4D5E6F000000000106 /* BottomNavBar.swift in Sources */,
-				2A2B3C4D5E6F000000000107 /* DetailHeader.swift in Sources */,
-				2A2B3C4D5E6F000000000108 /* CircularIconButton.swift in Sources */,
-				2A2B3C4D5E6F000000000109 /* FlowLayout.swift in Sources */,
-				2A2B3C4D5E6F00000000010A /* OnboardingView.swift in Sources */,
-				2A2B3C4D5E6F00000000010B /* HomeFeedView.swift in Sources */,
-				2A2B3C4D5E6F00000000010C /* OutfitFeedCard.swift in Sources */,
-				2A2B3C4D5E6F00000000010D /* OutfitDetailView.swift in Sources */,
-				2A2B3C4D5E6F00000000010E /* OutfitPieceCard.swift in Sources */,
-				2A2B3C4D5E6F00000000010F /* CreatorProfileView.swift in Sources */,
-				2A2B3C4D5E6F000000000110 /* CreatorStatCard.swift in Sources */,
-				2A2B3C4D5E6F000000000111 /* BrandDashboardView.swift in Sources */,
-				2A2B3C4D5E6F000000000112 /* BrandDashboardComponents.swift in Sources */,
-				2A2B3C4D5E6F000000000113 /* UFitAPIClient.swift in Sources */,
-				2A2B3C4D5E6F000000000114 /* MarketplaceStore.swift in Sources */,
-				2A2B3C4D5E6F000000000115 /* FashionImage.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin XCRemoteSwiftPackageReference section */
+        F10000000000000000000003 = {isa = XCRemoteSwiftPackageReference; repositoryURL = "https://github.com/supabase/supabase-swift.git"; requirement = {kind = upToNextMajorVersion; minimumVersion = 2.0.0; }; };
+        F20000000000000000000003 = {isa = XCRemoteSwiftPackageReference; repositoryURL = "https://github.com/stripe/stripe-ios-spm.git"; requirement = {kind = exactVersion; version = 26.15.1; }; };
+/* End XCRemoteSwiftPackageReference section */
+/* Begin XCSwiftPackageProductDependency section */
+        F10000000000000000000002 = {isa = XCSwiftPackageProductDependency; package = F10000000000000000000003; productName = Supabase; };
+        F20000000000000000000002 = {isa = XCSwiftPackageProductDependency; package = F20000000000000000000003; productName = StripePaymentSheet; };
+/* End XCSwiftPackageProductDependency section */
 /* Begin XCBuildConfiguration section */
 		1A2B3C4D5E6F700000000072 /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -484,6 +290,7 @@
 		};
 		1A2B3C4D5E6F700000000081 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = F10000000000000000000004;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
@@ -491,6 +298,7 @@
 				DEVELOPMENT_ASSET_PATHS = "\"UFit/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+                INFOPLIST_FILE = UFit/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = UFit;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.shopping";
 				INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsLocalNetworking = YES;
@@ -518,6 +326,7 @@
 		};
 		1A2B3C4D5E6F700000000082 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = F10000000000000000000004;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
 				CODE_SIGN_STYLE = Automatic;
@@ -525,6 +334,7 @@
 				DEVELOPMENT_ASSET_PATHS = "\"UFit/Preview Content\"";
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+                INFOPLIST_FILE = UFit/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = UFit;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.shopping";
 				INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsLocalNetworking = YES;

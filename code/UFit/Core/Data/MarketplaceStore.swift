@@ -5,7 +5,11 @@ import Observation
 @Observable
 final class MarketplaceStore {
     var outfits: [Outfit]
+    var visibleFeedOutfitID: String?
     var savedOutfitIDs = Set<String>()
+    var savedOutfits: [Outfit] = []
+    private(set) var savingOutfitIDs = Set<String>()
+    private(set) var isLoadingFeed = false
     var feedErrorMessage: String?
     var actionMessage: String?
     var creatorDashboard: UFitCreatorDashboardDTO?
@@ -15,21 +19,23 @@ final class MarketplaceStore {
     var brandOrders: [BrandOrder]
 
     @ObservationIgnored private let client: UFitAPIClient
+    @ObservationIgnored private let session: UFitSessionStore?
     @ObservationIgnored private var hasLoadedFeed = false
     @ObservationIgnored private var detailedOutfits = [String: Outfit]()
 
-    init(client: UFitAPIClient, fallbackOutfits: [Outfit] = SampleData.outfits) {
+    init(client: UFitAPIClient, session: UFitSessionStore? = nil, fallbackOutfits: [Outfit] = []) {
         self.client = client
+        self.session = session
         self.outfits = fallbackOutfits
-        self.brandOrders = SampleData.orders
+        self.brandOrders = []
     }
 
-    static func live() -> MarketplaceStore {
-        MarketplaceStore(client: UFitAPIClient())
+    static func live(client: UFitAPIClient = UFitAPIClient(), session: UFitSessionStore? = nil) -> MarketplaceStore {
+        MarketplaceStore(client: client, session: session)
     }
 
     var isAuthenticated: Bool {
-        client.configuration.bearerToken != nil
+        session?.user != nil || client.configuration.bearerToken != nil
     }
 
     var brandProfileID: String? {
@@ -43,15 +49,15 @@ final class MarketplaceStore {
     }
 
     func refreshFeed() async {
+        guard !isLoadingFeed else { return }
+        isLoadingFeed = true
+        defer { isLoadingFeed = false }
         do {
             let response = try await client.fetchOutfitFeed(limit: 20)
-            let remoteOutfits = response.items.enumerated().map { index, item in
-                item.toOutfit(fallbackIndex: index)
-            }
+            let remoteOutfits = response.items.map { $0.toOutfit() }
             feedErrorMessage = nil
-            if !remoteOutfits.isEmpty {
-                outfits = remoteOutfits
-            }
+            outfits = remoteOutfits
+            if let visibleFeedOutfitID, !remoteOutfits.contains(where: { $0.id == visibleFeedOutfitID }) { self.visibleFeedOutfitID = nil }
         } catch {
             feedErrorMessage = friendlyMessage(for: error)
         }
@@ -64,7 +70,7 @@ final class MarketplaceStore {
 
         do {
             let dto = try await client.fetchOutfitDetail(id: outfit.id)
-            let detailed = dto.toOutfit(fallback: outfit)
+            let detailed = dto.toOutfit()
             detailedOutfits[outfit.id] = detailed
             if let index = outfits.firstIndex(where: { $0.id == outfit.id }) {
                 outfits[index] = detailed
@@ -76,7 +82,34 @@ final class MarketplaceStore {
         }
     }
 
+    func loadSavedOutfits() async {
+        do {
+            let page = try await client.fetchSavedOutfits()
+            var resolved: [Outfit] = []
+            for reference in page.items {
+                let detail = try await client.fetchOutfitDetail(id: reference.id)
+                resolved.append(detail.toOutfit())
+            }
+            savedOutfits = resolved
+            savedOutfitIDs = Set(savedOutfits.map(\.id))
+        } catch { actionMessage = friendlyMessage(for: error) }
+    }
+
+    func clearAccountData() {
+        savedOutfits = []
+        savedOutfitIDs = []
+        creatorDashboard = nil
+        creatorOutfits = []
+        creatorCommissions = []
+        brandDashboard = nil
+        brandOrders = []
+        actionMessage = nil
+    }
+
     func toggleSaved(outfit: Outfit) async {
+        guard !savingOutfitIDs.contains(outfit.id) else { return }
+        savingOutfitIDs.insert(outfit.id)
+        defer { savingOutfitIDs.remove(outfit.id) }
         let wasSaved = savedOutfitIDs.contains(outfit.id)
         if wasSaved {
             savedOutfitIDs.remove(outfit.id)
@@ -90,6 +123,8 @@ final class MarketplaceStore {
             } else {
                 _ = try await client.saveOutfit(id: outfit.id)
             }
+            if wasSaved { savedOutfits.removeAll { $0.id == outfit.id } }
+            else { savedOutfits.append(outfit) }
             actionMessage = wasSaved ? "Removed from saved outfits." : "Saved to your wardrobe."
         } catch {
             if wasSaved {
@@ -99,36 +134,6 @@ final class MarketplaceStore {
             }
             actionMessage = friendlyMessage(for: error)
         }
-    }
-
-    func checkout(outfit: Outfit, shippingAddress: UFitShippingAddress) async throws -> URL {
-        let detail = await detail(for: outfit)
-        let shoppablePieces = detail.pieces.filter { $0.isShoppable && $0.productID != nil }
-        guard !shoppablePieces.isEmpty else {
-            throw UFitAPIError.requestFailed(statusCode: 422, message: "This outfit does not expose shoppable pieces yet.")
-        }
-
-        for piece in shoppablePieces {
-            guard let productID = piece.productID else { continue }
-            let publicProduct = try await client.fetchPublicProduct(id: productID)
-            guard let variant = publicProduct.variants.first(where: { $0.stockQuantity > 0 }) else {
-                throw UFitAPIError.requestFailed(statusCode: 409, message: "\(publicProduct.name) is currently out of stock.")
-            }
-            _ = try await client.addCartItem(
-                UFitAddCartItemRequest(
-                    productVariantId: variant.id,
-                    quantity: 1,
-                    sourceOutfitId: detail.id,
-                    sourceCreatorId: detail.sourceCreatorId
-                )
-            )
-        }
-
-        let session = try await client.checkout(UFitCheckoutRequest(shippingAddress: shippingAddress, shippingAmount: 0))
-        guard let url = URL(string: session.url) else {
-            throw UFitAPIError.invalidURL
-        }
-        return url
     }
 
     func loadCreatorWorkspace() async {
@@ -168,71 +173,44 @@ final class MarketplaceStore {
     }
 }
 
+private enum OutfitPresentation {
+    static let editorial = String(localized: "Sélection Ufit")
+    static let initials = "UF"
+    static let inspiration = String(localized: "Inspiration")
+    static let empty = String()
+    static func initials(for author: OutfitAuthor?) -> String {
+        guard let author else { return initials }
+        return author.name.split(whereSeparator: \.isWhitespace).prefix(2).compactMap(\.first).map(String.init).joined()
+    }
+}
+
 extension UFitOutfitCardDTO {
-    func toOutfit(fallbackIndex: Int) -> Outfit {
-        let fallbackImage = SampleData.outfits.indices.contains(fallbackIndex) ? SampleData.outfits[fallbackIndex].imageName : "unsplash-09"
-        return Outfit(
-            id: id,
-            imageName: coverImageUrl.isEmpty ? fallbackImage : coverImageUrl,
-            creator: "UFit Creator",
-            creatorAvatar: "UF",
-            price: UFitMoney.format(totalPriceMax, currency: currency),
-            likes: 0,
-            comments: 0,
-            title: title,
-            description: "A curated silhouette selected by UFit.",
-            currency: currency,
-            totalPrice: totalPriceMax,
-            sourceCreatorId: nil,
-            sourceOutfitId: id,
-            products: [],
-            pieces: []
-        )
+    func toOutfit() -> Outfit {
+        Outfit(id: id, imageName: coverImageUrl,
+            creator: author?.name ?? OutfitPresentation.editorial,
+            creatorAvatar: OutfitPresentation.initials(for: author), author: author,
+            price: UFitMoney.ranges(prices), title: title, description: OutfitPresentation.empty,
+            sourceCreatorId: creatorId, sourceOutfitId: id, products: [], pieces: [])
     }
 }
 
 extension UFitOutfitDetailDTO {
-    func toOutfit(fallback: Outfit) -> Outfit {
-        let sortedItems = items.sorted { $0.position < $1.position }
-        let products = sortedItems.map { item in
-            OutfitProduct(
-                id: item.product?.id ?? item.id,
-                systemImage: item.symbolName,
-                name: item.label,
-                productID: item.product?.id,
-                brandID: item.product?.brandId
-            )
+    func toOutfit() -> Outfit {
+        let sorted = items.sorted { $0.position < $1.position }
+        let products = sorted.map { item in
+            OutfitProduct(id: item.id, systemImage: item.symbolName, name: item.label,
+                productID: item.product?.id, brandID: item.product?.brandId)
         }
-        let pieces = sortedItems.map { item in
-            OutfitPiece(
-                id: item.id,
-                name: item.label,
-                brand: item.product?.brandId ?? "Independent brand",
-                price: item.product.map { UFitMoney.format($0.price, currency: $0.currency) } ?? "On request",
-                sizes: ["One Size"],
-                productID: item.product?.id,
-                isRequired: item.isRequired,
-                isShoppable: item.isShoppable
-            )
+        let pieces = sorted.map { item in
+            OutfitPiece(id: item.id, name: item.label, brand: OutfitPresentation.empty,
+                price: item.product.map { UFitMoney.format($0.price, currency: $0.currency) } ?? OutfitPresentation.inspiration,
+                sizes: [], productID: item.product?.id, isRequired: item.isRequired, isShoppable: item.isShoppable)
         }
-
-        return Outfit(
-            id: id,
-            imageName: coverImageUrl.isEmpty ? fallback.imageName : coverImageUrl,
-            creator: fallback.creator,
-            creatorAvatar: fallback.creatorAvatar,
-            price: UFitMoney.format(totalPriceMax, currency: currency),
-            likes: fallback.likes,
-            comments: fallback.comments,
-            title: title,
-            description: description,
-            currency: currency,
-            totalPrice: totalPriceMax,
-            sourceCreatorId: creatorId,
-            sourceOutfitId: id,
-            products: products,
-            pieces: pieces
-        )
+        return Outfit(id: id, imageName: coverImageUrl,
+            creator: author?.name ?? OutfitPresentation.editorial,
+            creatorAvatar: OutfitPresentation.initials(for: author), author: author,
+            price: UFitMoney.ranges(prices), title: title, description: description,
+            sourceCreatorId: creatorId, sourceOutfitId: id, products: products, pieces: pieces)
     }
 }
 
@@ -263,12 +241,27 @@ extension UFitBrandOrderDTO {
 }
 
 enum UFitMoney {
+    private static let locale = Locale(identifier: "fr_CH")
+    private static let decimalBase = Decimal(10)
+    private static let separator = " + "
+    private static let rangeSeparator = " – "
+    private static let inspiration = String(localized: "Pièces d’inspiration")
     static func format(_ amount: Int, currency: String) -> String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
+        formatter.locale = locale
         formatter.currencyCode = currency
-        formatter.maximumFractionDigits = 0
-        return formatter.string(from: NSNumber(value: Double(amount) / 100.0)) ?? "\(currency) \(amount)"
+        var divisor = Decimal(1)
+        for _ in 0..<formatter.maximumFractionDigits { divisor *= decimalBase }
+        let major = NSDecimalNumber(decimal: Decimal(amount) / divisor)
+        return formatter.string(from: major) ?? major.stringValue + currency
+    }
+    static func ranges(_ prices: [UFitProductPriceDTO]) -> String {
+        guard !prices.isEmpty else { return inspiration }
+        return prices.map { range in
+            let minimum = format(range.min, currency: range.currency)
+            return range.min == range.max ? minimum : minimum + rangeSeparator + format(range.max, currency: range.currency)
+        }.joined(separator: separator)
     }
 }
 

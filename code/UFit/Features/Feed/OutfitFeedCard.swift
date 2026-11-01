@@ -5,239 +5,75 @@ struct OutfitFeedCard: View {
     let isLiked: Bool
     let onLike: () -> Void
     let onOutfitTap: () -> Void
-    let onCreatorTap: () -> Void
+    let onAuthorTap: () -> Void
+    var isSaving = false
+
+    private enum Copy {
+        static let save = String(localized: "Sauvegarder la tenue")
+        static let unsave = String(localized: "Retirer des favoris")
+        static let saving = String(localized: "Enregistrement")
+        static let pieces = String(localized: "Voir les pièces")
+        static let bookmark = "bookmark"
+        static let savedBookmark = "bookmark.fill"
+        static let bag = "bag"
+    }
+    private enum Layout {
+        static let spacing: CGFloat = 20
+        static let captionSpacing: CGFloat = 14
+        static let horizontal: CGFloat = 24
+        static let bottom: CGFloat = 132
+        static let avatar: CGFloat = 44
+        static let title: CGFloat = 26
+        static let initials: CGFloat = 14
+        static let overlayOpacity = 0.72
+        static let avatarOpacity = 0.18
+    }
 
     var body: some View {
         GeometryReader { proxy in
-            ZStack {
+            ZStack(alignment: .bottom) {
                 FashionImage(source: outfit.imageName)
-                    .frame(width: proxy.size.width, height: proxy.size.height)
-                    .clipped()
-
-                LinearGradient(
-                    colors: [.clear, .clear, .black.opacity(0.68)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-
-                OutfitFeedOverlay(
-                    outfit: outfit,
-                    isLiked: isLiked,
-                    onLike: onLike,
-                    onOutfitTap: onOutfitTap,
-                    onCreatorTap: onCreatorTap
-                )
-            }
-        }
-        .clipped()
-    }
-}
-
-struct OutfitFeedOverlay: View {
-    let outfit: Outfit
-    let isLiked: Bool
-    let onLike: () -> Void
-    let onOutfitTap: () -> Void
-    let onCreatorTap: () -> Void
-
-    var body: some View {
-        HStack(alignment: .bottom, spacing: 16) {
-            OutfitFeedCaption(
-                outfit: outfit,
-                onOutfitTap: onOutfitTap,
-                onCreatorTap: onCreatorTap
-            )
-
-            Spacer(minLength: 8)
-
-            OutfitFeedActions(outfit: outfit, isLiked: isLiked, onLike: onLike)
-        }
-        .padding(.horizontal, 22)
-        .padding(.bottom, 132)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-    }
-}
-
-struct OutfitFeedCaption: View {
-    let outfit: Outfit
-    let onOutfitTap: () -> Void
-    let onCreatorTap: () -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Button(action: onCreatorTap) {
-                HStack(spacing: 12) {
-                    CreatorAvatar(initials: outfit.creatorAvatar)
-
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(outfit.creator)
-                            .font(.system(size: 15, weight: .medium))
-                        Text("Creator")
-                            .font(.system(size: 12))
-                            .foregroundStyle(.white.opacity(0.8))
+                    .frame(width: proxy.size.width, height: proxy.size.height).clipped()
+                LinearGradient(colors: [.clear, .clear, .black.opacity(Layout.overlayOpacity)], startPoint: .top, endPoint: .bottom)
+                HStack(alignment: .bottom, spacing: Layout.spacing) {
+                    VStack(alignment: .leading, spacing: Layout.captionSpacing) {
+                        if outfit.author != nil {
+                            Button(action: onAuthorTap) { author }.buttonStyle(.plain)
+                        } else { author }
+                        Button(action: onOutfitTap) {
+                            Text(outfit.title).font(.system(size: Layout.title, weight: .medium)).multilineTextAlignment(.leading)
+                        }.buttonStyle(.plain)
                     }
-                }
-            }
-            .buttonStyle(.plain)
-
-            Button(action: onOutfitTap) {
-                Text(outfit.title)
-                    .font(.system(size: 22, weight: .medium))
-                    .multilineTextAlignment(.leading)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Open \(outfit.title)")
-        }
-        .foregroundStyle(.white)
-    }
-}
-
-struct CreatorAvatar: View {
-    let initials: String
-
-    var body: some View {
-        Text(initials)
-            .font(.system(size: 14, weight: .semibold))
-            .foregroundStyle(.white)
-            .frame(width: 44, height: 44)
-            .background(.white.opacity(0.18), in: Circle())
-            .overlay(Circle().stroke(.white, lineWidth: 2))
-    }
-}
-
-struct OutfitFeedActions: View {
-    let outfit: Outfit
-    let isLiked: Bool
-    let onLike: () -> Void
-
-    var body: some View {
-        VStack(spacing: 20) {
-            ProductShortcutList(outfitID: outfit.id, products: outfit.products)
-                .id(outfit.id)
-
-            Button(action: onLike) {
-                VStack(spacing: 5) {
-                    CircularIconButton(
-                        systemImage: isLiked ? "heart.fill" : "heart",
-                        accessibilityLabel: "Like outfit"
-                    )
-                    Text("\(outfit.likes + (isLiked ? 1 : 0))")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(.white)
-                }
-            }
-            .buttonStyle(.plain)
-
-            VStack(spacing: 5) {
-                CircularIconButton(systemImage: "bubble.right", accessibilityLabel: "Comments")
-                Text("\(outfit.comments)")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(.white)
-            }
-        }
-    }
-}
-
-struct ProductShortcutList: View {
-    let outfitID: String
-    let products: [OutfitProduct]
-
-    @State private var isExpanded = false
-    @State private var isContentVisible = false
-    @State private var presentationToken = UUID()
-
-    private var expandedHeight: CGFloat {
-        let iconHeight: CGFloat = 50
-        let spacing: CGFloat = 11
-        let totalHeight = CGFloat(products.count) * iconHeight + CGFloat(max(products.count - 1, 0)) * spacing
-        return min(totalHeight, 320)
-    }
-
-    var body: some View {
-        VStack(spacing: 11) {
-            if isExpanded {
-                ScrollView(.vertical) {
-                    VStack(spacing: 11) {
-                        ForEach(products) { product in
-                            CircularIconButton(systemImage: product.systemImage, accessibilityLabel: product.name)
+                    Spacer(minLength: .zero)
+                    VStack(spacing: Layout.spacing) {
+                        Button(action: onOutfitTap) {
+                            CircularIconButton(systemImage: Copy.bag, accessibilityLabel: Copy.pieces)
+                        }.buttonStyle(.plain)
+                        Button(action: onLike) {
+                            if isSaving {
+                                ProgressView().tint(.white).frame(width: Layout.avatar, height: Layout.avatar)
+                            } else {
+                                CircularIconButton(systemImage: isLiked ? Copy.savedBookmark : Copy.bookmark, accessibilityLabel: isLiked ? Copy.unsave : Copy.save)
+                            }
                         }
+                        .buttonStyle(.plain).disabled(isSaving)
+                        .accessibilityLabel(isSaving ? Copy.saving : (isLiked ? Copy.unsave : Copy.save))
                     }
                 }
-                .scrollIndicators(.hidden)
-                .frame(height: expandedHeight)
-                .opacity(isContentVisible ? 1 : 0)
-                .scaleEffect(isContentVisible ? 1 : 0.96, anchor: .bottom)
-                .accessibilityHidden(!isContentVisible)
+                .foregroundStyle(.white)
+                .padding(.horizontal, Layout.horizontal)
+                .padding(.bottom, Layout.bottom)
             }
-
-            Button(action: toggleExpanded) {
-                CircularIconButton(
-                    systemImage: "tshirt",
-                    accessibilityLabel: isExpanded ? "Hide outfit pieces" : "Show outfit pieces"
-                )
-            }
-            .buttonStyle(.plain)
-        }
-        .frame(width: 50)
-        .onChange(of: outfitID) { _, _ in
-            resetPresentation()
-        }
+        }.clipped()
     }
 
-    private func toggleExpanded() {
-        if products.isEmpty || isExpanded {
-            collapse()
-        } else {
-            expand()
-        }
-    }
-
-    private func resetPresentation() {
-        presentationToken = UUID()
-        var transaction = Transaction(animation: nil)
-        transaction.disablesAnimations = true
-        withTransaction(transaction) {
-            isExpanded = false
-            isContentVisible = false
-        }
-    }
-
-    private func expand() {
-        let token = UUID()
-        presentationToken = token
-
-        var transaction = Transaction(animation: nil)
-        transaction.disablesAnimations = true
-        withTransaction(transaction) {
-            isExpanded = true
-            isContentVisible = false
-        }
-
-        Task { @MainActor in
-            await Task.yield()
-            guard presentationToken == token, isExpanded else { return }
-            withAnimation(.spring(response: 0.24, dampingFraction: 0.9)) {
-                isContentVisible = true
-            }
-        }
-    }
-
-    private func collapse() {
-        let token = UUID()
-        presentationToken = token
-
-        withAnimation(.easeOut(duration: 0.14)) {
-            isContentVisible = false
-        }
-
-        Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 150_000_000)
-            guard presentationToken == token else { return }
-            var transaction = Transaction(animation: nil)
-            transaction.disablesAnimations = true
-            withTransaction(transaction) {
-                isExpanded = false
-            }
+    private var author: some View {
+        HStack(spacing: Layout.captionSpacing) {
+            Group {
+                if let avatar = outfit.author?.avatarUrl { FashionImage(source: avatar) }
+                else { Text(outfit.creatorAvatar).font(.system(size: Layout.initials, weight: .semibold)).frame(maxWidth: .infinity, maxHeight: .infinity).background(.white.opacity(Layout.avatarOpacity)) }
+            }.frame(width: Layout.avatar, height: Layout.avatar).clipShape(Circle()).accessibilityHidden(true)
+            Text(outfit.creator).font(.body.weight(.medium))
         }
     }
 }

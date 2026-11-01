@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+<key>CFBundleDevelopmentRegion</key><string>fr</string>
+<key>CFBundleLocalizations</key><array><string>fr</string></array>
+<key>CFBundleURLTypes</key><array><dict>
+<key>CFBundleURLName</key><string>com.stellark.ufit.auth</string>
+<key>CFBundleURLSchemes</key><array><string>ufit</string></array>
+</dict></array>
+<key>UFIT_API_BASE_URL</key><string>$(UFIT_API_BASE_URL)</string>
+<key>SUPABASE_URL</key><string>$(SUPABASE_URL)</string>
+<key>SUPABASE_PUBLIC_KEY</key><string>$(SUPABASE_PUBLIC_KEY)</string>
+<key>STRIPE_PUBLIC_KEY</key><string>$(STRIPE_PUBLIC_KEY)</string>
+</dict></plist>
