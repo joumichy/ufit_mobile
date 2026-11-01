@@ -6,7 +6,12 @@ extension UFitManagedOutfit {
     }
     func presentation() -> UFitManagedOutfitPresentation {
         .init(id: id, version: version, title: title, description: description, author: owner?.name, status: status, ownerStatus: owner?.status,
-            rejectionReason: rejectionReason, price: UFitMoney.ranges(prices), photos: images.sorted { $0.position < $1.position }.map { .init(id: $0.id, source: $0.displayUrl) },
+            rejectionReason: rejectionReason, price: UFitMoney.ranges(prices), photos: images.sorted { $0.position < $1.position }.map { image in
+                .init(id: image.id, source: image.displayUrl, pins: pins.filter { $0.imageId == image.id }.compactMap { pin in
+                    guard let item = items.first(where: { $0.id == pin.itemId }) else { return nil }
+                    return .init(id: item.id, label: item.label, symbol: item.itemType.symbol, x: pin.x, y: pin.y)
+                })
+            },
             pieces: items.sorted { $0.position < $1.position }.map { item in
                 .init(id: item.id, title: item.label, type: item.itemType, image: item.product?.imageUrl,
                     price: item.product.map { UFitMoney.format($0.price, currency: $0.currency) }, isRequired: item.isRequired,
@@ -20,13 +25,19 @@ extension UFitManagedOutfit {
             var piece = UFitOutfitPieceDraft()
             piece.serverID = item.id; piece.type = item.itemType; piece.isRequired = item.isRequired; piece.note = item.stylingNote ?? String()
             if let id = item.productId {
-                piece.product = .init(id: id, name: item.label, brandName: nil, image: item.product?.imageUrl,
+                piece.product = .init(id: id, name: item.label, brandName: item.product?.brandName, image: item.product?.imageUrl,
                     price: item.product.map { UFitMoney.format($0.price, currency: $0.currency) })
             }
             piece.externalLabel = item.externalLabel ?? String()
             return piece
         }
-        value.photos = images.sorted { $0.position < $1.position }.map { .init(id: UUID(), serverID: $0.id, source: $0.displayUrl, url: $0.url, transfer: .ready) }
+        value.photos = images.sorted { $0.position < $1.position }.map { image in
+            .init(id: UUID(), serverID: image.id, source: image.displayUrl, url: image.url, transfer: .ready,
+                pins: pins.filter { $0.imageId == image.id }.compactMap { pin in
+                    guard let piece = value.pieces.first(where: { $0.serverID == pin.itemId }) else { return nil }
+                    return .init(pieceID: piece.id, x: pin.x, y: pin.y)
+                })
+        }
         return value
     }
     private var submissionIssue: String? {

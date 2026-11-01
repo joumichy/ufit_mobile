@@ -16,7 +16,9 @@ struct UFitOutfitFormContent: View {
     let onRetryPhoto: (UUID) -> Void
     let onRemovePhoto: (UUID) -> Void
     let onSelectProduct: () -> Void
+    var renewPhotoSource: ((UUID) async throws -> String)? = nil
     @State private var confirmingDiscard = false
+    @State private var editingPhotoID: UUID?
     private enum Copy {
         static let new = String(localized: "Nouvelle tenue"); static let edit = String(localized: "Modifier la tenue")
         static let title = String(localized: "Titre de la tenue"); static let description = String(localized: "Description de la tenue")
@@ -37,7 +39,7 @@ struct UFitOutfitFormContent: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: Layout.page) {
                     UFitTextField(label: Copy.title, text: $draft.title, error: errors[.title])
-                    UFitOutfitPhotosContent(photos: $draft.photos, error: errors[.photos], onAdd: onAddPhotos, onRetry: onRetryPhoto, onRemove: onRemovePhoto)
+                    UFitOutfitPhotosContent(photos: $draft.photos, error: errors[.photos], onAdd: onAddPhotos, onRetry: onRetryPhoto, onRemove: onRemovePhoto, onPins: { editingPhotoID = $0 })
                     VStack(alignment: .leading, spacing: Layout.small) {
                         Text(Copy.description).font(.subheadline.weight(.medium))
                         TextField(Copy.description, text: $draft.description, axis: .vertical)
@@ -80,6 +82,15 @@ struct UFitOutfitFormContent: View {
                 else { Button(action: onSave) { Text(Copy.save).frame(maxWidth: .infinity) }.buttonStyle(PrimaryButtonStyle()).disabled(!hasChanges) }
             }.padding(Layout.gap).background(Color.white).overlay(alignment: .top) { Divider() }
         }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.white)
+            .onChange(of: draft.pieces.map(\.id)) { _, identities in
+                for index in draft.photos.indices { draft.photos[index].pins.removeAll { !identities.contains($0.pieceID) } }
+            }
+            .sheet(isPresented: Binding(get: { editingPhotoID != nil }, set: { if !$0 { editingPhotoID = nil } })) {
+                if let id = editingPhotoID, let index = draft.photos.firstIndex(where: { $0.id == id }) {
+                    UFitOutfitPinsContent(photo: $draft.photos[index], pieces: draft.pieces, onClose: { editingPhotoID = nil },
+                        renewSource: renewPhotoSource.map { renew in { () async throws -> String in try await renew(id) } })
+                }
+            }
             .confirmationDialog(Copy.discardTitle, isPresented: $confirmingDiscard, titleVisibility: .visible) {
                 Button(Copy.discard, role: .destructive, action: onBack)
                 Button(Copy.keep, role: .cancel) {}

@@ -10,6 +10,7 @@ struct OutfitDetailView: View {
     let onBack: () -> Void
     let onCart: () -> Void
     let onSignIn: () -> Void
+    var focusedItemID: String? = nil
     private enum Copy {
         static let replace = String(localized: "Remplacer le panier ?")
         static let confirm = String(localized: "Remplacer")
@@ -25,7 +26,7 @@ struct OutfitDetailView: View {
             message: shopping.message, onBack: onBack, onAuthor: { if let author = presentedAuthor { onAuthor(author) } }, onBrand: onBrand, onCart: onCart,
             onRetry: { Task { await shopping.load(id: outfit.id) } },
             onSelect: shopping.choose, onQuantity: shopping.setQuantity,
-            onAdd: { id in add(id: id) })
+            onAdd: { id in add(id: id) }, focusedItemID: focusedItemID)
             .task(id: outfit.id) {
                 if shopping.detail == nil { await shopping.load(id: outfit.id) }
                 if session.user != nil { await cart.load() }
@@ -40,7 +41,7 @@ struct OutfitDetailView: View {
     private var presentedAuthor: OutfitAuthor? { if let detail = shopping.detail { detail.author } else { outfit.author } }
     private var presentedPhotos: [UFitOutfitGalleryPhoto] {
         if let detail = shopping.detail { detail.images.sorted { $0.position < $1.position } }
-        else { [.init(url: outfit.imageName, position: .zero)] }
+        else { outfit.photos }
     }
     private func add(id: String, replacing: Bool = false) {
         guard session.user != nil else { onSignIn(); return }

@@ -26,7 +26,7 @@ struct UFitManagedOutfitHost: View {
             onApprove: { revision in Task { await store.mutate(revision, action: .review, decision: .published) } },
             onReject: { revision, reason in Task { await store.mutate(revision, action: .review, decision: .rejected, reason: reason) } },
             onArchive: { revision in Task { await store.mutate(revision, action: .archive) } },
-            onRestore: { revision in Task { await store.mutate(revision, action: .restore) } })
+            onRestore: { revision in Task { await store.mutate(revision, action: .restore) } }, renewPhotoSource: store.renewPhotoSource)
     }
 }
 struct UFitOutfitFormHost: View {
@@ -47,7 +47,7 @@ struct UFitOutfitFormHost: View {
                     hasChanges: store.hasChanges, isBusy: store.isBusy, errors: store.errors, message: store.message, onBack: onBack,
                     onSave: { Task { if let outfit = await store.save() { onSaved(outfit) } } }, onReloadTags: { Task { await store.prepare() } },
                     onAddPhotos: { selectedPhotos = []; showingPhotos = true }, onRetryPhoto: store.retryPhoto, onRemovePhoto: store.removePhoto,
-                    onSelectProduct: { productSelection = UFitOutfitProductSelectionStore(form: store) })
+                    onSelectProduct: { productSelection = UFitOutfitProductSelectionStore(form: store) }, renewPhotoSource: store.renewPhotoSource)
             } else {
                 UFitOutfitPreparationContent(isLoading: store.isLoading, message: store.message, onBack: onBack, onRetry: { Task { await store.prepare() } })
             }

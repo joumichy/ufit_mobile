@@ -32,6 +32,7 @@ struct UFitManagedOutfit: Decodable, Identifiable {
     }
     let id: String; let version: Int; let title: String; let description: String; let coverImageUrl: String
     let status: UFitOutfitStatus; let visibility: UFitOutfitVisibility
+    let pins: [UFitOutfitPin]
     let images: [Photo]; let items: [Piece]; let tags: [UFitOutfitTag]; let prices: [UFitProductPriceDTO]
     @UFitRequiredNullable var creatorId: String?
     @UFitRequiredNullable var brandId: String?
@@ -52,6 +53,7 @@ struct UFitManagedOutfit: Decodable, Identifiable {
               creatorId == nil || uuid(creatorId!), brandId == nil || uuid(brandId!),
               owner == nil ? (creatorId == nil && brandId == nil) : (owner!.id == (owner!.kind == .creator ? creatorId : brandId)),
               author == nil || (author?.id == owner?.id && author?.kind == owner?.kind),
+              UFitOutfitPin.valid(pins, imageIDs: Set(images.map(\.id)), itemIDs: Set(items.map(\.id))),
               unique(items.map(\.id)), unique(items.map(\.position)), unique(images.map(\.id)), unique(images.map(\.position)), unique(tags.map(\.id)),
               images.count <= UFitOutfitInput.photosMax, items.count <= UFitOutfitInput.itemsMax, tags.count <= UFitOutfitInput.tagsMax,
               images.allSatisfy({ uuid($0.id) && $0.position >= .zero && validImageURL($0.url) && validImageURL($0.displayUrl) }),

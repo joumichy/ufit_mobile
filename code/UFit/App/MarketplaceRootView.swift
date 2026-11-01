@@ -73,6 +73,7 @@ struct MarketplaceRootView: View {
                 store: store,
                 onOutfitTap: showOutfitDetail,
                 onAuthorTap: { author in showPublicProfile(.init(id: author.id, kind: author.kind)) },
+                onItemTap: showOutfitItem,
                 onSignIn: { showAuthentication = true }
             )
         case .search:
@@ -117,10 +118,10 @@ struct MarketplaceRootView: View {
             UFitCatalogStockHost(store: stock, onBack: goBack)
         case .managedProfile(let profile):
             UFitManagedProfileHost(store: profile, onBack: goBack)
-        case .outfit(let outfit, let shopping):
+        case .outfit(let outfit, let shopping, let itemID):
             OutfitDetailView(outfit: outfit, shopping: shopping, session: session, cart: cart,
                 onAuthor: { author in showPublicProfile(.init(id: author.id, kind: author.kind)) },
-                onBrand: { id in showPublicProfile(.init(id: id, kind: .brand)) }, onBack: goBack, onCart: showCart, onSignIn: { showAuthentication = true })
+                onBrand: { id in showPublicProfile(.init(id: id, kind: .brand)) }, onBack: goBack, onCart: showCart, onSignIn: { showAuthentication = true }, focusedItemID: itemID)
         case .cart:
             UFitCartHost(store: cart, onBack: goBack, onCheckout: showCheckout)
         case .checkout(let checkout):
@@ -178,9 +179,15 @@ private extension MarketplaceRootView {
         }
     }
 
+    func showOutfitItem(_ outfit: Outfit, itemID: String) {
+        guard outfit.products.contains(where: { $0.id == itemID }) else { return }
+        routeHistory.append(activeRoute)
+        activeRoute = .outfit(outfit, UFitOutfitShoppingStore(client: session.api), itemID)
+    }
+
     func showOutfitDetail(_ outfit: Outfit) {
         routeHistory.append(activeRoute)
-        activeRoute = .outfit(outfit, UFitOutfitShoppingStore(client: session.api))
+        activeRoute = .outfit(outfit, UFitOutfitShoppingStore(client: session.api), nil)
     }
 
     func showPublicProfile(_ reference: UFitPublicProfileReference) {
@@ -454,7 +461,7 @@ private enum AppRoute {
     case catalogProduct(UFitCatalogProductStore)
     case catalogForm(UFitCatalogFormStore)
     case catalogStock(UFitCatalogStockStore)
-    case outfit(Outfit, UFitOutfitShoppingStore)
+    case outfit(Outfit, UFitOutfitShoppingStore, String?)
     case cart
     case checkout(UFitCheckoutStore)
     case saved

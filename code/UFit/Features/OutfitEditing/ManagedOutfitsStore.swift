@@ -92,6 +92,14 @@ final class UFitManagedOutfitStore {
             if collection.isCurrentAccount { try receive(result) }
         } catch { if collection.isCurrentAccount { message = error.localizedDescription } }
     }
+    func renewPhotoSource(_ imageID: String) async throws -> String {
+        guard collection.isCurrentAccount, let image = document.images.first(where: { $0.id == imageID }) else { throw CancellationError() }
+        let revision = document.revision
+        let fresh = try await collection.client.fetchManagedOutfit(id: revision.id, scope: collection.scope)
+        guard collection.isCurrentAccount, document.revision == revision else { throw CancellationError() }
+        guard fresh.revision == revision, let renewed = fresh.images.first(where: { $0.id == imageID && $0.url == image.url }) else { throw UFitOutfitContractError.document }
+        return renewed.displayUrl
+    }
     func mutate(_ revision: UFitOutfitRevision, action: UFitOutfitAction, decision: UFitOutfitStatus? = nil, reason: String? = nil) async {
         guard !isLoading, !isMutating, collection.isCurrentAccount else { return }
         guard revision == document.revision else { message = Copy.stale; return }

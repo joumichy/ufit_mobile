@@ -31,7 +31,7 @@ final class UFitOutfitShoppingStore {
             let variant = product?.variants.first { $0.id == selected }
             let price = product.map { value in
                 variant.map { UFitMoney.format($0.price * (quantities[item.id] ?? Defaults.quantity), currency: value.price.currency) } ?? UFitMoney.ranges([value.price])
-            } ?? Copy.inspiration
+            } ?? (item.isShoppable ? Copy.unavailable : Copy.inspiration)
             return UFitShoppingPiece(id: item.id, name: product?.name ?? item.label,
                 brand: product.flatMap { brands[$0.brandId]?.brandName }, brandID: product?.brandId, image: product?.images.sorted { $0.position < $1.position }.first?.url,
                 price: price, note: item.stylingNote, variants: (product?.variants ?? []).map { value in

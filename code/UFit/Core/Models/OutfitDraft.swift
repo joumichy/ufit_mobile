@@ -29,6 +29,7 @@ struct UFitOutfitPhotoDraft: Codable, Equatable, Identifiable {
     var url: String?
     var transfer: UFitPhotoTransfer
     var previewData: Data?
+    var pins: [UFitOutfitDraftPin] = []
     var canRetryUpload: Bool { if case .failed = transfer { url == nil } else { false } }
 }
 struct UFitOutfitDraft: Codable, Equatable {
@@ -62,7 +63,11 @@ enum UFitOutfitDraftValidation {
         if draft.tagIDs.count > UFitOutfitInput.tagsMax || !draft.tagIDs.isSubset(of: Set(tags.map(\.id))) { errors[.tags] = Copy.tags }
         let products = draft.pieces.compactMap { $0.product?.id }
         if draft.pieces.count > UFitOutfitInput.itemsMax || Set(products).count != products.count || draft.pieces.contains(where: { !piece($0).isEmpty }) { errors[.pieces] = Copy.pieces }
-        if draft.photos.count > UFitOutfitInput.photosMax || draft.photos.contains(where: { $0.transfer != .ready || $0.url == nil }) { errors[.photos] = Copy.photos }
+        if draft.photos.count > UFitOutfitInput.photosMax || draft.photos.contains(where: { photo in
+            photo.transfer != .ready || photo.url == nil || Set(photo.pins.map(\.pieceID)).count != photo.pins.count || photo.pins.contains { pin in
+                !draft.pieces.contains { $0.id == pin.pieceID } || !(.zero...UFitOutfitPin.coordinateMax).contains(pin.x) || !(.zero...UFitOutfitPin.coordinateMax).contains(pin.y)
+            }
+        }) { errors[.photos] = Copy.photos }
         return errors
     }
 }

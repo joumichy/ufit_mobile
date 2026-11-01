@@ -4,6 +4,7 @@ struct HomeFeedView: View {
     @Bindable var store: MarketplaceStore
     let onOutfitTap: (Outfit) -> Void
     let onAuthorTap: (OutfitAuthor) -> Void
+    var onItemTap: (Outfit, String) -> Void = {_,_ in}
     var onSignIn: () -> Void = {}
 
     var body: some View {
@@ -16,7 +17,10 @@ struct HomeFeedView: View {
                         onLike: { toggleLike(outfit) },
                         onOutfitTap: { onOutfitTap(outfit) },
                         onAuthorTap: { if let author = outfit.author { onAuthorTap(author) } },
-                        isSaving: store.savingOutfitIDs.contains(outfit.id)
+                        isSaving: store.savingOutfitIDs.contains(outfit.id), onItemTap: { onItemTap(outfit, $0) },
+                        showingPieces: Binding(get: { store.expandedFeedIDs.contains(outfit.id) }, set: { expanded in
+                            if expanded { store.expandedFeedIDs.insert(outfit.id) } else { store.expandedFeedIDs.remove(outfit.id) }
+                        }), selectedPhotoID: Binding(get: { store.feedPhotoIDs[outfit.id] }, set: { store.feedPhotoIDs[outfit.id] = $0 })
                     )
                     .containerRelativeFrame([.horizontal, .vertical])
                 }

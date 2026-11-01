@@ -18,6 +18,9 @@ struct UFitOutfitCreationJournal {
     private enum Storage {
         static let directory = "OutfitCreations"; static let separator = "-"; static let fileExtension = "json"
         static let permissions = 0o600
+        static let request = "request"; static let draft = "draft"; static let photos = "photos"; static let pins = "pins"
+        static let metadata = "metadata"; static let itemTypes = "itemTypes"
+        static let priorTypes: Set<String> = ["top", "bottom", "shoes", "bag", "accessory", "outerwear"]
     }
     private var file: URL {
         get throws {
@@ -30,8 +33,24 @@ struct UFitOutfitCreationJournal {
     func read() throws -> UFitOutfitPendingCreation? {
         let url = try file
         guard FileManager.default.fileExists(atPath: url.path) else { return nil }
-        let pending = try JSONDecoder().decode(UFitOutfitPendingCreation.self, from: Data(contentsOf: url))
-        try pending.validate(scope: scope); return pending
+        let data = try Data(contentsOf: url)
+        let migrated = try migratePins(data)
+        let pending = try JSONDecoder().decode(UFitOutfitPendingCreation.self, from: migrated ?? data)
+        try pending.validate(scope: scope)
+        if migrated != nil { try record(pending) }
+        return pending
+    }
+    private func migratePins(_ data: Data) throws -> Data? {
+        guard var root = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              var request = root[Storage.request] as? [String: Any], request[Storage.pins] == nil else { return nil }
+        guard var draft = root[Storage.draft] as? [String: Any], var photos = draft[Storage.photos] as? [[String: Any]],
+              photos.allSatisfy({ $0[Storage.pins] == nil }), var metadata = root[Storage.metadata] as? [String: Any],
+              let types = metadata[Storage.itemTypes] as? [String], Set(types) == Storage.priorTypes else { throw UFitOutfitContractError.draft }
+        request[Storage.pins] = [] as [String]
+        for index in photos.indices { photos[index][Storage.pins] = [] as [String] }
+        draft[Storage.photos] = photos; metadata[Storage.itemTypes] = UFitOutfitItemType.allCases.map(\.rawValue)
+        root[Storage.request] = request; root[Storage.draft] = draft; root[Storage.metadata] = metadata
+        return try JSONSerialization.data(withJSONObject: root)
     }
     func record(_ pending: UFitOutfitPendingCreation) throws {
         try pending.validate(scope: scope)

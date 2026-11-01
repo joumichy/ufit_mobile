@@ -8,7 +8,8 @@ struct UFitOutfitWriteRequest: Codable, Equatable {
     struct Photo: Codable, Equatable { let id: String?; let url: String; let position: Int }
     let creatorId: String?; let brandId: String?; let requestId: String?; let expectedVersion: Int?
     let title: String; let description: String; let genderTarget: UFitGenderTarget?; let tagIds: [String]
-    let items: [Piece]; let images: [Photo]
+    struct Pin: Codable, Equatable { let imagePosition: Int; let itemPosition: Int; let x: Int; let y: Int }
+    let items: [Piece]; let images: [Photo]; let pins: [Pin]
     init(draft: UFitOutfitDraft, tags: [UFitOutfitTag], scope: UFitOutfitScope, requestID: UUID?, editing: UFitOutfitRevision?) throws {
         guard UUID(uuidString: scope.profileID) != nil, UFitOutfitDraftValidation.draft(draft, tags: tags).isEmpty,
               (requestID != nil && editing == nil) || (requestID == nil && editing != nil),
@@ -27,6 +28,12 @@ struct UFitOutfitWriteRequest: Codable, Equatable {
             return .init(id: editing == nil ? nil : piece.serverID, productId: piece.product?.id,
                 externalLabel: piece.isProduct ? nil : UFitOutfitInput.trimmed(piece.externalLabel), itemType: piece.type,
                 position: position, isRequired: piece.isRequired, isShoppable: piece.isProduct, stylingNote: note.isEmpty ? nil : note)
+        }
+        pins = try draft.photos.enumerated().flatMap { imagePosition, photo in
+            try photo.pins.map { pin in
+                guard let itemPosition = draft.pieces.firstIndex(where: { $0.id == pin.pieceID }) else { throw UFitOutfitContractError.draft }
+                return Pin(imagePosition: imagePosition, itemPosition: itemPosition, x: pin.x, y: pin.y)
+            }
         }
         images = try draft.photos.enumerated().map { position, photo in
             guard let url = photo.url, photo.transfer == .ready, let source = URL(string: url), let scheme = source.scheme,

@@ -125,6 +125,12 @@ final class UFitOutfitFormStore {
         if isNew { try journal.resolve(); attempt = .idle }
         collection.receive(result); return result
     }
+    func renewPhotoSource(_ id: UUID) async throws -> String {
+        guard collection.isCurrentAccount, let photo = draft.photos.first(where: { $0.id == id }), let url = photo.url else { throw CancellationError() }
+        let refreshed = try await collection.client.fetchOwnedOutfitPhoto(scope: scope, url: url)
+        guard collection.isCurrentAccount, draft.photos.contains(where: { $0.id == id && $0.url == url }) else { throw CancellationError() }
+        return refreshed.displayUrl
+    }
     func addPhoto(loader: @escaping () async throws -> Data) {
         guard !isBusy, collection.isCurrentAccount else { return }
         guard draft.photos.count < UFitOutfitInput.photosMax else { message = Copy.photoLimit; return }

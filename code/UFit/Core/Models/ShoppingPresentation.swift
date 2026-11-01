@@ -3,7 +3,7 @@ import Foundation
 struct UFitOutfitGalleryPhoto: Decodable, Identifiable {
     let url: String
     let position: Int
-    var id: Int { position }
+    let id: String
 }
 
 struct UFitVariantChoice: Identifiable {

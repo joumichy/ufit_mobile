@@ -6,10 +6,12 @@ struct UFitOutfitPhotosContent: View {
     let onAdd: () -> Void
     let onRetry: (UUID) -> Void
     let onRemove: (UUID) -> Void
+    var onPins: ((UUID) -> Void)? = nil
     private enum Copy {
         static let title = String(localized: "Photos de la tenue"); static let add = String(localized: "Ajouter des photos")
         static let empty = String(localized: "Aucune photo"); static let sending = String(localized: "Envoi de la photo"); static let retry = String(localized: "Réessayer l’envoi")
         static let up = String(localized: "Déplacer la photo avant"); static let down = String(localized: "Déplacer la photo après"); static let remove = String(localized: "Retirer la photo")
+        static let pins = String(localized: "Placer les repères")
         static let cover = String(localized: "Photo principale"); static let photo = String(localized: "Photo"); static let space = " "
     }
     private enum Layout { static let gap: CGFloat = 16; static let small: CGFloat = 8; static let touch: CGFloat = 44; static let image: CGFloat = 104; static let radius: CGFloat = 12 }
@@ -39,6 +41,7 @@ struct UFitOutfitPhotosContent: View {
                             Button { move(photo.id, step: -UFitOutfitInput.positionStep) } label: { Image(systemName: Icon.up).frame(minWidth: Layout.touch, minHeight: Layout.touch) }.accessibilityLabel(Copy.up).disabled(index == .zero)
                             Button { move(photo.id, step: UFitOutfitInput.positionStep) } label: { Image(systemName: Icon.down).frame(minWidth: Layout.touch, minHeight: Layout.touch) }.accessibilityLabel(Copy.down).disabled(index == photos.count - UFitOutfitInput.positionStep)
                         }
+                        if photo.transfer == .ready, let onPins { Button(Copy.pins) { onPins(photo.id) }.frame(minHeight: Layout.touch) }
                         Button(Copy.remove) { onRemove(photo.id) }.frame(minHeight: Layout.touch)
                     }
                 }

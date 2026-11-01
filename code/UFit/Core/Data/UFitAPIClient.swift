@@ -155,6 +155,7 @@ struct UFitAPIClient {
         do { page = try await send(UFitOutfitPublicHTTP.get, path: UFitOutfitPublicHTTP.root, query: query) }
         catch is DecodingError { throw UFitPublicProfileContractError.outfits }
         for item in page.items {
+            try item.validateShopping()
             try UFitPublicOutfitIdentity.validate(id: item.id, author: item.author, creatorID: item.creatorId, brandID: item.brandId)
         }
         guard Set(page.items.map(\.id)).count == page.items.count,
@@ -290,6 +291,9 @@ struct UFitRequiredOutfitAuthor: Decodable {
 }
 
 struct UFitOutfitCardDTO: Decodable {
+    let items: [UFitOutfitItemDTO]
+    let images: [UFitOutfitGalleryPhoto]
+    let pins: [UFitOutfitPin]
     let id: String
     let title: String
     let coverImageUrl: String
@@ -298,6 +302,15 @@ struct UFitOutfitCardDTO: Decodable {
     let creatorId: String?
     let brandId: String?
     let publishedAt: String?
+    func validateShopping() throws {
+        guard !images.isEmpty, images.count <= UFitOutfitInput.photosMax, items.count <= UFitOutfitInput.itemsMax,
+              Set(images.map(\.id)).count == images.count, Set(images.map(\.position)).count == images.count,
+              Set(items.map(\.id)).count == items.count, Set(items.map(\.position)).count == items.count,
+              images.allSatisfy({ UUID(uuidString: $0.id) != nil && $0.position >= .zero }),
+              items.allSatisfy({ UUID(uuidString: $0.id) != nil && $0.position >= .zero }),
+              coverImageUrl == images.sorted(by: { $0.position < $1.position }).first?.url,
+              UFitOutfitPin.valid(pins, imageIDs: Set(images.map(\.id)), itemIDs: Set(items.map(\.id))) else { throw UFitPublicProfileContractError.outfits }
+    }
 }
 
 struct UFitOutfitDetailDTO: Decodable {
@@ -310,10 +323,12 @@ struct UFitOutfitDetailDTO: Decodable {
     let brandId: String?
     let publishedAt: String?
     let description: String
+    let pins: [UFitOutfitPin]
     let images: [UFitOutfitGalleryPhoto]
     let items: [UFitOutfitItemDTO]
     func validateGallery() throws {
-        guard !images.isEmpty, images.count <= UFitOutfitInput.photosMax,
+        guard UFitOutfitPin.valid(pins, imageIDs: Set(images.map(\.id)), itemIDs: Set(items.map(\.id))),
+              Set(images.map(\.id)).count == images.count, !images.isEmpty, images.count <= UFitOutfitInput.photosMax,
               Set(images.map(\.position)).count == images.count,
               images.allSatisfy({ photo in
                   guard photo.position >= .zero, let url = URL(string: photo.url), let scheme = url.scheme else { return false }
@@ -324,7 +339,7 @@ struct UFitOutfitDetailDTO: Decodable {
 
 struct UFitOutfitItemDTO: Decodable {
     let id: String
-    let itemType: String
+    let itemType: UFitOutfitItemType
     let label: String
     let position: Int
     let isRequired: Bool
@@ -337,6 +352,7 @@ struct UFitOutfitProductDTO: Decodable {
     let id: String
     let name: String
     let brandId: String
+    let brandName: String
     let price: Int
     let currency: String
     let imageUrl: String?

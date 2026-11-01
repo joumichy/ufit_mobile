@@ -20,6 +20,8 @@ struct Outfit: Identifiable {
     let sourceOutfitId: String?
     let products: [OutfitProduct]
     let pieces: [OutfitPiece]
+    var photos: [UFitOutfitGalleryPhoto] = []
+    var pins: [UFitOutfitPin] = []
 }
 
 struct OutfitAuthor: Decodable {
@@ -36,6 +38,9 @@ struct OutfitProduct: Identifiable {
     let name: String
     let productID: String?
     let brandID: String?
+    var image: String? = nil
+    var brandName: String? = nil
+    var price: String? = nil
 }
 
 struct OutfitPiece: Identifiable {

@@ -14,6 +14,7 @@ struct UFitManagedOutfitContent: View {
     let onReject: (UFitOutfitRevision, String) -> Void
     let onArchive: (UFitOutfitRevision) -> Void
     let onRestore: (UFitOutfitRevision) -> Void
+    var renewPhotoSource: ((String) async throws -> String)? = nil
     @State private var confirmingPublication = false
     @State private var confirmingArchive = false
     @State private var showingRejection = false
@@ -59,7 +60,8 @@ struct UFitManagedOutfitContent: View {
                     } else {
                         TabView {
                             ForEach(outfit.photos) { photo in
-                                FashionImage(source: photo.source).clipped().accessibilityLabel(Copy.photo)
+                                UFitPinnedPhotoContent(source: photo.source, pins: [], contentMode: .fit, onPin: {_ in},
+                                    renewSource: renewPhotoSource.map { renew in { () async throws -> String in try await renew(photo.id) } })
                             }
                         }.tabViewStyle(.page(indexDisplayMode: outfit.photos.count > UFitOutfitInput.positionStep ? .always : .never)).frame(height: Layout.hero)
                     }

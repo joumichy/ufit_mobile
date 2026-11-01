@@ -18,11 +18,13 @@ struct UFitOutfitShoppingContent: View {
     let onSelect: (String, String) -> Void
     let onQuantity: (String, Int) -> Void
     let onAdd: (String) -> Void
+    var focusedItemID: String? = nil
     private enum Copy {
         static let cart = String(localized: "Mon panier")
         static let pieces = String(localized: "Les pièces")
         static let retry = String(localized: "Réessayer")
         static let cartIcon = "bag"
+        static let missing = String(localized: "Cette pièce n’est plus associée à la tenue. Actualisez la publication.")
         static let authorChevron = "chevron.right"
     }
     private enum Layout {
@@ -41,21 +43,22 @@ struct UFitOutfitShoppingContent: View {
             }
             ScrollView {
                 VStack(alignment: .leading, spacing: Layout.spacing) {
-                    UFitOutfitGalleryContent(photos: photos).frame(width: geometry.size.width)
+                    if focusedItemID == nil { UFitOutfitGalleryContent(photos: photos).frame(width: geometry.size.width) }
                     VStack(alignment: .leading, spacing: Layout.spacing) {
                         Text(title).font(.system(size: Layout.title, weight: .regular, design: .serif)).fixedSize(horizontal: false, vertical: true)
                         if let author {
                             Button(action: onAuthor) { HStack { Text(author.name); Spacer(); Image(systemName: Copy.authorChevron) }.frame(minHeight: AuthorLayout.touch) }.font(.subheadline)
                         }
-                        if !description.isEmpty { Text(description).font(.body).foregroundStyle(Color.ufitMuted) }
-                        Text(prices).font(.title3.weight(.semibold))
+                        if focusedItemID == nil && !description.isEmpty { Text(description).font(.body).foregroundStyle(Color.ufitMuted) }
+                        if focusedItemID == nil { Text(prices).font(.title3.weight(.semibold)) }
                         if let message { Text(message).font(.callout).foregroundStyle(Color.ufitInk) }
                         if isLoading { ProgressView().frame(maxWidth: .infinity) }
                         else if pieces.isEmpty {
                             Button(Copy.retry, action: onRetry).buttonStyle(CompactPrimaryButtonStyle())
                         } else {
                             Text(Copy.pieces).font(.title2.weight(.semibold))
-                            ForEach(pieces) { piece in
+                            if let focusedItemID, !pieces.contains(where: { $0.id == focusedItemID }) { Text(Copy.missing).font(.callout) }
+                            ForEach(pieces.filter { focusedItemID == nil || $0.id == focusedItemID }) { piece in
                                 UFitShoppingPieceCard(piece: piece,
                                     onBrand: { if let brandID = piece.brandID { onBrand(brandID) } },
                                     onSelect: { onSelect(piece.id, $0) },

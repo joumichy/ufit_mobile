@@ -6,6 +6,8 @@ import Observation
 final class MarketplaceStore {
     var outfits: [Outfit]
     var visibleFeedOutfitID: String?
+    var feedPhotoIDs = [String: String]()
+    var expandedFeedIDs = Set<String>()
     var savedOutfitIDs = Set<String>()
     var savedOutfits: [Outfit] = []
     private(set) var savingOutfitIDs = Set<String>()
@@ -133,6 +135,7 @@ private enum OutfitPresentation {
     static let editorial = String(localized: "Sélection Ufit")
     static let initials = "UF"
     static let inspiration = String(localized: "Inspiration")
+    static let unavailable = String(localized: "Article indisponible")
     static let empty = String()
     static func initials(for author: OutfitAuthor?) -> String {
         guard let author else { return initials }
@@ -146,7 +149,10 @@ extension UFitOutfitCardDTO {
             creator: author?.name ?? OutfitPresentation.editorial,
             creatorAvatar: OutfitPresentation.initials(for: author), author: author,
             price: UFitMoney.ranges(prices), title: title, description: OutfitPresentation.empty,
-            sourceCreatorId: creatorId, sourceOutfitId: id, products: [], pieces: [])
+            sourceCreatorId: creatorId, sourceOutfitId: id,
+            products: items.sorted { $0.position < $1.position }.map { .init(id: $0.id, systemImage: $0.itemType.symbol, name: $0.label, productID: $0.product?.id, brandID: $0.product?.brandId, image: $0.product?.imageUrl, brandName: $0.product?.brandName,
+                price: $0.product.map { UFitMoney.format($0.price, currency: $0.currency) } ?? ($0.isShoppable ? OutfitPresentation.unavailable : OutfitPresentation.inspiration)) },
+            pieces: [], photos: images.sorted { $0.position < $1.position }, pins: pins)
     }
 }
 
@@ -154,8 +160,9 @@ extension UFitOutfitDetailDTO {
     func toOutfit() -> Outfit {
         let sorted = items.sorted { $0.position < $1.position }
         let products = sorted.map { item in
-            OutfitProduct(id: item.id, systemImage: item.symbolName, name: item.label,
-                productID: item.product?.id, brandID: item.product?.brandId)
+            OutfitProduct(id: item.id, systemImage: item.itemType.symbol, name: item.label,
+                productID: item.product?.id, brandID: item.product?.brandId, image: item.product?.imageUrl, brandName: item.product?.brandName,
+                price: item.product.map { UFitMoney.format($0.price, currency: $0.currency) } ?? (item.isShoppable ? OutfitPresentation.unavailable : OutfitPresentation.inspiration))
         }
         let pieces = sorted.map { item in
             OutfitPiece(id: item.id, name: item.label, brand: OutfitPresentation.empty,
@@ -166,20 +173,7 @@ extension UFitOutfitDetailDTO {
             creator: author?.name ?? OutfitPresentation.editorial,
             creatorAvatar: OutfitPresentation.initials(for: author), author: author,
             price: UFitMoney.ranges(prices), title: title, description: description,
-            sourceCreatorId: creatorId, sourceOutfitId: id, products: products, pieces: pieces)
-    }
-}
-
-private extension UFitOutfitItemDTO {
-    var symbolName: String {
-        switch itemType {
-        case "shoes": "shoeprints.fill"
-        case "bag": "handbag"
-        case "accessory": "sunglasses"
-        case "outerwear": "jacket"
-        case "bottom": "figure.walk"
-        default: "tshirt"
-        }
+            sourceCreatorId: creatorId, sourceOutfitId: id, products: products, pieces: pieces, photos: images.sorted { $0.position < $1.position }, pins: pins)
     }
 }
 
