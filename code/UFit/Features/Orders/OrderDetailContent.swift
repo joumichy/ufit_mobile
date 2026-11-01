@@ -19,16 +19,9 @@ struct UFitOrderDetailContent: View {
         static let keep = String(localized: "Conserver la commande")
         static let unavailable = String(localized: "Commande indisponible")
         static let bag = "bag"
-        static let address = String(localized: "Livraison")
-        static let tracking = String(localized: "Suivi de l’expédition")
-        static let openTracking = String(localized: "Suivre mon colis")
-        static let subtotal = String(localized: "Pièces")
-        static let shipping = String(localized: "Frais de livraison")
-        static let taxes = String(localized: "Taxes ajoutées")
-        static let total = String(localized: "Total")
         static let returns = String(localized: "Retours")
     }
-    private enum Layout { static let spacing: CGFloat = 24; static let rowSpacing: CGFloat = 16; static let bottom: CGFloat = 110; static let imageWidth: CGFloat = 72; static let imageHeight: CGFloat = 94; static let touch: CGFloat = 44; static let inline: CGFloat = 8 }
+    private enum Layout { static let spacing: CGFloat = 24; static let rowSpacing: CGFloat = 16; static let bottom: CGFloat = 110; static let touch: CGFloat = 44; static let inline: CGFloat = 8 }
     var body: some View {
         VStack(spacing: .zero) {
             DetailHeader(onBack: onBack) {
@@ -59,28 +52,12 @@ struct UFitOrderDetailContent: View {
             if order.canResumePayment {
                 Button(action: onPay) { Text(Copy.resume).frame(maxWidth: .infinity) }.buttonStyle(PrimaryButtonStyle()).disabled(isBusy)
             }
-            ForEach(order.items) { item in itemRow(item) }
+            ForEach(order.items) { UFitOrderPieceContent(item: $0) }
             Divider()
-            VStack(spacing: Layout.rowSpacing) {
-                amount(Copy.subtotal, order.subtotal)
-                amount(Copy.shipping, order.shipping)
-                amount(Copy.taxes, order.taxes)
-                Divider()
-                amount(Copy.total, order.total).fontWeight(.semibold)
-            }
+            UFitOrderAmountsContent(subtotal: order.subtotal, shipping: order.shipping, taxes: order.taxes, total: order.total)
             Divider()
-            VStack(alignment: .leading, spacing: Layout.inline) {
-                Text(Copy.address).font(.headline)
-                ForEach(Array(order.address.enumerated()), id: \.offset) { _, line in Text(line).font(.subheadline) }
-            }
-            if let status = order.shipmentStatus {
-                VStack(alignment: .leading, spacing: Layout.rowSpacing) {
-                    Text(Copy.tracking).font(.headline)
-                    Text(status)
-                    if let tracking = order.trackingNumber { Text(tracking).font(.subheadline) }
-                    if let url = order.trackingURL { Link(Copy.openTracking, destination: url).frame(minHeight: Layout.touch) }
-                }
-            }
+            UFitOrderAddressContent(lines: order.address)
+            if let shipment = order.shipment { UFitOrderTrackingContent(shipment: shipment) }
             if let policy = order.returnPolicy {
                 VStack(alignment: .leading, spacing: Layout.inline) { Text(Copy.returns).font(.headline); Text(policy).font(.callout).foregroundStyle(Color.ufitMuted) }
             }
@@ -89,18 +66,6 @@ struct UFitOrderDetailContent: View {
                     if order.cancellationPending { onCancel() } else { confirmingCancellation = true }
                 }.frame(minHeight: Layout.touch).disabled(isBusy)
             }
-        }
-    }
-    private func amount(_ label: String, _ amount: String) -> some View { HStack { Text(label); Spacer(); Text(amount) } }
-    private func itemRow(_ item: UFitOrderPiece) -> some View {
-        HStack(alignment: .top, spacing: Layout.rowSpacing) {
-            if let image = item.image { FashionImage(source: image).frame(width: Layout.imageWidth, height: Layout.imageHeight).clipped() }
-            VStack(alignment: .leading, spacing: Layout.inline) {
-                Text(item.name).font(.headline)
-                Text(item.options).font(.subheadline).foregroundStyle(Color.ufitMuted)
-                Text(String(localized: "Quantité : \(item.quantity)")).font(.subheadline)
-                Text(item.amount).font(.subheadline.weight(.medium))
-            }.frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 }

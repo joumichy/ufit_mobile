@@ -76,6 +76,7 @@ enum UFitAPIError: LocalizedError {
             if let catalog = catalogFailureDescription { catalog }
             else if let outfit = outfitFailureDescription { outfit }
             else if let commerce = brandCommerceFailureDescription { commerce }
+            else if let order = brandOrderFailureDescription { order }
             else if code == Code.brand || code == Code.currency { String(localized: "Votre panier contient une autre marque ou devise.") }
             else if code == "checkout_quote_changed" || code == "cart_changed" { String(localized: "Le panier ou les frais ont changé. Vérifiez le nouveau montant.") }
             else if code == "shipping_unavailable" { String(localized: "La marque ne livre pas dans ce pays pour cette devise.") }

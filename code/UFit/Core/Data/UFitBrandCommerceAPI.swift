@@ -3,7 +3,6 @@ import Foundation
 enum UFitBrandCommerceHTTP {
     static let get = "GET"; static let put = "PUT"; static let root = "brands/"; static let suffix = "/commerce-policy"
     static let metadata = "brands/commerce-policy/metadata"
-    static let countryPattern = #"^[A-Z]{2}$"#; static let currencyPattern = #"^[A-Z]{3}$"#
 }
 enum UFitBrandCommerceContractError: LocalizedError {
     case document, metadata
@@ -19,9 +18,9 @@ struct UFitBrandCommerceMetadata: Decodable {
     let currencies: [UFitCurrency]
     func validate() throws {
         guard !countries.isEmpty, Set(countries).count == countries.count,
-              countries.allSatisfy({ $0.range(of: UFitBrandCommerceHTTP.countryPattern, options: .regularExpression) != nil }),
+              countries.allSatisfy({ $0.range(of: UFitCountry.codePattern, options: .regularExpression) != nil }),
               !currencies.isEmpty, Set(currencies.map(\.code)).count == currencies.count,
-              currencies.allSatisfy({ $0.code.range(of: UFitBrandCommerceHTTP.currencyPattern, options: .regularExpression) != nil && $0.minorUnitDigits >= .zero }) else { throw UFitBrandCommerceContractError.metadata }
+              currencies.allSatisfy({ $0.code.range(of: UFitCurrency.codePattern, options: .regularExpression) != nil && $0.minorUnitDigits >= .zero }) else { throw UFitBrandCommerceContractError.metadata }
     }
     var choices: [UFitCountry] {
         countries.map { .init(id: $0, name: Self.locale.localizedString(forRegionCode: $0) ?? $0) }.sorted { $0.name.localizedCompare($1.name) == .orderedAscending }

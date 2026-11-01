@@ -55,29 +55,15 @@ enum UFitApplicationDecision: String, Codable, CaseIterable, Identifiable {
         }
     }
 }
-struct UFitApplicationTimestamp: Decodable {
-    let value: Date
-    init(value: Date) { self.value = value }
-    init(from decoder: Decoder) throws {
-        let container = try decoder.singleValueContainer()
-        let text = try container.decode(String.self)
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        guard let value = formatter.date(from: text) else { throw DecodingError.dataCorruptedError(in: container, debugDescription: Wire.invalid) }
-        self.value = value
-    }
-    var label: String { value.formatted(.dateTime.day().month(.wide).year().locale(Wire.locale)) }
-    private enum Wire { static let invalid = "Invalid application timestamp"; static let locale = Locale(identifier: "fr_CH") }
-}
-struct UFitApplicationReview: Decodable { let decision: UFitApplicationDecision; let notes: String?; let createdAt: UFitApplicationTimestamp }
+struct UFitApplicationReview: Decodable { let decision: UFitApplicationDecision; let notes: String?; let createdAt: UFitTimestamp }
 struct UFitApplicationMetadata: Decodable {
     let id: String
     let type: UFitApplicationKind
     let userId: String
     let status: UFitApplicationStatus
     let version: Int
-    let submittedAt: UFitApplicationTimestamp
-    let updatedAt: UFitApplicationTimestamp
+    let submittedAt: UFitTimestamp
+    let updatedAt: UFitTimestamp
     let latestReview: UFitApplicationReview?
 }
 struct UFitCreatorApplicationDossier: Codable {
@@ -204,7 +190,7 @@ struct UFitApplicationQueueItem: Decodable {
     var identity: String { type.rawValue + Wire.separator + id }
     private enum Wire { static let separator = ":" }
     let id: String; let type: UFitApplicationKind; let name: String; let status: UFitApplicationStatus; let version: Int
-    let submittedAt: UFitApplicationTimestamp; let updatedAt: UFitApplicationTimestamp
+    let submittedAt: UFitTimestamp; let updatedAt: UFitTimestamp
 }
 enum UFitApplicationQueueFilter: String, CaseIterable, Identifiable {
     case pending, waitlisted, needsMoreInfo = "needs_more_info", accepted, rejected, all

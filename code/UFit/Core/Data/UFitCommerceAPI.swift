@@ -89,6 +89,8 @@ struct UFitOrderDTO: Decodable, Identifiable {
         let trackingUrl: String?
         let shippedAt: String?
         let deliveredAt: String?
+        let incidentReason: String?
+        let incidentAt: UFitTimestamp?
     }
     struct Terms: Decodable { let returnPolicy: String }
     let createdAt: String

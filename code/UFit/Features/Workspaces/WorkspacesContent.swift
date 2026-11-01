@@ -14,6 +14,7 @@ struct UFitWorkspacesContent: View {
     let onAdminApplications: () -> Void
     let onCatalog: (UFitWorkspaceReference) -> Void
     let onCommercePolicy: (UFitWorkspaceReference) -> Void
+    let onOrders: (UFitWorkspaceReference) -> Void
     let onAdminProducts: () -> Void
     let onOutfits: (UFitWorkspaceReference) -> Void
     let onAdminOutfits: () -> Void
@@ -30,6 +31,7 @@ struct UFitWorkspacesContent: View {
         static let publicProfile = String(localized: "Voir le profil public")
         static let catalog = String(localized: "Catalogue de produits")
         static let commercePolicy = String(localized: "Conditions de vente")
+        static let orders = String(localized: "Commandes")
         static let outfits = String(localized: "Mes tenues")
         static let adminOutfits = String(localized: "Tenues à examiner")
         static let adminProducts = String(localized: "Produits à examiner")
@@ -79,6 +81,9 @@ struct UFitWorkspacesContent: View {
                                     Button(action: { onCatalog(space) }) {
                                         HStack { Text(Copy.catalog); Spacer(); Image(systemName: Icon.chevron) }.frame(minHeight: Layout.touch).contentShape(Rectangle())
                                     }.disabled(space.status == .suspended)
+                                    Button(action: { onOrders(space) }) {
+                                        HStack { Text(Copy.orders); Spacer(); Image(systemName: Icon.chevron) }.frame(minHeight: Layout.touch).contentShape(Rectangle())
+                                    }.disabled(space.status != .active && space.status != .paused)
                                     Button(action: { onCommercePolicy(space) }) {
                                         HStack { Text(Copy.commercePolicy); Spacer(); Image(systemName: Icon.chevron) }.frame(minHeight: Layout.touch).contentShape(Rectangle())
                                     }.disabled(space.status != .active && space.status != .paused)
