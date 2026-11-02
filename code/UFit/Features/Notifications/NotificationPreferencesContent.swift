@@ -15,6 +15,11 @@ struct UFitNotificationPreferencesContent: View {
     let onBack: () -> Void
     let onReload: () -> Void
     let onSave: () -> Void
+    var devicePermission: UFitNotificationPermission? = nil
+    var devicePhase = UFitNotificationDevicePhase.idle
+    var deviceBusy = false
+    var deviceMessage: String? = nil
+    var onDeviceAction: (() -> Void)? = nil
     @State private var confirmingDiscard = false
     private typealias Copy = UFitNotificationPreferencesCopy
     private var busy: Bool { isLoading || isSaving }
@@ -36,6 +41,11 @@ struct UFitNotificationPreferencesContent: View {
                         channel(Copy.email, detail: Copy.emailDetail, isOn: $choices.emailEnabled)
                         Divider()
                         channel(Copy.push, detail: Copy.pushDetail, isOn: $choices.pushEnabled)
+                        if let devicePermission, let onDeviceAction {
+                            Divider()
+                            UFitNotificationDeviceContent(permission: devicePermission, phase: devicePhase, isBusy: deviceBusy,
+                                message: deviceMessage, onAction: onDeviceAction)
+                        }
                         if let comparison, comparison != choices {
                             VStack(alignment: .leading, spacing: UFitSpace.sm) {
                                 Text(Copy.current).font(UFitTypography.headline)

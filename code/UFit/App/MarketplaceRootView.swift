@@ -2,6 +2,7 @@ import SwiftUI
 import StripePaymentSheet
 
 struct MarketplaceRootView: View {
+    let notifications: UFitNotificationsDelegate
     @State private var waitsForNotificationExperience = false
     @State private var notificationOpening: UFitNotificationOpeningStore
     @State private var session: UFitSessionStore
@@ -22,7 +23,8 @@ struct MarketplaceRootView: View {
     @State private var routeHistory: [AppRoute] = []
     @State private var showAuthentication = false
 
-    init() {
+    init(notifications: UFitNotificationsDelegate) {
+        self.notifications = notifications
         let session = UFitSessionStore()
         _session = State(initialValue: session)
         _notificationOpening = State(initialValue: UFitNotificationOpeningStore(session: session))
@@ -54,7 +56,11 @@ struct MarketplaceRootView: View {
             }
         }
         .preferredColorScheme(.light)
-        .task { session.start(); if notificationOpening.hasPending { beginNotificationOpening() } }
+        .task {
+            session.deviceNotifications.connect(notifications); session.start(); receiveNotificationTap()
+            if notificationOpening.hasPending { beginNotificationOpening() }
+        }
+        .onChange(of: notifications.pendingNotificationID) { _, _ in receiveNotificationTap() }
         .onChange(of: session.isRestoring) { _, restoring in if !restoring { resolveNotification() } }
         .onOpenURL { url in
             if notificationOpening.accept(url) { beginNotificationOpening(); return }
@@ -87,7 +93,9 @@ struct MarketplaceRootView: View {
             if requested && !showAuthentication && !notificationOpening.hasPending { showExperienceChooser = true }
         }
         .onChange(of: scenePhase) { _, phase in
-            if phase == .active && session.user != nil { Task { await experience.load() } }
+            if phase == .active {
+                Task { await session.deviceNotifications.refresh(); if session.user != nil { await experience.load() } }
+            }
         }
         .onChange(of: session.needsNewPassword) { _, needed in
             if needed { showAuthentication = true }
@@ -187,7 +195,7 @@ struct MarketplaceRootView: View {
                 onNotifications: showNotificationPreferences,
                 onBack: routeHistory.isEmpty ? nil : goBack)
         case .notificationPreferences(let preferences):
-            UFitNotificationPreferencesHost(store: preferences, onBack: goBack)
+            UFitNotificationPreferencesHost(store: preferences, device: session.deviceNotifications, onBack: goBack)
         case .applications:
             UFitApplicationsHost(store: applications, onBack: goBack, onApply: showApplicationForm, onPayments: showPayments)
         case .applicationForm(let form):
@@ -638,6 +646,11 @@ private extension MarketplaceRootView {
     func requestSignIn(keepCustomerContext: Bool) {
         preserveCustomerContextOnSignIn = keepCustomerContext; showAuthentication = true
     }
+    func receiveNotificationTap() {
+        guard let id = notifications.pendingNotificationID,
+              let url = UFitNotificationLink.url(identifier: id) else { return }
+        if notificationOpening.accept(url) { notifications.consumedNotification(id); beginNotificationOpening() }
+    }
     func beginNotificationOpening() {
         showOnboarding = false; showExperienceChooser = false
         if case .notification = activeRoute {} else { routeHistory.append(activeRoute); activeRoute = .notification }
@@ -848,5 +861,5 @@ private struct SavedOutfitsView: View {
 }
 
 #Preview {
-    MarketplaceRootView()
+    MarketplaceRootView(notifications: UFitNotificationsDelegate())
 }

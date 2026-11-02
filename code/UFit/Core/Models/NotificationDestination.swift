@@ -37,7 +37,11 @@ struct UFitNotificationDetail: Decodable {
 enum UFitNotificationOpeningPhase: Equatable { case waiting, signIn, loading, unavailable, failed(String), ready }
 enum UFitNotificationLink {
     static let scheme = "ufit", host = "notifications"
-    private static let separator = "/", componentCount = 1
+    private static let separator = "/", componentCount = 1, authoritySeparator = "://"
+    static func url(identifier: String) -> URL? {
+        guard UUID(uuidString: identifier)?.uuidString.lowercased() == identifier else { return nil }
+        return URL(string: scheme + authoritySeparator + host + separator + identifier)
+    }
     static func recognizes(_ url: URL) -> Bool { url.scheme == scheme && url.host == host }
     static func identifier(_ url: URL) -> String? {
         guard recognizes(url), url.user == nil, url.password == nil, url.port == nil, url.query == nil, url.fragment == nil else { return nil }
