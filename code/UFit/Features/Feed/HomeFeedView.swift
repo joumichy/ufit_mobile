@@ -8,16 +8,17 @@ struct HomeFeedView: View {
     var onSignIn: () -> Void = {}
 
     var body: some View {
-        HomeFeedContentView(outfits: store.outfits, savedOutfitIDs: store.savedOutfitIDs, savingOutfitIDs: store.savingOutfitIDs,
+        HomeFeedContentView(outfits: store.outfits, savedStates: store.savedStates, isAuthenticated: store.isAuthenticated,
             expandedOutfitIDs: $store.expandedFeedIDs, photoIDs: $store.feedPhotoIDs, visibleOutfitID: $store.visibleFeedOutfitID,
             onToggleSaved: toggleLike, onOutfitTap: onOutfitTap, onAuthorTap: onAuthorTap, onItemTap: onItemTap,
-            feedback: store.actionMessage, loadError: store.feedErrorMessage,
-            onDismissFeedback: { store.actionMessage = nil }, onRetry: { Task { await store.refreshFeed() } },
+            feedback: store.feedFeedback, loadError: store.feedErrorMessage,
+            onDismissFeedback: store.dismissFeedFeedback, onRetry: { Task { await store.refreshFeed() } },
             isLoadingMore: store.isLoadingMoreFeed, moreError: store.feedMoreError,
             onApproachOutfit: { id in Task { await store.loadMoreFeedIfNeeded(near: id) } },
             onRetryMore: { Task { await store.loadMoreFeed() } })
         .task {
             await store.loadFeedIfNeeded()
+            await store.loadSavedStates(ids: store.outfits.map(\.id))
         }
         .onChange(of: store.isLoadingFeed) { _, loading in
             if !loading, let id = store.visibleFeedOutfitID { Task { await store.loadMoreFeedIfNeeded(near: id) } }

@@ -2,11 +2,10 @@ import SwiftUI
 
 struct OutfitFeedCard: View {
     let outfit: Outfit
-    let isLiked: Bool
+    let savedState: UFitSavedOutfitState
     let onLike: () -> Void
     let onOutfitTap: () -> Void
     let onAuthorTap: () -> Void
-    var isSaving = false
     var onItemTap: (String) -> Void = {_ in}
     @Binding var showingPieces: Bool
     @State private var pendingArticleID: String?
@@ -15,9 +14,6 @@ struct OutfitFeedCard: View {
     @Environment(\.dynamicTypeSize) private var typeSize
 
     private enum Copy {
-        static let save = String(localized: "Sauvegarder la tenue")
-        static let unsave = String(localized: "Retirer des favoris")
-        static let saving = String(localized: "Enregistrement")
         static let pieces = String(localized: "Voir les pièces")
         static let hide = String(localized: "Masquer les pièces")
         static let empty = String(localized: "Aucune pièce associée")
@@ -25,8 +21,6 @@ struct OutfitFeedCard: View {
         static let article = String(localized: "Voir l’article")
         static let close = String(localized: "Fermer la référence")
         static let closeIcon = "xmark"
-        static let bookmark = "bookmark"
-        static let savedBookmark = "bookmark.fill"
         static let bag = "bag"
     }
     private enum Layout {
@@ -114,10 +108,10 @@ struct OutfitFeedCard: View {
         }.ufitButtonStyle(.text).disabled(outfit.products.isEmpty)
             .opacity(outfit.products.isEmpty ? Layout.unavailableOpacity : Layout.availableOpacity)
         UFitButton(action: onLike) {
-            if isSaving { UFitLoading().foregroundStyle(.white).frame(width: UFitControlSize.circularAction, height: UFitControlSize.circularAction) }
-            else { CircularIconButton(systemImage: isLiked ? Copy.savedBookmark : Copy.bookmark, accessibilityLabel: isLiked ? Copy.unsave : Copy.save) }
-        }.ufitButtonStyle(.text).environment(\.ufitButtonIsBusy, isSaving).disabled(isSaving)
-            .accessibilityLabel(isSaving ? Copy.saving : (isLiked ? Copy.unsave : Copy.save))
+            if savedState.isBusy { UFitLoading().foregroundStyle(.white).frame(width: UFitControlSize.circularAction, height: UFitControlSize.circularAction) }
+            else { CircularIconButton(systemImage: savedState.symbol, accessibilityLabel: savedState.actionLabel) }
+        }.ufitButtonStyle(.text).environment(\.ufitButtonIsBusy, savedState.isBusy).disabled(savedState.isBusy)
+            .accessibilityLabel(savedState.actionLabel)
     }
 
     private var selectedPhoto: UFitOutfitGalleryPhoto? {

@@ -93,7 +93,7 @@ struct MarketplaceRootView: View {
             if userID != nil {
                 if preserveCustomerContextOnSignIn { experience.choose(.customer) }
                 preserveCustomerContextOnSignIn = false
-                Task { await experience.load(); await store.loadSavedOutfits(); await cart.load(); resolveNotification() }
+                Task { await experience.load(); await store.loadSavedOutfits(); await store.loadSavedStates(ids: store.outfits.map(\.id)); await cart.load(); resolveNotification() }
             }
         }
         .onChange(of: experience.selected) { _, _ in if !notificationOpening.hasPending { applyExperienceNavigation() } }
@@ -203,7 +203,8 @@ struct MarketplaceRootView: View {
         case .checkout(let checkout):
             UFitCheckoutHost(store: checkout, onBack: goBack, onFinish: {showPurchasedOrder(checkout)})
         case .saved:
-            SavedOutfitsView(store: store, onOutfitTap: showOutfitDetail, onBrowse: returnToFeed)
+            SavedOutfitsView(store: store, onOutfitTap: showOutfitDetail, onBrowse: returnToFeed,
+                onSignIn: { requestSignIn(keepCustomerContext: true) })
         case .account:
             UFitAccountHost(session: session, onSignedOut: returnToFeed,
                 onSignIn: { requestSignIn(keepCustomerContext: true) },
@@ -268,7 +269,7 @@ private extension MarketplaceRootView {
 
     func selectTab(_ tab: AppTab) {
         guard experience.kind.tabs.contains(tab) else { return }
-        if (tab == .profile || tab == .saved || tab == .cart) && session.user == nil {
+        if (tab == .profile || tab == .cart) && session.user == nil {
             requestSignIn(keepCustomerContext: tab != .profile); return
         }
         cancelCurrentForm(); workspaces.cancelOpening(); routeHistory = []; activeTab = tab
@@ -864,18 +865,6 @@ private struct SearchOutfitsView: View {
         SearchOutfitsContentView(outfits: store.outfits, isLoading: store.isLoadingFeed, hasLoaded: store.hasLoadedFeed,
             message: store.feedErrorMessage, onRefresh: { await store.refreshFeed() }, onOutfitTap: onOutfitTap)
             .task { await store.loadFeedIfNeeded() }
-    }
-}
-
-private struct SavedOutfitsView: View {
-    let store: MarketplaceStore
-    let onOutfitTap: (Outfit) -> Void
-    let onBrowse: () -> Void
-    var body: some View {
-        SavedOutfitsContentView(outfits: store.savedOutfits, isLoading: store.isLoadingSavedOutfits,
-            hasLoaded: store.hasLoadedSavedOutfits, message: store.savedErrorMessage,
-            onOutfitTap: onOutfitTap, onBrowse: onBrowse, onRefresh: { await store.loadSavedOutfits() })
-            .task { await store.loadSavedOutfits() }
     }
 }
 

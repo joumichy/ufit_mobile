@@ -139,10 +139,6 @@ struct UFitAPIClient {
         return try await send("PATCH", path: "me", body: ProfilePatch(displayName: name), requiresAuth: true)
     }
 
-    func fetchSavedOutfits() async throws -> UFitSavedReferencesDTO {
-        try await send("GET", path: "me/saved-outfits", requiresAuth: true)
-    }
-
     func fetchCurrentUser() async throws -> UFitCurrentUser {
         try await send("GET", path: "me", requiresAuth: true)
     }
@@ -172,14 +168,6 @@ struct UFitAPIClient {
         try UFitPublicOutfitIdentity.validate(id: detail.id, author: detail.author, creatorID: detail.creatorId, brandID: detail.brandId)
         try detail.validateGallery()
         return detail
-    }
-
-    func saveOutfit(id: String) async throws -> UFitSavedActionDTO {
-        try await send("PUT", path: "me/saved-outfits/\(id)", requiresAuth: true)
-    }
-
-    func unsaveOutfit(id: String) async throws -> UFitSavedActionDTO {
-        try await send("DELETE", path: "me/saved-outfits/\(id)", requiresAuth: true)
     }
 
     func addCartItem(_ body: UFitAddCartItemRequest) async throws -> UFitCartDTO {
@@ -387,15 +375,6 @@ struct UFitProductVariantDTO: Decodable {
     let color: String?
     let stockQuantity: Int
     let price: Int
-}
-
-struct UFitSavedReferencesDTO: Decodable {
-    struct Item: Decodable { let id: String; let savedAt: String }
-    let items: [Item]
-}
-
-struct UFitSavedActionDTO: Decodable {
-    let saved: Bool?
 }
 
 struct UFitCartDTO: Decodable {

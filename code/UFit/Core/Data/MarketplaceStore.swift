@@ -6,11 +6,12 @@ import Observation
 final class MarketplaceStore {
     var outfits: [Outfit]
     var visibleFeedOutfitID: String?
+    var visibleSavedOutfitID: String?
     var feedPhotoIDs = [String: String]()
     var expandedFeedIDs = Set<String>()
-    var savedOutfitIDs = Set<String>()
-    var savedOutfits: [Outfit] = []
-    private(set) var savingOutfitIDs = Set<String>()
+    private(set) var savedStates = [String: UFitSavedOutfitState]()
+    private var savedStateFailures = Set<String>()
+    private(set) var savedOutfits: [Outfit] = []
     private(set) var isLoadingFeed = false
     private(set) var hasLoadedFeed = false
     private(set) var isLoadingMoreFeed = false
@@ -18,6 +19,8 @@ final class MarketplaceStore {
     private(set) var isLoadingSavedOutfits = false
     private(set) var hasLoadedSavedOutfits = false
     private(set) var savedErrorMessage: String?
+    private(set) var isLoadingMoreSavedOutfits = false
+    private(set) var savedMoreError: String?
     var feedErrorMessage: String?
     var actionMessage: String?
 
@@ -28,6 +31,12 @@ final class MarketplaceStore {
     @ObservationIgnored private var nextFeedCursor: String?
     @ObservationIgnored private var consumedFeedCursors = Set<String>()
     @ObservationIgnored private var feedGeneration = UUID()
+    @ObservationIgnored private var savedGeneration = UUID()
+    @ObservationIgnored private var nextSavedCursor: String?
+    @ObservationIgnored private var consumedSavedCursors = Set<String>()
+    @ObservationIgnored private var savedReferenceIDs = Set<String>()
+    @ObservationIgnored private var lastSavedReference: UFitSavedReferencesDTO.Item?
+    @ObservationIgnored private var savedStateRevisions = [String: UUID]()
     private enum FeedPaging {
         static let prefetchDistance = 3
         static let unavailable = String(localized: "La suite des tenues n’a pas pu être chargée. Les tenues déjà affichées restent disponibles.")
@@ -45,6 +54,12 @@ final class MarketplaceStore {
 
     var isAuthenticated: Bool {
         session?.user != nil || client.configuration.bearerToken != nil
+    }
+    var accountID: String? { session?.user?.id }
+    var hasMoreSavedOutfits: Bool { nextSavedCursor != nil }
+    var feedFeedback: String? { savedStateFailures.isEmpty ? actionMessage : SavedCopy.verificationFailed }
+    func dismissFeedFeedback() {
+        savedStateFailures = []; actionMessage = nil
     }
 
     func loadFeedIfNeeded() async {
@@ -66,6 +81,7 @@ final class MarketplaceStore {
             nextFeedCursor = response.nextCursor; consumedFeedCursors = []
             hasLoadedFeed = true
             if let visibleFeedOutfitID, !remoteOutfits.contains(where: { $0.id == visibleFeedOutfitID }) { self.visibleFeedOutfitID = nil }
+            await loadSavedStates(ids: remoteOutfits.map(\.id), force: true)
         } catch is CancellationError {
         } catch {
             if feedGeneration == request { feedErrorMessage = friendlyMessage(for: error) }
@@ -91,6 +107,7 @@ final class MarketplaceStore {
             }
             outfits.append(contentsOf: page.items.map { $0.toOutfit() })
             nextFeedCursor = page.nextCursor; consumedFeedCursors.insert(cursor)
+            await loadSavedStates(ids: page.items.map(\.id))
         } catch is CancellationError {
         } catch {
             if feedGeneration == request { feedMoreError = FeedPaging.unavailable }
@@ -117,75 +134,163 @@ final class MarketplaceStore {
     }
 
     func loadSavedOutfits() async {
-        guard !isLoadingSavedOutfits else { return }
-        let request = accountGeneration, userID = session?.user?.id
-        isLoadingSavedOutfits = true; savedErrorMessage = nil
-        defer { if accountGeneration == request { isLoadingSavedOutfits = false } }
+        guard isAuthenticated, !isLoadingSavedOutfits else { return }
+        savedGeneration = UUID()
+        let request = accountGeneration, userID = accountID, pageRequest = savedGeneration, revisions = savedStateRevisions
+        isLoadingSavedOutfits = true; isLoadingMoreSavedOutfits = false; savedErrorMessage = nil; savedMoreError = nil
+        defer { if accountGeneration == request, savedGeneration == pageRequest { isLoadingSavedOutfits = false } }
         do {
             let page = try await client.fetchSavedOutfits()
-            guard accountGeneration == request, session?.user?.id == userID else { return }
-            var resolved: [Outfit] = []
-            for reference in page.items {
-                guard accountGeneration == request, session?.user?.id == userID else { return }
-                let detail = try await client.fetchOutfitDetail(id: reference.id)
-                resolved.append(detail.toOutfit())
-            }
-            guard accountGeneration == request, session?.user?.id == userID else { return }
-            savedOutfits = resolved
-            savedOutfitIDs = Set(savedOutfits.map(\.id))
+            let resolved = try await resolveSavedOutfits(page.items, account: request, page: pageRequest)
+            guard accountGeneration == request, accountID == userID, savedGeneration == pageRequest else { return }
+            acceptSavedReferences(page.items, revisions: revisions)
+            savedOutfits = resolved.filter { savedStates[$0.id] != .notSaved }
+            if let visibleSavedOutfitID, !savedOutfits.contains(where: { $0.id == visibleSavedOutfitID }) { self.visibleSavedOutfitID = nil }
+            savedReferenceIDs = Set(page.items.map(\.id)); lastSavedReference = page.items.last
+            nextSavedCursor = page.nextCursor; consumedSavedCursors = []
             hasLoadedSavedOutfits = true
         } catch {
-            if accountGeneration == request, session?.user?.id == userID { savedErrorMessage = friendlyMessage(for: error) }
+            if !Task.isCancelled, !(error is CancellationError), accountGeneration == request, accountID == userID, savedGeneration == pageRequest {
+                savedErrorMessage = friendlyMessage(for: error)
+            }
+        }
+    }
+
+    func loadMoreSavedOutfits() async {
+        guard isAuthenticated, !isLoadingSavedOutfits, !isLoadingMoreSavedOutfits, savedErrorMessage == nil, let cursor = nextSavedCursor else { return }
+        let request = accountGeneration, userID = accountID, pageRequest = savedGeneration, revisions = savedStateRevisions
+        isLoadingMoreSavedOutfits = true; savedMoreError = nil
+        defer { if accountGeneration == request, savedGeneration == pageRequest { isLoadingMoreSavedOutfits = false } }
+        do {
+            let page = try await client.fetchSavedOutfits(cursor: cursor)
+            guard accountGeneration == request, accountID == userID, savedGeneration == pageRequest else { return }
+            guard !consumedSavedCursors.contains(cursor), savedReferenceIDs.isDisjoint(with: page.items.map(\.id)) else { throw UFitSavedOutfitContractError.page }
+            if let previous = lastSavedReference, let first = page.items.first {
+                guard first.savedAt < previous.savedAt || (first.savedAt == previous.savedAt && first.id < previous.id) else { throw UFitSavedOutfitContractError.page }
+            }
+            let resolved = try await resolveSavedOutfits(page.items, account: request, page: pageRequest)
+            guard accountGeneration == request, accountID == userID, savedGeneration == pageRequest else { return }
+            acceptSavedReferences(page.items, revisions: revisions)
+            let present = Set(savedOutfits.map(\.id))
+            savedOutfits.append(contentsOf: resolved.filter { !present.contains($0.id) && savedStates[$0.id] != .notSaved })
+            savedReferenceIDs.formUnion(page.items.map(\.id)); lastSavedReference = page.items.last ?? lastSavedReference
+            nextSavedCursor = page.nextCursor; consumedSavedCursors.insert(cursor)
+        } catch {
+            if !Task.isCancelled, !(error is CancellationError), accountGeneration == request, accountID == userID, savedGeneration == pageRequest {
+                savedMoreError = SavedCopy.moreUnavailable
+            }
+        }
+    }
+
+    private func resolveSavedOutfits(_ references: [UFitSavedReferencesDTO.Item], account: UUID, page: UUID) async throws -> [Outfit] {
+        var resolved: [Outfit] = []
+        for reference in references {
+            guard accountGeneration == account, savedGeneration == page else { throw CancellationError() }
+            let detail = try await client.fetchOutfitDetail(id: reference.id)
+            resolved.append(detail.toOutfit())
+        }
+        return resolved
+    }
+
+    private func acceptSavedReferences(_ references: [UFitSavedReferencesDTO.Item], revisions: [String: UUID]) {
+        for reference in references where revisions[reference.id] == savedStateRevisions[reference.id] {
+            let state = savedStates[reference.id] ?? .unknown
+            if case .unconfirmed = state { continue }
+            if !state.isBusy { savedStates[reference.id] = .saved; savedStateFailures.remove(reference.id) }
+        }
+    }
+
+    func loadSavedStates(ids: [String], force: Bool = false) async {
+        guard isAuthenticated else { return }
+        let identities = Set(ids).sorted().filter { id in
+            let state = savedStates[id] ?? .unknown
+            return !state.isBusy && (force || state.confirmedValue == nil)
+        }
+        guard !identities.isEmpty else { return }
+        let request = accountGeneration, userID = accountID, previous = savedStates
+        var revisions = [String: UUID]()
+        for id in identities {
+            let revision = UUID(); revisions[id] = revision; savedStateRevisions[id] = revision; savedStates[id] = .checking
+        }
+        for start in stride(from: .zero, to: identities.count, by: UFitSavedOutfitsHTTP.maximumIdentities) {
+            guard accountGeneration == request, accountID == userID else { return }
+            let batch = Array(identities[start..<min(start + UFitSavedOutfitsHTTP.maximumIdentities, identities.count)])
+            do {
+                let results = try await client.fetchSavedOutfitStates(ids: batch)
+                guard accountGeneration == request, accountID == userID else { return }
+                for result in results where savedStateRevisions[result.id] == revisions[result.id] {
+                    savedStates[result.id] = result.saved ? .saved : .notSaved
+                    savedStateFailures.remove(result.id)
+                    if !result.saved { savedOutfits.removeAll { $0.id == result.id } }
+                    if case .unconfirmed(let target)? = previous[result.id] {
+                        if result.saved, let outfit = outfits.first(where: { $0.id == result.id }), !savedOutfits.contains(where: { $0.id == result.id }) {
+                            savedOutfits.insert(outfit, at: .zero)
+                        }
+                        actionMessage = result.saved == target ? (target ? SavedCopy.saved : SavedCopy.removed) : (target ? SavedCopy.notApplied : SavedCopy.stillSaved)
+                    }
+                }
+            } catch {
+                guard accountGeneration == request, accountID == userID else { return }
+                for id in batch where savedStateRevisions[id] == revisions[id] {
+                    savedStates[id] = previous[id] ?? .unknown
+                    if !Task.isCancelled { savedStateFailures.insert(id) }
+                }
+            }
         }
     }
 
     func clearAccountData() {
         accountGeneration = UUID()
         savedOutfits = []
-        savedOutfitIDs = []
-        savingOutfitIDs = []
+        visibleSavedOutfitID = nil
+        savedStates = [:]; savedStateRevisions = [:]; savedStateFailures = []
+        savedGeneration = UUID(); nextSavedCursor = nil; consumedSavedCursors = []; savedReferenceIDs = []; lastSavedReference = nil
         hasLoadedSavedOutfits = false
         isLoadingSavedOutfits = false
-        savedErrorMessage = nil
+        savedErrorMessage = nil; isLoadingMoreSavedOutfits = false; savedMoreError = nil
         actionMessage = nil
     }
 
     func toggleSaved(outfit: Outfit) async {
-        guard !savingOutfitIDs.contains(outfit.id) else { return }
-        let request = accountGeneration, userID = session?.user?.id
-        savingOutfitIDs.insert(outfit.id)
-        defer { if accountGeneration == request { savingOutfitIDs.remove(outfit.id) } }
-        let wasSaved = savedOutfitIDs.contains(outfit.id)
-        if wasSaved {
-            savedOutfitIDs.remove(outfit.id)
-        } else {
-            savedOutfitIDs.insert(outfit.id)
-        }
-
+        guard isAuthenticated else { return }
+        let state = savedStates[outfit.id] ?? .unknown
+        guard !state.isBusy else { return }
+        actionMessage = nil
+        guard let wasSaved = state.confirmedValue else { await loadSavedStates(ids: [outfit.id], force: true); return }
+        let request = accountGeneration, userID = accountID, target = !wasSaved
+        invalidateSavedPagination()
+        savedStateRevisions[outfit.id] = UUID(); savedStates[outfit.id] = .updating(target)
         do {
-            if wasSaved {
-                _ = try await client.unsaveOutfit(id: outfit.id)
-            } else {
-                _ = try await client.saveOutfit(id: outfit.id)
-            }
-            guard accountGeneration == request, session?.user?.id == userID else { return }
-            if wasSaved { savedOutfits.removeAll { $0.id == outfit.id } }
-            else { savedOutfits.append(outfit) }
-            actionMessage = wasSaved ? SavedCopy.removed : SavedCopy.saved
+            try await client.setSavedOutfit(id: outfit.id, saved: target)
+            guard accountGeneration == request, accountID == userID else { return }
+            invalidateSavedPagination()
+            savedStates[outfit.id] = target ? .saved : .notSaved
+            savedOutfits.removeAll { $0.id == outfit.id }
+            if target { savedOutfits.insert(outfit, at: .zero) }
+            actionMessage = target ? SavedCopy.saved : SavedCopy.removed
         } catch {
-            guard accountGeneration == request, session?.user?.id == userID else { return }
-            if wasSaved {
-                savedOutfitIDs.insert(outfit.id)
-            } else {
-                savedOutfitIDs.remove(outfit.id)
-            }
-            actionMessage = friendlyMessage(for: error)
+            guard accountGeneration == request, accountID == userID else { return }
+            invalidateSavedPagination()
+            savedStates[outfit.id] = .unconfirmed(target)
+            await loadSavedStates(ids: [outfit.id], force: true)
         }
+        if accountGeneration == request, accountID == userID, !hasLoadedSavedOutfits {
+            await loadSavedOutfits()
+        }
+    }
+
+    private func invalidateSavedPagination() {
+        // A page read started before a write must not undo its visible result.
+        savedGeneration = UUID(); isLoadingSavedOutfits = false; isLoadingMoreSavedOutfits = false
     }
 
     private enum SavedCopy {
         static let removed = String(localized: "Tenue retirée des favoris.")
         static let saved = String(localized: "Tenue enregistrée.")
+        static let notApplied = String(localized: "La tenue n’a pas été enregistrée.")
+        static let stillSaved = String(localized: "La tenue est toujours dans vos favoris.")
+        static let verificationFailed = String(localized: "L’état des favoris n’a pas pu être vérifié. Touchez le marque-page pour vérifier à nouveau.")
+        static let moreUnavailable = String(localized: "La suite des favoris est indisponible.")
     }
 
     private func friendlyMessage(for error: Error) -> String {
