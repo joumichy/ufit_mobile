@@ -143,10 +143,12 @@ struct UFitAPIClient {
         try await send("GET", path: "me", requiresAuth: true)
     }
 
-    func fetchOutfitFeed(limit: Int = UFitOutfitPublicHTTP.defaultLimit, cursor: String? = nil, author: UFitPublicProfileReference? = nil) async throws -> UFitFeedResponseDTO {
+    func fetchOutfitFeed(limit: Int = UFitOutfitPublicHTTP.defaultLimit, cursor: String? = nil, author: UFitPublicProfileReference? = nil,
+                        discovery: UFitOutfitSearchCriteria? = nil) async throws -> UFitFeedResponseDTO {
         var query = [URLQueryItem(name: UFitOutfitPublicHTTP.limit, value: String(limit))]
         if let cursor { query.append(URLQueryItem(name: UFitOutfitPublicHTTP.cursor, value: cursor)) }
         if let author { query.append(URLQueryItem(name: author.kind == .creator ? UFitOutfitPublicHTTP.creator : UFitOutfitPublicHTTP.brand, value: author.id)) }
+        if let discovery { query.append(contentsOf: discovery.queryItems) }
         let page: UFitFeedResponseDTO
         do { page = try await send(UFitOutfitPublicHTTP.get, path: UFitOutfitPublicHTTP.root, query: query) }
         catch is DecodingError { throw UFitPublicProfileContractError.outfits }

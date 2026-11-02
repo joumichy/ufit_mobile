@@ -1,72 +1,91 @@
 import SwiftUI
 
 struct SearchOutfitsContentView: View {
-    let outfits: [Outfit]
-    let isLoading: Bool
-    let hasLoaded: Bool
-    let message: String?
-    let onRefresh: () async -> Void
+    @Bindable var store: UFitOutfitSearchStore
     let onOutfitTap: (Outfit) -> Void
-    @State private var query = String()
-    @State private var scope = SearchScope.all
-    private enum Copy {
-        static let title = String(localized: "Trouver une tenue")
-        static let subtitle = String(localized: "Dans les tenues de votre sélection.")
-        static let scope = String(localized: "Rechercher dans")
-        static let loading = String(localized: "Chargement des tenues")
-        static let failed = String(localized: "La sélection est indisponible")
-        static let empty = String(localized: "Aucune tenue disponible")
-        static let retry = String(localized: "Réessayer")
-        static let refresh = String(localized: "Actualiser")
-        static let unavailableIcon = "wifi.exclamationmark"
-        static let emptyIcon = "rectangle.stack"
-    }
-    private enum SearchScope: String, CaseIterable {
-        case all, creators, pieces
-        var title: String {
-            switch self { case .all: String(localized: "Tous les champs"); case .creators: String(localized: "Nom du créateur"); case .pieces: String(localized: "Nom des pièces") }
-        }
-        func values(_ outfit: Outfit) -> [String] {
-            switch self {
-            case .all: [outfit.title, outfit.creator, outfit.description] + outfit.products.map(\.name) + outfit.pieces.map(\.name)
-            case .creators: [outfit.creator]
-            case .pieces: outfit.products.map(\.name) + outfit.pieces.map(\.name)
-            }
-        }
-    }
-    private var filteredOutfits: [Outfit] {
-        let search = query.trimmingCharacters(in: .whitespacesAndNewlines)
-        return outfits.filter { search.isEmpty || scope.values($0).contains { $0.localizedStandardContains(search) } }
-    }
+    @State private var showingFilters = false
+    private typealias Copy = UFitOutfitSearchCopy
     var body: some View {
         VStack(spacing: .zero) {
-            RootScreenHeader(title: Copy.title, subtitle: Copy.subtitle)
-            ScrollView {
-                VStack(alignment: .leading, spacing: UFitSpace.lg) {
-                    SearchField(query: $query)
-                    UFitChoiceBar(title: Copy.scope, selection: $scope, options: SearchScope.allCases.map { .init(value: $0, title: $0.title) }).padding(.horizontal, UFitSpace.page)
-                    if let message, !outfits.isEmpty {
-                        UFitNotice(message: message, kind: .error).padding(.horizontal, UFitSpace.page)
-                        UFitActionButton(title: Copy.retry, kind: .secondary, action: refresh).padding(.horizontal, UFitSpace.page)
+            HStack(spacing: .zero) {
+                RootScreenHeader(title: Copy.title)
+                UFitButton { Task { await store.search() } } label: {
+                    if store.isLoading { UFitLoading() } else { UFitIcon(systemName: Copy.refreshIcon) }
+                }.ufitButtonStyle(.text).frame(minWidth: UFitControlSize.touch, minHeight: UFitControlSize.touch)
+                    .disabled(store.isLoading).accessibilityLabel(Copy.refresh).padding(.trailing, UFitSpace.page)
+            }
+            VStack(alignment: .leading, spacing: UFitSpace.md) {
+                UFitSearchField(query: $store.criteria.query, prompt: Copy.prompt)
+                UFitChoiceBar(title: Copy.scope, selection: $store.criteria.scope,
+                    options: UFitOutfitSearchScope.allCases.map { .init(value: $0, title: $0.title) })
+                HStack(spacing: UFitSpace.md) {
+                    UFitButton { showingFilters = true } label: {
+                        HStack(spacing: UFitSpace.xs) { UFitIcon(systemName: Copy.filterIcon); Text(Copy.filters) }
+                    }.ufitButtonStyle(.secondary, compact: true).disabled(store.options == nil)
+                    if store.isLoadingOptions { UFitLoading(Copy.loadingOptions) }
+                    else if !store.filterSummary.isEmpty {
+                        Text(store.filterSummary).font(UFitTypography.subheadline).foregroundStyle(Color.ufitSecondaryText)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
-                    if outfits.isEmpty {
-                        if isLoading || (!hasLoaded && message == nil) { UFitLoading(Copy.loading).frame(maxWidth: .infinity) }
-                        else if let message {
-                            UFitEmptyState(title: Copy.failed, message: message, symbol: Copy.unavailableIcon,
-                                actionTitle: Copy.retry, action: refresh)
+                    Spacer(minLength: .zero)
+                }
+                if let error = store.optionsError {
+                    UFitNotice(message: error, kind: .error)
+                    UFitButton(Copy.retryOptions) { Task { await store.loadOptions() } }.ufitButtonStyle(.text)
+                }
+                if let message = store.message, !store.outfits.isEmpty {
+                    UFitNotice(message: message, kind: .error)
+                    UFitActionButton(title: Copy.retry, kind: .secondary, action: refresh)
+                }
+            }.padding(.horizontal, UFitSpace.page).padding(.bottom, UFitSpace.md)
+            ScrollViewReader { scroll in
+                ScrollView {
+                    VStack(alignment: .leading, spacing: UFitSpace.md) {
+                        if store.outfits.isEmpty {
+                            if store.isLoading || (!store.hasLoaded && store.message == nil) {
+                                UFitLoading(Copy.loading).frame(maxWidth: .infinity)
+                            } else if store.isQueryTooLong {
+                                UFitEmptyState(title: Copy.queryTooLongTitle, message: Copy.queryTooLong, symbol: Copy.searchIcon)
+                            } else if let message = store.message {
+                                UFitEmptyState(title: Copy.failed, message: message, symbol: Copy.errorIcon,
+                                    actionTitle: Copy.retry, action: refresh)
+                            } else {
+                                UFitEmptyState(title: store.criteria.isRefined ? Copy.empty : Copy.noOutfits,
+                                    message: store.criteria.isRefined ? Copy.emptyMessage : nil, symbol: Copy.searchIcon,
+                                    actionTitle: store.criteria.isRefined ? Copy.clear : Copy.refresh,
+                                    action: { if store.criteria.isRefined { store.criteria = .init() } else { refresh() } })
+                            }
                         } else {
-                            UFitEmptyState(title: Copy.empty, symbol: Copy.emptyIcon, actionTitle: Copy.refresh, action: refresh)
+                            LazyVStack(spacing: UFitSpace.md) {
+                                ForEach(store.outfits) { outfit in
+                                    UFitButton { onOutfitTap(outfit) } label: { SavedOutfitRow(outfit: outfit) }.ufitButtonStyle(.text)
+                                }
+                            }.scrollTargetLayout()
                         }
-                    }
-                    else if filteredOutfits.isEmpty { EmptySearchState().padding(.horizontal, UFitSpace.page) }
-                    else {
-                        LazyVStack(spacing: UFitSpace.md) {
-                            ForEach(filteredOutfits) { outfit in UFitButton { onOutfitTap(outfit) } label: { SavedOutfitRow(outfit: outfit) }.ufitButtonStyle(.text) }
-                        }.padding(.horizontal, UFitSpace.page)
-                    }
-                }.padding(.bottom, UFitSpace.xl)
-            }.scrollDismissesKeyboard(.interactively).scrollIndicators(.hidden).ufitRefreshable { await onRefresh() }
+                        if !store.isLoading, store.message == nil, store.hasMore || store.moreError != nil || store.isLoadingMore {
+                            VStack(spacing: UFitSpace.md) {
+                                if store.isLoadingMore { UFitLoading(Copy.loadingMore).frame(maxWidth: .infinity) }
+                                else {
+                                    if let message = store.moreError { UFitNotice(message: message, kind: .error) }
+                                    UFitActionButton(title: store.moreError == nil ? Copy.more : Copy.retryMore, kind: .secondary,
+                                        action: { Task { await store.more() } })
+                                }
+                            }.id(Copy.moreAnchor)
+                        }
+                    }.padding(UFitSpace.page)
+                }.scrollPosition(id: $store.visibleOutfitID).scrollDismissesKeyboard(.interactively).scrollIndicators(.hidden)
+                    .ufitRefreshable { await store.search() }
+                    .onChange(of: store.moreError) { _, error in if error != nil { scroll.scrollTo(Copy.moreAnchor, anchor: .bottom) } }
+            }
         }.foregroundStyle(Color.ufitInk).background(Color.ufitCanvas)
+            .ufitSheet(isPresented: $showingFilters) {
+                if let options = store.options {
+                    UFitOutfitFiltersContent(initial: store.criteria, options: options,
+                        onApply: { store.criteria = $0; showingFilters = false }, onClose: { showingFilters = false })
+                }
+            }
+            .task(id: store.criteria) { await store.loadIfNeeded() }
+            .task { if store.options == nil { await store.loadOptions() } }
     }
-    private func refresh() { Task { await onRefresh() } }
+    private func refresh() { Task { await store.search() } }
 }

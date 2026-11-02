@@ -1,0 +1,34 @@
+import Foundation
+
+enum UFitOutfitSearchCopy {
+    static let title = String(localized: "Trouver une tenue")
+    static let prompt = String(localized: "Tenue, créateur, marque ou pièce")
+    static let scope = String(localized: "Rechercher dans")
+    static let filters = String(localized: "Affiner")
+    static let apply = String(localized: "Voir les tenues")
+    static let reset = String(localized: "Effacer les filtres")
+    static let clear = String(localized: "Effacer les critères")
+    static let allStyles = String(localized: "Tous les styles")
+    static let allOccasions = String(localized: "Toutes les occasions")
+    static let allPieces = String(localized: "Toutes les pièces")
+    static let pieceType = String(localized: "Type de pièce")
+    static let loading = String(localized: "Recherche des tenues")
+    static let loadingOptions = String(localized: "Chargement des filtres")
+    static let failed = String(localized: "Recherche indisponible")
+    static let failedMessage = String(localized: "Les tenues n’ont pas pu être chargées. Vos critères sont conservés.")
+    static let optionsFailed = String(localized: "Les filtres n’ont pas pu être chargés. La recherche par nom reste disponible.")
+    static let queryTooLong = String(localized: "Limitez votre recherche à 120 caractères.")
+    static let queryTooLongTitle = String(localized: "Recherche trop longue")
+    static let empty = String(localized: "Aucune tenue trouvée")
+    static let emptyMessage = String(localized: "Essayez un autre nom ou ajustez vos filtres.")
+    static let noOutfits = String(localized: "Aucune tenue disponible")
+    static let retry = String(localized: "Réessayer")
+    static let retryOptions = String(localized: "Recharger les filtres")
+    static let refresh = String(localized: "Actualiser")
+    static let more = String(localized: "Voir la suite")
+    static let retryMore = String(localized: "Réessayer la suite")
+    static let loadingMore = String(localized: "Chargement de la suite")
+    static let moreFailed = String(localized: "La suite n’a pas pu être chargée. Les tenues déjà affichées restent disponibles.")
+    static let searchIcon = "magnifyingglass", errorIcon = "wifi.exclamationmark", filterIcon = "slider.horizontal.3"
+    static let refreshIcon = "arrow.clockwise", moreAnchor = "outfit-search-more"
+}

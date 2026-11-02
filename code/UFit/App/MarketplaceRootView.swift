@@ -9,6 +9,7 @@ struct MarketplaceRootView: View {
     @State private var accountDeletion: UFitAccountDeletionStore
     @State private var showAccountDeletion = false
     @State private var store: MarketplaceStore
+    @State private var outfitSearch: UFitOutfitSearchStore
     @State private var cart: UFitCartStore
     @State private var orders: UFitOrdersStore
     @State private var workspaces: UFitWorkspacesStore
@@ -32,6 +33,7 @@ struct MarketplaceRootView: View {
         _accountDeletion = State(initialValue: UFitAccountDeletionStore(session: session))
         _notificationOpening = State(initialValue: UFitNotificationOpeningStore(session: session))
         _store = State(initialValue: MarketplaceStore.live(client: session.api, session: session))
+        _outfitSearch = State(initialValue: UFitOutfitSearchStore(client: session.api))
         _cart = State(initialValue: UFitCartStore(client: session.api, session: session))
         _orders = State(initialValue: UFitOrdersStore(client: session.api, session: session))
         let workspaces = UFitWorkspacesStore(client: session.api, session: session)
@@ -149,7 +151,7 @@ struct MarketplaceRootView: View {
                 onSignIn: { requestSignIn(keepCustomerContext: true) }
             )
         case .search:
-            SearchOutfitsView(store: store, onOutfitTap: showOutfitDetail)
+            SearchOutfitsContentView(store: outfitSearch, onOutfitTap: showOutfitDetail)
         case .professionalHome:
             professionalHome
         case .professionalProfile:
@@ -856,16 +858,6 @@ private enum AppRoute {
     case orders
     case order(UFitOrderDetailStore)
     case publicProfile(UFitPublicProfileStore)
-}
-
-private struct SearchOutfitsView: View {
-    let store: MarketplaceStore
-    let onOutfitTap: (Outfit) -> Void
-    var body: some View {
-        SearchOutfitsContentView(outfits: store.outfits, isLoading: store.isLoadingFeed, hasLoaded: store.hasLoadedFeed,
-            message: store.feedErrorMessage, onRefresh: { await store.refreshFeed() }, onOutfitTap: onOutfitTap)
-            .task { await store.loadFeedIfNeeded() }
-    }
 }
 
 #Preview {
