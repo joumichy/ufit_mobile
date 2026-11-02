@@ -84,9 +84,11 @@ struct UFitPublicProfileContent: View {
     private func header(_ profile: UFitPublicProfilePresentation) -> some View {
         HStack(alignment: .top, spacing: Layout.gap) {
             Group {
-                if let avatar = profile.avatarURL { FashionImage(source: avatar) }
+                if let avatar = profile.avatarURL {
+                    UFitProfilePhoto(source: avatar, size: Layout.avatar, isLogo: profile.reference.kind == .brand, onRetry: onRefresh)
+                }
                 else { Text(profile.initials).ufitFont(size: Layout.initial, weight: .medium).frame(maxWidth: .infinity, maxHeight: .infinity).background(Color.ufitSecondary) }
-            }.frame(width: Layout.avatar, height: Layout.avatar).clipShape(Circle()).accessibilityHidden(true)
+            }.frame(width: Layout.avatar, height: Layout.avatar).clipShape(RoundedRectangle(cornerRadius: profile.reference.kind == .brand ? UFitRadius.field : Layout.avatar))
             VStack(alignment: .leading, spacing: Layout.small) {
                 Text(profile.reference.kind == .creator ? Copy.creator : Copy.brand).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText)
                 Text(profile.name).ufitFont(size: Layout.title, design: .serif).fixedSize(horizontal: false, vertical: true)

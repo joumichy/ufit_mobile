@@ -32,6 +32,10 @@ struct UFitManagedProfileHost: View {
     var body: some View {
         UFitManagedProfileContent(isCreator: store.document.isCreator, draft: $store.draft, errors: store.errors,
             isBusy: store.isBusy, hasChanges: store.hasChanges, message: store.message, onBack: onBack,
-            onSave: { Task { await store.save() } })
+            onSave: { Task { await store.save() } }, photoContent: profilePhoto)
+    }
+    private var profilePhoto: AnyView {
+        if let image = store.imageStore { return AnyView(UFitProfileImageHost(store: image)) }
+        return AnyView(UFitFieldError(message: UFitPhotoError.invalidResponse.localizedDescription))
     }
 }

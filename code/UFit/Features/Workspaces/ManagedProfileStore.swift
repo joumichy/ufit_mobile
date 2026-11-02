@@ -3,6 +3,7 @@ import Observation
 
 @MainActor @Observable
 final class UFitManagedProfileStore {
+    let imageStore: UFitProfileImageStore?
     private(set) var document: UFitManagedProfileDocument
     var draft: UFitManagedProfileDraft {
         didSet { if !isBusy { message = nil; errors = [:] } }
@@ -27,6 +28,7 @@ final class UFitManagedProfileStore {
         static let success = String(localized: "Profil enregistré.")
     }
     init(document: UFitManagedProfileDocument, client: UFitAPIClient, session: UFitSessionStore) {
+        imageStore = UUID(uuidString: document.id).map { UFitProfileImageStore(scope: .init(kind: document.isCreator ? .creator : .brand, ownerID: $0), session: session) }
         self.document = document; self.draft = document.draft; self.client = client; self.session = session; ownerUserID = session.user?.id
     }
     var hasChanges: Bool { draft != document.draft }

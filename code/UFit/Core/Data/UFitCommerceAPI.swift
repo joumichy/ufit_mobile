@@ -15,6 +15,7 @@ private enum CommerceHTTP {
 struct UFitPublicBrandDTO: Decodable {
     struct Stats: Decodable { let publishedOutfits: Int; let activeProducts: Int }
     let id: String
+    @UFitRequiredNullable var logoUrl: String?
     let brandName: String
     let slug: String
     let bio: String?

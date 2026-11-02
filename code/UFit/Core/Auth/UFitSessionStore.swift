@@ -34,7 +34,6 @@ struct UFitCurrentUser: Decodable, Identifiable {
     let id: String
     let email: String
     let displayName: String?
-    let avatarUrl: String?
     let status: String
     let roles: [UFitUserRole]
     var canAdminister: Bool { roles.contains(.admin) || roles.contains(.superAdmin) }

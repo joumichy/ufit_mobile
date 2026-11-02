@@ -13,6 +13,7 @@ struct UFitAccountView: View {
     var onNotifications: (() -> Void)?
     var onDeleteAccount: (() -> Void)?
     var onBack: (() -> Void)?
+    var photoHeader: AnyView? = nil
     @State private var editing = false
     @State private var editedName = String()
     private enum Copy {
@@ -47,12 +48,14 @@ struct UFitAccountView: View {
             ScrollView {
             VStack(alignment: .leading, spacing: Layout.spacing) {
                 if onBack == nil { Text(Copy.title).ufitFont(size: Layout.title, weight: .regular, design: .serif) }
-                HStack(spacing: Layout.spacing) {
+                if let photoHeader { photoHeader }
+                else { HStack(spacing: Layout.spacing) {
                     UFitIcon(systemName: Copy.person).ufitFont(size: Layout.portrait, weight: .ultraLight)
                     VStack(alignment: .leading) {
                         if !name.isEmpty { Text(name).font(UFitTypography.title3.weight(.semibold)) }
                         Text(email).font(UFitTypography.subheadline).foregroundStyle(Color.ufitSecondaryText)
                     }
+                }
                 }
                 if editing {
                     VStack(alignment: .leading, spacing: Layout.spacing) {

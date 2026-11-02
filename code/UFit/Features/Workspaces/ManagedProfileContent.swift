@@ -10,6 +10,7 @@ struct UFitManagedProfileContent: View {
     let message: String?
     let onBack: () -> Void
     let onSave: () -> Void
+    var photoContent: AnyView? = nil
     private enum Copy {
         static let separator = " "
         static let discardTitle = String(localized: "Abandonner les modifications ?")
@@ -46,6 +47,7 @@ struct UFitManagedProfileContent: View {
                 VStack(alignment: .leading, spacing: Layout.page) {
                     Text(isCreator ? Copy.creator : Copy.brand).ufitFont(size: Layout.title, design: .serif)
                     if !draft.status.canEdit { Text(Copy.suspended).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
+                    if let photoContent { photoContent }
                     field(isCreator ? Copy.creatorName : Copy.brandName, text: $draft.name, error: errors[.name])
                     UFitMultilineField(label: Copy.bio, text: $draft.bio, error: errors[.bio])
                     if !isCreator { field(Copy.website, text: $draft.website, error: errors[.website], isURL: true) }

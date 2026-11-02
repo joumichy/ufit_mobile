@@ -51,9 +51,10 @@ extension UFitAPIClient {
                 let value = try await fetchPublicBrand(id: reference.id)
                 guard value.id == reference.id, !value.brandName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, !value.slug.isEmpty,
                       value.stats.publishedOutfits >= .zero, value.stats.activeProducts >= .zero else { throw UFitPublicProfileContractError.profile }
+                _ = try publicProfileURL(value.logoUrl)
                 let website = try publicProfileURL(value.websiteUrl)
                 let links = website.map { [UFitPublicProfileLink(id: PublicProfileLinkKind.website, label: PublicProfileLinkKind.label, destination: $0)] } ?? []
-                return .init(reference: reference, name: value.brandName, slug: value.slug, bio: value.bio, avatarURL: nil, grade: nil,
+                return .init(reference: reference, name: value.brandName, slug: value.slug, bio: value.bio, avatarURL: value.logoUrl, grade: nil,
                     stats: [.init(id: .outfits, value: value.stats.publishedOutfits), .init(id: .products, value: value.stats.activeProducts)], links: links)
             }
         } catch is DecodingError { throw UFitPublicProfileContractError.profile }
