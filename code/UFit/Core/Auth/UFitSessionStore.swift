@@ -67,8 +67,10 @@ final class UFitSessionStore {
     @ObservationIgnored private var profileRequest = UUID()
     @ObservationIgnored private var observedAuthIdentity: UFitAuthSessionIdentity?
     @ObservationIgnored private var profileIdentity: UFitAuthSessionIdentity?
+    @ObservationIgnored private var deletedAuthSubject: UUID?
     @ObservationIgnored lazy var deviceNotifications = UFitNotificationDeviceStore(session: self)
     private var authIdentity: UFitAuthSessionIdentity? { UFitAuthSessionIdentity(auth?.auth.currentSession) }
+    var accountDeletionSubject: UUID? { authIdentity?.subject }
     var notificationContext: UFitNotificationAccountContext? {
         guard isSignedIn, !isRestoring, let user, profileIdentity == authIdentity,
               let sessionID = authIdentity?.sessionID, UFitInstallationHTTP.identifier(user.id) else { return nil }
@@ -98,7 +100,7 @@ final class UFitSessionStore {
                     self.profileRequest = UUID(); self.user = nil; self.profileIdentity = nil
                     self.observedAuthIdentity = identity
                 }
-                self.isSignedIn = session != nil
+                self.isSignedIn = session != nil && identity?.subject != self.deletedAuthSubject
                 if session == nil { self.deviceNotifications.prepareForAuthentication(); self.user = nil; self.profileIdentity = nil }
                 else if self.user == nil || event == .userUpdated { await self.reloadProfile() }
                 self.isRestoring = false
@@ -184,11 +186,22 @@ final class UFitSessionStore {
         }
     }
 
+    func closeDeletedAccount(subject: UUID) async {
+        guard authIdentity?.subject == subject else { return }
+        deletedAuthSubject = subject
+        prepareAuthenticationTransition()
+        isSignedIn = false; needsNewPassword = false; message = nil
+        // The SDK removes its persisted local session before its network logout.
+        // Server revocation remains the deletion worker's responsibility.
+        try? await auth?.auth.signOut(scope: .local)
+    }
+
     private func prepareAuthenticationTransition() {
         deviceNotifications.prepareForAuthentication()
         profileRequest = UUID(); profileIdentity = nil; user = nil
     }
     func reloadProfile() async {
+        guard authIdentity?.subject != deletedAuthSubject || deletedAuthSubject == nil else { return }
         let expected = authIdentity, request = UUID(); profileRequest = request
         do {
             let current = try await api.fetchCurrentUser()

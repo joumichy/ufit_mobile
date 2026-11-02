@@ -6,6 +6,8 @@ struct MarketplaceRootView: View {
     @State private var waitsForNotificationExperience = false
     @State private var notificationOpening: UFitNotificationOpeningStore
     @State private var session: UFitSessionStore
+    @State private var accountDeletion: UFitAccountDeletionStore
+    @State private var showAccountDeletion = false
     @State private var store: MarketplaceStore
     @State private var cart: UFitCartStore
     @State private var orders: UFitOrdersStore
@@ -27,6 +29,7 @@ struct MarketplaceRootView: View {
         self.notifications = notifications
         let session = UFitSessionStore()
         _session = State(initialValue: session)
+        _accountDeletion = State(initialValue: UFitAccountDeletionStore(session: session))
         _notificationOpening = State(initialValue: UFitNotificationOpeningStore(session: session))
         _store = State(initialValue: MarketplaceStore.live(client: session.api, session: session))
         _cart = State(initialValue: UFitCartStore(client: session.api, session: session))
@@ -56,18 +59,29 @@ struct MarketplaceRootView: View {
             }
         }
         .preferredColorScheme(.light)
+        .safeAreaInset(edge: .top, spacing: .zero) {
+            if accountDeletion.hasRequest && !showAccountDeletion {
+                UFitButton(UFitAccountDeletionCopy.follow) { showAccountDeletion = true }
+                    .ufitButtonStyle(.secondary).padding(UFitSpace.sm).background(Color.ufitCanvas)
+            }
+        }
         .task {
             session.deviceNotifications.connect(notifications); session.start(); receiveNotificationTap()
+            await accountDeletion.restore()
+            if accountDeletion.hasRequest { showAccountDeletion = true }
             if notificationOpening.hasPending { beginNotificationOpening() }
         }
         .onChange(of: notifications.pendingNotificationID) { _, _ in receiveNotificationTap() }
-        .onChange(of: session.isRestoring) { _, restoring in if !restoring { resolveNotification() } }
+        .onChange(of: session.isRestoring) { _, restoring in
+            if !restoring { resolveNotification(); Task { await accountDeletion.reconcileSession() } }
+        }
         .onOpenURL { url in
             if notificationOpening.accept(url) { beginNotificationOpening(); return }
             if case .connect(let connect) = activeRoute { Task { await connect.handleCallback(url) } }
             if !StripeAPI.handleURLCallback(with: url), url.host == "auth" { Task { await session.handle(url) } }
         }
         .onChange(of: session.user?.id) { previousUserID, userID in
+            Task { await accountDeletion.reconcileSession() }
             notificationOpening.accountChanged(previous: previousUserID, current: userID)
             store.clearAccountData()
             cart.reset()
@@ -112,6 +126,9 @@ struct MarketplaceRootView: View {
             UFitAuthenticationHost(session: session, onBrowse: dismissAuthentication)
         }
         .ufitSheet(isPresented: $showExperienceChooser, onDismiss: experience.dismissChoiceRequest) { experienceChooser }
+        .ufitSheet(isPresented: $showAccountDeletion) {
+            UFitAccountDeletionContent(store: accountDeletion, onClose: { showAccountDeletion = false })
+        }
     }
 
     @ViewBuilder
@@ -193,6 +210,7 @@ struct MarketplaceRootView: View {
                 onApplications: experience.kind == .administrator ? nil : showApplications,
                 onChooseExperience: experience.canChooseAnotherExperience ? showExperiencePicker : nil,
                 onNotifications: showNotificationPreferences,
+                onDeleteAccount: { showAccountDeletion = true },
                 onBack: routeHistory.isEmpty ? nil : goBack)
         case .notificationPreferences(let preferences):
             UFitNotificationPreferencesHost(store: preferences, device: session.deviceNotifications, onBack: goBack)

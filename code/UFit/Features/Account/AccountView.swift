@@ -11,6 +11,7 @@ struct UFitAccountView: View {
     var onApplications: (() -> Void)?
     var onChooseExperience: (() -> Void)?
     var onNotifications: (() -> Void)?
+    var onDeleteAccount: (() -> Void)?
     var onBack: (() -> Void)?
     @State private var editing = false
     @State private var editedName = String()
@@ -69,6 +70,10 @@ struct UFitAccountView: View {
                 if let onNotifications { UFitButton(action: onNotifications) { Label(UFitNotificationPreferencesCopy.title, systemImage: Copy.notificationsIcon) }.frame(minHeight: Layout.touch) }
                 if let onChooseExperience { UFitButton(action: onChooseExperience) { Label(Copy.choose, systemImage: Copy.chooseIcon) }.frame(minHeight: Layout.touch) }
                 UFitButton(action: onSignOut) { Label(Copy.signOut, systemImage: Copy.exitIcon) }.disabled(isBusy)
+                if let onDeleteAccount {
+                    Divider()
+                    UFitButton(UFitAccountDeletionCopy.title, role: .destructive, action: onDeleteAccount).disabled(isBusy)
+                }
             }
             .padding(Layout.spacing)
             .padding(.bottom, UFitSpace.xl)
