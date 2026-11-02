@@ -5,7 +5,9 @@ struct UFitDisclosure<Content: View>: View {
     let content: Content
     @State private var expanded = false
     private enum Icon { static var down: String { "chevron.down" }; static var up: String { "chevron.up" } }
-    init(_ title: String, @ViewBuilder content: () -> Content) { self.title = title; self.content = content() }
+    init(_ title: String, initiallyExpanded: Bool = false, @ViewBuilder content: () -> Content) {
+        self.title = title; self.content = content(); _expanded = State(initialValue: initiallyExpanded)
+    }
     var body: some View {
         VStack(alignment: .leading, spacing: UFitSpace.xs) {
             UFitButton { expanded.toggle() } label: {

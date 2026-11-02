@@ -40,9 +40,7 @@ struct OutfitFeedCard: View {
         static let overlayOpacity = 0.72
         static let avatarOpacity = 0.18
         static let unavailableOpacity = 0.4; static let availableOpacity = 1.0
-        static let ribbonWidth: CGFloat = 50; static let ribbonHeight: CGFloat = 320; static let ribbonBottom: CGFloat = 190
-        static let ribbonGap: CGFloat = 11;
-        static let referenceImage: CGFloat = 92
+        static let ribbonBottom: CGFloat = 190
         static let titleLines = 3
         static let dotsBottom: CGFloat = UFitSpace.xs; static let step = 1
     }
@@ -91,15 +89,7 @@ struct OutfitFeedCard: View {
                 }
                 ScrollView {
                     VStack(alignment: .leading, spacing: Layout.captionSpacing) {
-                        if typeSize.isAccessibilitySize {
-                            if let image = item.image { FashionImage(source: image).frame(width: Layout.referenceImage, height: Layout.referenceImage).clipped() }
-                            referenceInformation(item)
-                        } else {
-                            HStack(spacing: Layout.spacing) {
-                                if let image = item.image { FashionImage(source: image).frame(width: Layout.referenceImage, height: Layout.referenceImage).clipped() }
-                                referenceInformation(item)
-                            }
-                        }
+                        UFitOutfitReferenceContent(item: item)
                         UFitButton { pendingArticleID = item.id; selectedReference = nil } label: { Text(item.productID == nil ? Copy.piece : Copy.article).frame(maxWidth: .infinity) }.ufitButtonStyle(.primary)
                     }
                 }
@@ -107,14 +97,6 @@ struct OutfitFeedCard: View {
             }.padding(Layout.horizontal).foregroundStyle(Color.ufitInk).tint(Color.ufitInk)
                 .presentationDetents(typeSize.isAccessibilitySize ? [.large] : [.medium, .large]).presentationDragIndicator(.hidden)
         }
-    }
-
-    private func referenceInformation(_ item: OutfitProduct) -> some View {
-        VStack(alignment: .leading, spacing: Layout.captionSpacing) {
-            if let brand = item.brandName { Text(brand).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText) }
-            Text(item.name).font(UFitTypography.title2)
-            if let price = item.price { Text(price).font(UFitTypography.subheadline) }
-        }.frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var captionInformation: some View {
@@ -146,22 +128,8 @@ struct OutfitFeedCard: View {
         pendingArticleID = nil
         onItemTap(id)
     }
-    private func selectReference(_ id: String) {
-        selectedReference = outfit.products.first(where: { $0.id == id })
-    }
     private var ribbon: some View {
-        let count = max(outfit.products.count, Layout.step)
-        let height = min(CGFloat(count) * Layout.ribbonWidth + CGFloat(count - Layout.step) * Layout.ribbonGap, Layout.ribbonHeight)
-        return ScrollView(.vertical) {
-            VStack(spacing: Layout.ribbonGap) {
-                ForEach(outfit.products) { item in
-                    UFitButton { selectReference(item.id) } label: {
-                        UFitOutfitItemIcon(symbol: item.systemImage).frame(width: Layout.ribbonWidth, height: Layout.ribbonWidth)
-                            .background(.white.opacity(Layout.avatarOpacity), in: Circle()).accessibilityLabel(item.name)
-                    }.ufitButtonStyle(.text)
-                }
-            }
-        }.scrollIndicators(.hidden).frame(width: Layout.ribbonWidth, height: height).foregroundStyle(.white)
+        UFitOutfitPiecesRibbon(items: outfit.products, onSelect: { selectedReference = $0 })
     }
     private var photoSelection: Binding<String?> {
         Binding(get: { selectedPhoto?.id }, set: { selectedPhotoID = $0 })

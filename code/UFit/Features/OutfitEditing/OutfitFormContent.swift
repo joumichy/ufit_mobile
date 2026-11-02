@@ -19,6 +19,7 @@ struct UFitOutfitFormContent: View {
     var renewPhotoSource: ((UUID) async throws -> String)? = nil
     @State private var confirmingDiscard = false
     @State private var editingPhotoID: UUID?
+    @State private var showingPreview = false
     private enum Copy {
         static let new = String(localized: "Nouvelle tenue"); static let edit = String(localized: "Modifier la tenue")
         static let title = String(localized: "Titre de la tenue"); static let description = String(localized: "Description de la tenue")
@@ -28,6 +29,7 @@ struct UFitOutfitFormContent: View {
         static let save = String(localized: "Enregistrer le brouillon"); static let saving = String(localized: "Enregistrement de la tenue")
         static let changesPublication = String(localized: "Ces modifications remettront la tenue en brouillon. Elle sera masquée jusqu’à sa prochaine validation.")
         static let discardTitle = String(localized: "Abandonner les modifications ?"); static let discard = String(localized: "Abandonner"); static let keep = String(localized: "Continuer la saisie")
+        static let preview = String(localized: "Aperçu client")
     }
     private enum Layout {
         static let page: CGFloat = UFitSpace.xl; static let gap: CGFloat = UFitSpace.md; static let small: CGFloat = UFitSpace.xs; static let touch: CGFloat = UFitControlSize.touch; static let radius: CGFloat = UFitRadius.field
@@ -35,7 +37,9 @@ struct UFitOutfitFormContent: View {
     }
     var body: some View {
         VStack(spacing: .zero) {
-            DetailHeader(title: isNew ? Copy.new : Copy.edit, onBack: { if hasChanges { confirmingDiscard = true } else { onBack() } }).disabled(isBusy)
+            DetailHeader(title: isNew ? Copy.new : Copy.edit, onBack: { if hasChanges { confirmingDiscard = true } else { onBack() } }) {
+                UFitButton(Copy.preview) { showingPreview = true }.ufitButtonStyle(.text)
+            }.disabled(isBusy)
             ScrollView {
                 VStack(alignment: .leading, spacing: Layout.page) {
                     UFitOutfitPhotosContent(photos: $draft.photos, error: errors[.photos], onAdd: onAddPhotos, onRetry: onRetryPhoto, onRemove: onRemovePhoto, onPins: { editingPhotoID = $0 })
@@ -82,6 +86,10 @@ struct UFitOutfitFormContent: View {
                     UFitOutfitPinsContent(photo: $draft.photos[index], pieces: draft.pieces, onClose: { editingPhotoID = nil },
                         renewSource: renewPhotoSource.map { renew in { () async throws -> String in try await renew(id) } })
                 }
+            }
+            .ufitSheet(isPresented: $showingPreview) {
+                UFitOutfitAuthoringPreviewContent(draft: draft, onClose: { showingPreview = false }, renewPhotoSource: renewPhotoSource)
+                    .presentationDetents([.large])
             }
             .ufitConfirmationDialog(Copy.discardTitle, isPresented: $confirmingDiscard, titleVisibility: .visible) {
                 UFitButton(Copy.discard, role: .destructive, action: onBack)

@@ -11,11 +11,14 @@ struct UFitOutfitPiecesContent: View {
         static let type = String(localized: "Type de pièce"); static let required = String(localized: "Essentielle à cette tenue")
         static let note = String(localized: "Note de style (facultatif)"); static let replace = String(localized: "Remplacer par une inspiration")
         static let notForSale = String(localized: "Inspiration · non vendue sur Ufit")
+        static let unnamed = String(localized: "Pièce d’inspiration à nommer")
+        static let optional = String(localized: "Pièce facultative")
+        static func settings(_ name: String) -> String { String(localized: "Réglages · \(name)") }
         static let unavailable = String(localized: "Produit indisponible")
         static let up = String(localized: "Déplacer la pièce avant"); static let down = String(localized: "Déplacer la pièce après"); static let remove = String(localized: "Retirer la pièce")
     }
     private enum Layout { static let gap: CGFloat = UFitSpace.md; static let small: CGFloat = UFitSpace.xs; static let touch: CGFloat = UFitControlSize.touch; static let thumbnail: CGFloat = 68; static let radius: CGFloat = UFitRadius.field }
-    private enum Icon { static let up = "arrow.up"; static let down = "arrow.down"; static let photo = "tshirt" }
+    private enum Icon { static let up = "arrow.up"; static let down = "arrow.down" }
     var body: some View {
         VStack(alignment: .leading, spacing: Layout.gap) {
             Text(Copy.title).font(UFitTypography.title2.weight(.medium)).accessibilityAddTraits(.isHeader)
@@ -52,35 +55,49 @@ struct UFitOutfitPiecesContent: View {
         let onBefore: () -> Void
         let onAfter: () -> Void
         let onRemove: () -> Void
+        private var title: String {
+            let value = UFitOutfitInput.trimmed(piece.title)
+            return value.isEmpty ? Copy.unnamed : value
+        }
         var body: some View {
             VStack(alignment: .leading, spacing: Layout.gap) {
-                if let product = piece.product {
-                    HStack(spacing: Layout.gap) {
-                        Group {
-                            if let source = product.image { FashionImage(source: source) }
-                            else { Rectangle().fill(Color.ufitCanvas).overlay { UFitIcon(systemName: Icon.photo) } }
-                        }.frame(width: Layout.thumbnail, height: Layout.thumbnail).clipShape(RoundedRectangle(cornerRadius: Layout.radius))
-                        VStack(alignment: .leading, spacing: Layout.small) {
-                            Text(product.name).font(UFitTypography.headline)
+                HStack(alignment: .top, spacing: Layout.gap) {
+                    Group {
+                        if let source = piece.product?.image { FashionImage(source: source) }
+                        else { Rectangle().fill(Color.ufitBackground).overlay { UFitOutfitItemIcon(symbol: piece.type.symbol) } }
+                    }.frame(width: Layout.thumbnail, height: Layout.thumbnail).clipShape(RoundedRectangle(cornerRadius: Layout.radius)).accessibilityHidden(true)
+                    VStack(alignment: .leading, spacing: Layout.small) {
+                        Text(title).font(UFitTypography.headline)
+                        if let product = piece.product {
                             if let brand = product.brandName { Text(brand).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText) }
                             Text(product.price ?? Copy.unavailable).font(UFitTypography.subheadline)
+                        } else {
+                            Text(Copy.notForSale).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText)
                         }
+                        Text(piece.type.label).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText)
+                        if !piece.isRequired { Text(Copy.optional).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText) }
                     }
-                } else {
-                    UFitTextField(label: Copy.label, text: $piece.externalLabel)
-                    Text(Copy.notForSale).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText)
+                    Spacer(minLength: .zero)
                 }
-                UFitSelection(Copy.type, selection: $piece.type, options: UFitOutfitItemType.allCases.map { .init(value: $0, title: $0.label) }).frame(minHeight: Layout.touch)
-                UFitToggle(Copy.required, isOn: $piece.isRequired).frame(minHeight: Layout.touch)
-                UFitDisclosure(Copy.note) { UFitTextField(label: Copy.note, text: $piece.note).padding(.top, Layout.small) }.frame(minHeight: Layout.touch)
-                if piece.isProduct {
-                    UFitButton(Copy.replace) { piece.externalLabel = piece.title; piece.product = nil }.font(UFitTypography.callout).frame(minHeight: Layout.touch)
-                }
-                HStack {
-                    UFitButton(action: onBefore) { UFitIcon(systemName: Icon.up).frame(minWidth: Layout.touch, minHeight: Layout.touch) }.accessibilityLabel(Copy.up).disabled(!canMoveBefore)
-                    UFitButton(action: onAfter) { UFitIcon(systemName: Icon.down).frame(minWidth: Layout.touch, minHeight: Layout.touch) }.accessibilityLabel(Copy.down).disabled(!canMoveAfter)
-                    Spacer()
-                    UFitButton(Copy.remove, action: onRemove).frame(minHeight: Layout.touch)
+                UFitDisclosure(Copy.settings(title), initiallyExpanded: piece.serverID == nil || UFitOutfitInput.trimmed(piece.title).isEmpty) {
+                    VStack(alignment: .leading, spacing: Layout.gap) {
+                        if !piece.isProduct { UFitTextField(label: Copy.label, text: $piece.externalLabel) }
+                        VStack(alignment: .leading, spacing: Layout.small) {
+                            Text(Copy.type).font(UFitTypography.subheadline.weight(.medium))
+                            UFitSelection(Copy.type, selection: $piece.type, options: UFitOutfitItemType.allCases.map { .init(value: $0, title: $0.label) }).frame(minHeight: Layout.touch)
+                        }
+                        UFitToggle(Copy.required, isOn: $piece.isRequired).frame(minHeight: Layout.touch)
+                        UFitDisclosure(Copy.note) { UFitTextField(label: Copy.note, text: $piece.note).padding(.top, Layout.small) }.frame(minHeight: Layout.touch)
+                        if piece.isProduct {
+                            UFitButton(Copy.replace) { piece.externalLabel = piece.title; piece.product = nil }.font(UFitTypography.callout).frame(minHeight: Layout.touch)
+                        }
+                        HStack {
+                            UFitButton(action: onBefore) { UFitIcon(systemName: Icon.up).frame(minWidth: Layout.touch, minHeight: Layout.touch) }.accessibilityLabel(Copy.up).disabled(!canMoveBefore)
+                            UFitButton(action: onAfter) { UFitIcon(systemName: Icon.down).frame(minWidth: Layout.touch, minHeight: Layout.touch) }.accessibilityLabel(Copy.down).disabled(!canMoveAfter)
+                            Spacer()
+                            UFitButton(Copy.remove, action: onRemove).frame(minHeight: Layout.touch)
+                        }
+                    }.padding(.top, Layout.small)
                 }
             }
         }
