@@ -36,7 +36,8 @@ struct MarketplaceRootView: View {
         _applications = State(initialValue: UFitApplicationsStore(client: session.api, session: session))
         _adminApplications = State(initialValue: UFitApplicationQueueStore(client: session.api, session: session))
     }
-    @State private var showOnboarding = !ProcessInfo.processInfo.arguments.contains("--skip-onboarding")
+    @State private var showOnboarding = !UserDefaults.standard.bool(forKey: UFitOnboarding.completionPreference)
+        && !ProcessInfo.processInfo.arguments.contains(UFitOnboarding.skipArgument)
     @State private var activeTab: AppTab = ProcessInfo.processInfo.arguments.contains("--start-profile") ? .profile : .feed
     @State private var activeRoute: AppRoute = ProcessInfo.processInfo.arguments.contains("--start-profile") ? .account : .feed
 
@@ -229,6 +230,7 @@ struct MarketplaceRootView: View {
 
 private extension MarketplaceRootView {
     func completeOnboarding() {
+        UserDefaults.standard.set(true, forKey: UFitOnboarding.completionPreference)
         withAnimation(reduceMotion ? nil : .easeInOut(duration: UFitMotion.transition)) {
             showOnboarding = false
         }

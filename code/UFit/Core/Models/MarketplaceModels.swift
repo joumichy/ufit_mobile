@@ -1,12 +1,5 @@
 import SwiftUI
 
-struct OnboardingSlide: Identifiable {
-    let id: Int
-    let systemImage: String
-    let title: String
-    let description: String
-}
-
 struct Outfit: Identifiable {
     let id: String
     let imageName: String

@@ -1,33 +1,6 @@
 import Foundation
 
 enum SampleData {
-    static let onboardingSlides = [
-        OnboardingSlide(
-            id: 0,
-            systemImage: "sparkles",
-            title: "Curated Fashion Marketplace",
-            description: "Discover exclusive outfits from selected creators and independent brands. Every piece is carefully curated for quality and style."
-        ),
-        OnboardingSlide(
-            id: 1,
-            systemImage: "medal",
-            title: "Selected Creators Only",
-            description: "Only the best fashion curators make it to UFit. Each creator is vetted for their taste, authenticity, and styling expertise."
-        ),
-        OnboardingSlide(
-            id: 2,
-            systemImage: "bag",
-            title: "Independent Brands",
-            description: "Support emerging designers and sustainable fashion. We partner exclusively with independent European ateliers and ethical manufacturers."
-        ),
-        OnboardingSlide(
-            id: 3,
-            systemImage: "chart.line.uptrend.xyaxis",
-            title: "Gamified Commission System",
-            description: "Creators earn progressive commissions based on performance. From 8% starter rate to 15% premium tier. The more you sell, the more you earn."
-        )
-    ]
-
     static let outfits = [
         Outfit(
             id: "sample-urban-minimalism",

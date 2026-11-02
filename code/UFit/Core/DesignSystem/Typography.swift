@@ -3,6 +3,7 @@ import SwiftUI
 enum UFitTypography {
     static let icon = Font.system(size: UFitControlSize.icon)
     static let largeTitle = Font.largeTitle
+    static let editorialTitle = Font.system(.largeTitle, design: .serif)
     static let title = Font.title
     static let title2 = Font.title2
     static let title3 = Font.title3
