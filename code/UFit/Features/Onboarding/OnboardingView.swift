@@ -2,6 +2,7 @@ import SwiftUI
 
 struct OnboardingView: View {
     let onComplete: () -> Void
+    let onSkip: () -> Void
 
     @State private var currentIndex: Int
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -9,8 +10,9 @@ struct OnboardingView: View {
     private let slides = UFitOnboarding.slides
     private enum Layout { static let photoFraction: CGFloat = 0.32 }
 
-    init(initialSlide: OnboardingSlide = .discovery, onComplete: @escaping () -> Void) {
+    init(initialSlide: OnboardingSlide = .discovery, onComplete: @escaping () -> Void, onSkip: (() -> Void)? = nil) {
         self.onComplete = onComplete
+        self.onSkip = onSkip ?? onComplete
         _currentIndex = State(initialValue: initialSlide.rawValue)
     }
 
@@ -29,7 +31,7 @@ struct OnboardingView: View {
                 OnboardingActions(
                     isLastSlide: currentIndex == slides.count - UFitOnboarding.positionStep,
                     onContinue: continueOnboarding,
-                    onSkip: onComplete,
+                    onSkip: onSkip,
                     onBack: currentIndex == UFitOnboarding.initialIndex ? nil : previousSlide
                 ).fixedSize(horizontal: false, vertical: true)
             }
@@ -121,7 +123,7 @@ struct OnboardingActions: View {
     let onSkip: () -> Void
     var onBack: (() -> Void)? = nil
     private enum Copy {
-        static let finish = String(localized: "Découvrir Ufit")
+        static let finish = String(localized: "Choisir mes styles")
         static let next = String(localized: "Continuer")
         static let skip = String(localized: "Passer")
         static let back = String(localized: "Retour")

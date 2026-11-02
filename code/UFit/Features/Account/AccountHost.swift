@@ -8,6 +8,7 @@ struct UFitAccountHost: View {
     var onApplications: (() -> Void)?
     var onChooseExperience: (() -> Void)?
     var onNotifications: (() -> Void)?
+    var onStyles: (() -> Void)?
     var onDeleteAccount: (() -> Void)?
     var onBack: (() -> Void)?
     @State private var photoStore: UFitProfileImageStore?
@@ -16,8 +17,11 @@ struct UFitAccountHost: View {
         Group {
             if session.isRestoring { UFitLoading() }
             else if !session.isSignedIn {
+                VStack(spacing: UFitSpace.lg) {
                 UFitEmptyState(title: UFitAuthenticationCopy.accountTitle, message: UFitAuthenticationCopy.accountAccess,
                     symbol: UFitAuthenticationCopy.accountIcon, actionTitle: UFitAuthenticationCopy.signIn, action: onSignIn)
+                    if let onStyles { UFitButton(UFitStylePreferencesCopy.title, action: onStyles).ufitButtonStyle(.secondary) }
+                }.padding(.horizontal, UFitSpace.page)
             } else if let user = session.user {
                 UFitAccountView(name: user.displayName ?? String(), email: user.email,
                     isBusy: session.isBusy, message: session.message,
@@ -26,7 +30,7 @@ struct UFitAccountHost: View {
                         await session.signOut()
                         if !session.isSignedIn { onSignedOut() }
                     } }, onOrders: onOrders, onApplications: onApplications, onChooseExperience: onChooseExperience,
-                    onNotifications: onNotifications, onDeleteAccount: onDeleteAccount, onBack: onBack,
+                    onNotifications: onNotifications, onStyles: onStyles, onDeleteAccount: onDeleteAccount, onBack: onBack,
                     photoHeader: photoHeader(user))
             } else if let message = session.message {
                 UFitEmptyState(title: String(localized: "Compte indisponible"), message: message,

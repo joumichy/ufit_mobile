@@ -33,6 +33,14 @@ enum UFitOnboarding {
     // A product introduction belongs to the installation, independently of the signed-in account.
     static let completionPreference = "ufit.onboarding.completed"
     static let skipArgument = "--skip-onboarding"
+    static let showArgument = "--show-onboarding"
+    static var shouldPresent: Bool {
+        let arguments = ProcessInfo.processInfo.arguments
+        #if DEBUG
+        if arguments.contains(showArgument) { return true }
+        #endif
+        return !UserDefaults.standard.bool(forKey: completionPreference) && !arguments.contains(skipArgument)
+    }
     static let initialIndex = OnboardingSlide.discovery.rawValue
     static let positionStep = 1
     static let slides = OnboardingSlide.allCases

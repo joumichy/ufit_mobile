@@ -10,6 +10,7 @@ struct MarketplaceRootView: View {
     @State private var showAccountDeletion = false
     @State private var store: MarketplaceStore
     @State private var outfitSearch: UFitOutfitSearchStore
+    @State private var stylePreferences: UFitStylePreferencesStore
     @State private var cart: UFitCartStore
     @State private var orders: UFitOrdersStore
     @State private var workspaces: UFitWorkspacesStore
@@ -34,6 +35,7 @@ struct MarketplaceRootView: View {
         _notificationOpening = State(initialValue: UFitNotificationOpeningStore(session: session))
         _store = State(initialValue: MarketplaceStore.live(client: session.api, session: session))
         _outfitSearch = State(initialValue: UFitOutfitSearchStore(client: session.api))
+        _stylePreferences = State(initialValue: UFitStylePreferencesStore(session: session))
         _cart = State(initialValue: UFitCartStore(client: session.api, session: session))
         _orders = State(initialValue: UFitOrdersStore(client: session.api, session: session))
         let workspaces = UFitWorkspacesStore(client: session.api, session: session)
@@ -43,15 +45,14 @@ struct MarketplaceRootView: View {
         _applications = State(initialValue: UFitApplicationsStore(client: session.api, session: session))
         _adminApplications = State(initialValue: UFitApplicationQueueStore(client: session.api, session: session))
     }
-    @State private var showOnboarding = !UserDefaults.standard.bool(forKey: UFitOnboarding.completionPreference)
-        && !ProcessInfo.processInfo.arguments.contains(UFitOnboarding.skipArgument)
+    @State private var showOnboarding = UFitOnboarding.shouldPresent
     @State private var activeTab: AppTab = ProcessInfo.processInfo.arguments.contains("--start-profile") ? .profile : .feed
     @State private var activeRoute: AppRoute = ProcessInfo.processInfo.arguments.contains("--start-profile") ? .account : .feed
 
     var body: some View {
         ZStack {
             if showOnboarding {
-                OnboardingView(onComplete: completeOnboarding)
+                UFitOnboardingHost(styles: stylePreferences, onComplete: completeOnboarding)
             } else {
                 routedContent.environment(\.ufitPrimarySection, routeHistory.isEmpty)
                     .safeAreaInset(edge: .bottom, spacing: .zero) {
@@ -61,6 +62,7 @@ struct MarketplaceRootView: View {
             }
         }
         .preferredColorScheme(.light)
+        .task(id: stylePreferences.scope) { await stylePreferences.activate() }
         .safeAreaInset(edge: .top, spacing: .zero) {
             if accountDeletion.hasRequest && !showAccountDeletion {
                 UFitButton(UFitAccountDeletionCopy.follow) { showAccountDeletion = true }
@@ -86,6 +88,7 @@ struct MarketplaceRootView: View {
             Task { await accountDeletion.reconcileSession() }
             notificationOpening.accountChanged(previous: previousUserID, current: userID)
             store.clearAccountData()
+            outfitSearch.criteria = .init()
             cart.reset()
             orders.reset()
             workspaces.reset()
@@ -151,7 +154,7 @@ struct MarketplaceRootView: View {
                 onSignIn: { requestSignIn(keepCustomerContext: true) }
             )
         case .search:
-            SearchOutfitsContentView(store: outfitSearch, onOutfitTap: showOutfitDetail)
+            SearchOutfitsContentView(store: outfitSearch, onOutfitTap: showOutfitDetail, preferences: stylePreferences)
         case .professionalHome:
             professionalHome
         case .professionalProfile:
@@ -214,10 +217,13 @@ struct MarketplaceRootView: View {
                 onApplications: experience.kind == .administrator ? nil : showApplications,
                 onChooseExperience: experience.canChooseAnotherExperience ? showExperiencePicker : nil,
                 onNotifications: showNotificationPreferences,
+                onStyles: experience.kind == .customer ? showStylePreferences : nil,
                 onDeleteAccount: { showAccountDeletion = true },
                 onBack: routeHistory.isEmpty ? nil : goBack)
         case .notificationPreferences(let preferences):
             UFitNotificationPreferencesHost(store: preferences, device: session.deviceNotifications, onBack: goBack)
+        case .stylePreferences:
+            UFitStylePreferencesHost(store: stylePreferences, onBack: goBack)
         case .applications:
             UFitApplicationsHost(store: applications, onBack: goBack, onApply: showApplicationForm, onPayments: showPayments)
         case .applicationForm(let form):
@@ -271,8 +277,8 @@ private extension MarketplaceRootView {
 
     func selectTab(_ tab: AppTab) {
         guard experience.kind.tabs.contains(tab) else { return }
-        if (tab == .profile || tab == .cart) && session.user == nil {
-            requestSignIn(keepCustomerContext: tab != .profile); return
+        if tab == .cart && session.user == nil {
+            requestSignIn(keepCustomerContext: true); return
         }
         cancelCurrentForm(); workspaces.cancelOpening(); routeHistory = []; activeTab = tab
         switch tab {
@@ -760,6 +766,9 @@ private extension MarketplaceRootView {
         routeHistory.append(activeRoute)
         activeRoute = .notificationPreferences(UFitNotificationPreferencesStore(userID: userID, session: session))
     }
+    func showStylePreferences() {
+        routeHistory.append(activeRoute); activeRoute = .stylePreferences
+    }
     func outfitCollection(_ space: UFitWorkspaceReference, status: UFitOutfitStatus? = nil) -> UFitManagedOutfitsStore {
         UFitManagedOutfitsStore(scope: .init(workspace: space), title: space.isCreator ? OutfitCopy.title : AppTab.brandPublications.title,
             subtitle: space.name, access: .author, client: session.api, session: session, initialStatus: status)
@@ -839,6 +848,7 @@ private enum AppRoute {
     case saved
     case account
     case notificationPreferences(UFitNotificationPreferencesStore)
+    case stylePreferences
     case applications
     case applicationForm(UFitApplicationFormStore)
     case adminApplications

@@ -11,6 +11,7 @@ struct UFitAccountView: View {
     var onApplications: (() -> Void)?
     var onChooseExperience: (() -> Void)?
     var onNotifications: (() -> Void)?
+    var onStyles: (() -> Void)?
     var onDeleteAccount: (() -> Void)?
     var onBack: (() -> Void)?
     var photoHeader: AnyView? = nil
@@ -71,6 +72,7 @@ struct UFitAccountView: View {
                 if let onOrders { UFitButton(action: onOrders) { Label(Copy.orders, systemImage: Copy.ordersIcon) }.frame(minHeight: Layout.touch) }
                 if let onApplications { UFitButton(action: onApplications) { Label(Copy.applications, systemImage: Copy.applicationsIcon) }.frame(minHeight: Layout.touch) }
                 if let onNotifications { UFitButton(action: onNotifications) { Label(UFitNotificationPreferencesCopy.title, systemImage: Copy.notificationsIcon) }.frame(minHeight: Layout.touch) }
+                if let onStyles { UFitButton(action: onStyles) { Label(UFitStylePreferencesCopy.title, systemImage: UFitStylePreferencesCopy.icon) }.frame(minHeight: Layout.touch) }
                 if let onChooseExperience { UFitButton(action: onChooseExperience) { Label(Copy.choose, systemImage: Copy.chooseIcon) }.frame(minHeight: Layout.touch) }
                 UFitButton(action: onSignOut) { Label(Copy.signOut, systemImage: Copy.exitIcon) }.disabled(isBusy)
                 if let onDeleteAccount {

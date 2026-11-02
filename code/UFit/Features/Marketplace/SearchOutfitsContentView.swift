@@ -3,6 +3,7 @@ import SwiftUI
 struct SearchOutfitsContentView: View {
     @Bindable var store: UFitOutfitSearchStore
     let onOutfitTap: (Outfit) -> Void
+    var preferences: UFitStylePreferencesStore? = nil
     @State private var showingFilters = false
     private typealias Copy = UFitOutfitSearchCopy
     var body: some View {
@@ -32,6 +33,12 @@ struct SearchOutfitsContentView: View {
                 if let error = store.optionsError {
                     UFitNotice(message: error, kind: .error)
                     UFitButton(Copy.retryOptions) { Task { await store.loadOptions() } }.ufitButtonStyle(.text)
+                }
+                if let preferences, !preferences.shortcuts.isEmpty {
+                    UFitChoiceBar(title: UFitStylePreferencesCopy.shortcutTitle, selection: $store.criteria.styleID,
+                        options: [.init(value: nil, title: UFitStylePreferencesCopy.all)] + preferences.shortcuts.map {
+                            .init(value: Optional($0.id), title: $0.label)
+                        })
                 }
                 if let message = store.message, !store.outfits.isEmpty {
                     UFitNotice(message: message, kind: .error)
