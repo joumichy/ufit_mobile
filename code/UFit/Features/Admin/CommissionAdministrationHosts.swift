@@ -37,13 +37,18 @@ struct UFitCommissionRuleFormHost: View {
     @State private var picker: UFitCommissionReferenceStore?
     var body: some View {
         @Bindable var form = store
-        UFitCommissionRuleFormContent(draft: $form.draft, errors: store.errors, isNew: store.isNew, isBusy: store.isBusy, isReloading: store.isReloading, referenceRevision: store.original?.revision,
+        UFitCommissionRuleFormContent(draft: $form.draft, errors: store.errors, isNew: store.isNew, isBusy: store.isBusy, isReloading: store.isReloading, reference: store.referenceDocument, referenceIsStale: store.referenceIsStale, messageIsError: store.messageIsError,
             hasChanges: store.hasChanges, message: store.message, onBack: onBack, onSave: { Task { if let result = await store.save() { onSaved(result) } } },
             onReload: { Task { await store.reloadReference() } }, onChoose: { kind in
                 guard store.isNew, store.isCurrentAccount, !store.isBusy, kind != .product || store.draft.brand != nil else { return }
                 picker = UFitCommissionReferenceStore(kind: kind, brandID: store.draft.brand?.id, selectedID: store.reference(kind)?.id,
                     noneTitle: kind == .brand ? nil : kind.unselectedTitle, session: store.collection.session)
-            }).onDisappear { store.cancelLoading() }
+            })
+            .onChange(of: store.draft.baseRate) { _, _ in store.clearError(.baseRate) }
+            .onChange(of: store.draft.bonusRate) { _, _ in store.clearError(.bonusRate) }
+            .onChange(of: store.draft.maximumRate) { _, _ in store.clearError(.maximumRate) }
+            .onChange(of: store.draft.reason) { _, _ in store.clearError(.reason) }
+            .onDisappear { store.cancelLoading() }
             .ufitSheet(item: $picker) { selection in
                 UFitCommissionReferenceHost(store: selection, onClose: { picker = nil }, onChoose: { value in
                     guard selection.canSelect(value) else { return }

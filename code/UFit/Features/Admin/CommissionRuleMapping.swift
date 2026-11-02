@@ -54,17 +54,25 @@ extension UFitCommissionRuleDTO {
     private enum RateFormat { static let locale = Locale(identifier: "fr_CH") }
 }
 enum UFitCommissionAdminFailure {
-    private enum Status { static let unauthorized = 401; static let forbidden = 403; static let conflict = 409 }
+    private enum Status { static let unauthorized = 401; static let forbidden = 403; static let conflict = 409; static let unavailable = 500 }
     private enum Copy {
-        static let changed = String(localized: "Cette règle a changé. Actualisez sa référence avant de réessayer. Votre saisie est conservée.")
         static let exists = String(localized: "Une règle existe déjà pour cette sélection. Revenez aux règles pour la modifier.")
+    }
+    static func conflict(_ error: Error) -> Bool {
+        guard case UFitAPIError.requestFailed(let status, _, _) = error else { return false }
+        return status == Status.conflict
+    }
+    static func uncertain(_ error: Error) -> Bool {
+        if case UFitCommissionRuleFailure.input = error { return false }
+        if case UFitAPIError.requestFailed(let status, _, _) = error { return status >= Status.unavailable }
+        return !(error is UFitAPIError)
     }
     static func revoked(_ error: Error) -> Bool {
         guard case UFitAPIError.requestFailed(let status, _, _) = error else { return false }
         return status == Status.unauthorized || status == Status.forbidden
     }
     static func message(_ error: Error, isNew: Bool = false) -> String {
-        if case UFitAPIError.requestFailed(let status, _, _) = error, status == Status.conflict { return isNew ? Copy.exists : Copy.changed }
+        if case UFitAPIError.requestFailed(let status, _, _) = error, status == Status.conflict { return isNew ? Copy.exists : UFitCommissionAdminCopy.referenceChanged }
         return error.localizedDescription
     }
 }

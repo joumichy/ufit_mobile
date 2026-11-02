@@ -6,7 +6,9 @@ struct UFitCommissionRuleFormContent: View {
     let isNew: Bool
     let isBusy: Bool
     let isReloading: Bool
-    let referenceRevision: Int?
+    let reference: UFitCommissionRuleDocument?
+    let referenceIsStale: Bool
+    let messageIsError: Bool
     let hasChanges: Bool
     let message: String?
     let onBack: () -> Void
@@ -22,26 +24,39 @@ struct UFitCommissionRuleFormContent: View {
                 onBack: { if hasChanges { confirmingDiscard = true } else { onBack() } }).disabled(isBusy)
             ScrollView {
                 VStack(alignment: .leading, spacing: Layout.page) {
-                    if let message { Text(message).font(UFitTypography.callout) }
+                    if let message { UFitNotice(message: message, kind: messageIsError ? .error : .information) }
                     VStack(alignment: .leading, spacing: Layout.gap) {
-                        Text(UFitCommissionAdminCopy.scope).font(UFitTypography.title2)
-                        ForEach(UFitCommissionReferenceKind.allCases) { kind in
-                            if isNew {
+                        if isNew {
+                            Text(UFitCommissionAdminCopy.scope).font(UFitTypography.title2)
+                            ForEach(UFitCommissionReferenceKind.allCases) { kind in
                                 UFitButton { onChoose(kind) } label: { scopeLabel(kind) }
                                     .disabled(kind == .product && draft.brand == nil).accessibilityLabel(kind.title)
                                     .accessibilityValue(reference(kind)?.title ?? kind.unselectedTitle)
-                            } else { scopeLabel(kind).accessibilityElement(children: .combine) }
-                            Divider()
+                                Divider()
+                            }
+                            if let error = errors[.brand] { UFitFieldError(message: error) }
+                            if draft.brand == nil { Text(FormCopy.chooseBrand).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText) }
+                        } else if let reference {
+                            Text(reference.rule.brand).font(UFitTypography.title2).accessibilityAddTraits(.isHeader)
+                            UFitLabeledValue(UFitCommissionAdminCopy.product, value: reference.rule.product ?? UFitCommissionAdminCopy.allProducts)
+                                .font(UFitTypography.subheadline)
+                            UFitLabeledValue(UFitCommissionAdminCopy.grade, value: reference.rule.grade ?? UFitCommissionAdminCopy.allGrades)
+                                .font(UFitTypography.subheadline)
                         }
-                        if let error = errors[.brand] { UFitFieldError(message: error) }
-                        if isNew && draft.brand == nil { Text(FormCopy.chooseBrand).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText) }
-                        if let referenceRevision {
-                            HStack { Text(UFitCommissionAdminCopy.current); Spacer(); Text(referenceRevision, format: .number) }.font(UFitTypography.subheadline)
-                        }
-                        if !isNew {
-                            UFitButton(action: onReload) {
-                                if isReloading { UFitLoading() } else { Text(UFitCommissionAdminCopy.reloadReference) }
-                            }.frame(minHeight: Layout.touch).environment(\.ufitButtonIsBusy, isReloading).disabled(isBusy || isReloading)
+                        if let reference {
+                            UFitDisclosure(UFitCommissionAdminCopy.currentValues) {
+                                VStack(spacing: Layout.gap) {
+                                    UFitLabeledValue(UFitCommissionAdminCopy.current) { Text(reference.rule.revision, format: .number) }
+                                    UFitLabeledValue(UFitCommissionAdminCopy.baseRate, value: reference.baseRate)
+                                    UFitLabeledValue(UFitCommissionAdminCopy.bonusRate, value: reference.bonusRate)
+                                    UFitLabeledValue(UFitCommissionAdminCopy.maximumRate, value: reference.maximumRate ?? UFitCommissionAdminCopy.noMaximum)
+                                    Text(reference.rule.active ? UFitCommissionAdminCopy.active : UFitCommissionAdminCopy.inactive)
+                                }.font(UFitTypography.subheadline)
+                            }
+                            if referenceIsStale || messageIsError {
+                                UFitActionButton(title: UFitCommissionAdminCopy.reloadReference, kind: .secondary,
+                                    isBusy: isReloading, disabled: isBusy, action: onReload)
+                            }
                         }
                     }
                     VStack(alignment: .leading, spacing: Layout.gap) {
@@ -53,13 +68,14 @@ struct UFitCommissionRuleFormContent: View {
                         UFitToggle(UFitCommissionAdminCopy.activation, isOn: $draft.active).frame(minHeight: Layout.touch)
                     }
                     UFitMultilineField(label: UFitCommissionAdminCopy.reason, text: $draft.reason, error: errors[.reason])
+                    Text(UFitCommissionAdminCopy.futurePurchases).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText)
                 }.padding(Layout.page).disabled(isBusy)
             }.scrollDismissesKeyboard(.interactively)
         }.safeAreaInset(edge: .bottom, spacing: .zero) {
-            VStack(alignment: .leading, spacing: UFitSpace.xs) {
-                Text(UFitCommissionAdminCopy.futurePurchases).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText)
-                UFitActionButton(title: isNew ? UFitCommissionAdminCopy.save : UFitCommissionAdminCopy.revise, isBusy: isBusy, disabled: !hasChanges || isReloading, action: onSave)
-            }.padding(UFitSpace.md).background(Color.ufitCanvas).overlay(alignment: .top) { Rectangle().fill(Color.ufitBorder).frame(height: UFitSpace.hairline) }
+            UFitActionButton(title: isNew ? UFitCommissionAdminCopy.save : UFitCommissionAdminCopy.revise,
+                isBusy: isBusy, disabled: !hasChanges || isReloading || referenceIsStale, action: onSave)
+                .padding(UFitSpace.md).background(Color.ufitCanvas)
+                .overlay(alignment: .top) { Rectangle().fill(Color.ufitBorder).frame(height: UFitSpace.hairline) }
         }.ufitButtonStyle(.text).foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.ufitCanvas)
             .ufitConfirmationDialog(UFitCommissionAdminCopy.discardTitle, isPresented: $confirmingDiscard, titleVisibility: .visible) {
                 UFitButton(UFitCommissionAdminCopy.discard, role: .destructive, action: onBack)
