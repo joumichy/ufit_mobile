@@ -26,3 +26,18 @@ struct UFitApplicationFormHost: View {
             .task { await store.loadCountries() }
     }
 }
+
+struct UFitOwnedApplicationHost: View {
+    let store: UFitOwnedApplicationStore
+    let onBack: () -> Void
+    let onCorrect: (UFitApplicationKind, UFitApplicationDocument?) -> Void
+    let onPayments: () -> Void
+    var body: some View {
+        UFitApplicationsContent(creator: store.kind == .creator ? store.document : nil, brand: store.kind == .brand ? store.document : nil,
+            canApplyCreator: false, canApplyBrand: false, hasLoaded: store.document != nil,
+            isLoading: store.isLoading, message: store.message, onBack: onBack,
+            onRefresh: { Task { await store.load() } }, onApply: { _ in },
+            onCorrect: { onCorrect($0.metadata.type, $0) }, onPayments: onPayments, focusedKind: store.kind)
+            .task { await store.load() }
+    }
+}

@@ -13,8 +13,10 @@ struct UFitApplicationsContent: View {
     let onApply: (UFitApplicationKind) -> Void
     let onCorrect: (UFitApplicationDocument) -> Void
     let onPayments: () -> Void
+    var focusedKind: UFitApplicationKind? = nil
     private enum Copy {
         static let title = String(localized: "Mes candidatures")
+        static let focusedTitle = String(localized: "Ma candidature")
         static let refresh = String(localized: "Actualiser")
         static let correct = String(localized: "Compléter ma candidature")
         static let feedback = String(localized: "Dernier retour de l’équipe")
@@ -30,11 +32,14 @@ struct UFitApplicationsContent: View {
             DetailHeader(onBack: onBack) { if isLoading { UFitLoading().frame(minWidth: Layout.touch, minHeight: Layout.touch) } else { UFitButton(Copy.refresh, action: onRefresh).frame(minHeight: Layout.touch) } }
             ScrollView {
                 VStack(alignment: .leading, spacing: Layout.spacing) {
-                    Text(Copy.title).ufitFont(size: Layout.title, design: .serif).accessibilityAddTraits(.isHeader)
+                    Text(focusedKind == nil ? Copy.title : Copy.focusedTitle).ufitFont(size: Layout.title, design: .serif).accessibilityAddTraits(.isHeader)
                     if let message { Text(message).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
                     if hasLoaded {
-                        card(.creator, creator, canApply: canApplyCreator)
-                        card(.brand, brand, canApply: canApplyBrand)
+                        if let focusedKind { card(focusedKind, focusedKind == .creator ? creator : brand, canApply: false) }
+                        else {
+                            card(.creator, creator, canApply: canApplyCreator)
+                            card(.brand, brand, canApply: canApplyBrand)
+                        }
                     }
                 }.padding(Layout.spacing).padding(.bottom, UFitSpace.xl).frame(maxWidth: .infinity, alignment: .leading)
             }

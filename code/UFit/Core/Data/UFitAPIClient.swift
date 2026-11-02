@@ -208,9 +208,10 @@ struct UFitAPIClient {
         _ method: String,
         path: String,
         query: [URLQueryItem] = [],
-        requiresAuth: Bool = false
+        requiresAuth: Bool = false,
+        cachePolicy: URLRequest.CachePolicy = .useProtocolCachePolicy
     ) async throws -> Response {
-        try await send(method, path: path, query: query, bodyData: nil, requiresAuth: requiresAuth)
+        try await send(method, path: path, query: query, bodyData: nil, requiresAuth: requiresAuth, cachePolicy: cachePolicy)
     }
 
     func send<Response: Decodable>(_ method: String, path: String, multipart: UFitMultipartBody, requiresAuth: Bool) async throws -> Response {
@@ -223,7 +224,8 @@ struct UFitAPIClient {
         query: [URLQueryItem],
         bodyData: Data?,
         requiresAuth: Bool,
-        bodyContentType: String = UFitHTTPBodyContent.json
+        bodyContentType: String = UFitHTTPBodyContent.json,
+        cachePolicy: URLRequest.CachePolicy = .useProtocolCachePolicy
     ) async throws -> Response {
         let token: String?
         if let tokenProvider {
@@ -237,7 +239,7 @@ struct UFitAPIClient {
             throw UFitAPIError.invalidURL
         }
 
-        var request = URLRequest(url: url)
+        var request = URLRequest(url: url, cachePolicy: cachePolicy)
         request.httpMethod = method
         request.setValue("application/json", forHTTPHeaderField: "Accept")
         if let bodyData {

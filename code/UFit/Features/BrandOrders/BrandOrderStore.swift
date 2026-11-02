@@ -12,7 +12,7 @@ final class UFitBrandOrderStore {
     private(set) var message: String?
     private enum Copy { static let updated = String(localized: "Commande actualisée.") }
     init(id: String, list: UFitBrandOrdersStore) throws {
-        guard UUID(uuidString: id) != nil, list.isCurrentAccount, list.orders.contains(where: { $0.id == id }) else { throw UFitBrandOrderContractError.document }
+        guard UUID(uuidString: id) != nil, list.isCurrentAccount else { throw UFitBrandOrderContractError.document }
         self.id = id; self.list = list
     }
     var isCurrentAccount: Bool { list.isCurrentAccount }

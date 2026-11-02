@@ -67,6 +67,13 @@ extension UFitAPIClient {
         if let cursor { query.append(URLQueryItem(name: ApplicationHTTP.cursor, value: cursor)) }
         return try await send(ApplicationHTTP.get, path: ApplicationHTTP.queue, query: query, requiresAuth: true)
     }
+    func fetchOwnedApplication(kind: UFitApplicationKind, id: String) async throws -> UFitApplicationDocument {
+        guard UUID(uuidString: id) != nil else { throw ApplicationContractError.mismatch }
+        let result: UFitApplicationDocument = try await send(ApplicationHTTP.get,
+            path: ApplicationHTTP.base + kind.collection + ApplicationHTTP.separator + id, requiresAuth: true)
+        try validateApplication(result, kind: kind, id: id)
+        return result
+    }
     func fetchAdminApplication(kind: UFitApplicationKind, id: String) async throws -> UFitApplicationDocument {
         let result: UFitApplicationDocument = try await send(ApplicationHTTP.get, path: ApplicationHTTP.admin + kind.rawValue + ApplicationHTTP.separator + id, requiresAuth: true)
         try validateApplication(result, kind: kind, id: id)

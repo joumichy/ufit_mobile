@@ -2,6 +2,8 @@ import SwiftUI
 import StripePaymentSheet
 
 struct MarketplaceRootView: View {
+    @State private var waitsForNotificationExperience = false
+    @State private var notificationOpening: UFitNotificationOpeningStore
     @State private var session: UFitSessionStore
     @State private var store: MarketplaceStore
     @State private var cart: UFitCartStore
@@ -23,6 +25,7 @@ struct MarketplaceRootView: View {
     init() {
         let session = UFitSessionStore()
         _session = State(initialValue: session)
+        _notificationOpening = State(initialValue: UFitNotificationOpeningStore(session: session))
         _store = State(initialValue: MarketplaceStore.live(client: session.api, session: session))
         _cart = State(initialValue: UFitCartStore(client: session.api, session: session))
         _orders = State(initialValue: UFitOrdersStore(client: session.api, session: session))
@@ -50,12 +53,15 @@ struct MarketplaceRootView: View {
             }
         }
         .preferredColorScheme(.light)
-        .task { session.start() }
+        .task { session.start(); if notificationOpening.hasPending { beginNotificationOpening() } }
+        .onChange(of: session.isRestoring) { _, restoring in if !restoring { resolveNotification() } }
         .onOpenURL { url in
+            if notificationOpening.accept(url) { beginNotificationOpening(); return }
             if case .connect(let connect) = activeRoute { Task { await connect.handleCallback(url) } }
             if !StripeAPI.handleURLCallback(with: url), url.host == "auth" { Task { await session.handle(url) } }
         }
         .onChange(of: session.user?.id) { previousUserID, userID in
+            notificationOpening.accountChanged(previous: previousUserID, current: userID)
             store.clearAccountData()
             cart.reset()
             orders.reset()
@@ -66,12 +72,18 @@ struct MarketplaceRootView: View {
             if userID != nil {
                 if preserveCustomerContextOnSignIn { experience.choose(.customer) }
                 preserveCustomerContextOnSignIn = false
-                Task { await experience.load(); await store.loadSavedOutfits(); await cart.load() }
+                Task { await experience.load(); await store.loadSavedOutfits(); await cart.load(); resolveNotification() }
             }
         }
-        .onChange(of: experience.selected) { _, _ in applyExperienceNavigation() }
+        .onChange(of: experience.selected) { _, _ in if !notificationOpening.hasPending { applyExperienceNavigation() } }
+        .onChange(of: experience.isLoading) { _, loading in
+            if !loading && waitsForNotificationExperience {
+                waitsForNotificationExperience = false
+                if case .notification = activeRoute, let destination = notificationOpening.destination { openNotificationDestination(destination) }
+            }
+        }
         .onChange(of: experience.asksForChoice) { _, requested in
-            if requested && !showAuthentication { showExperienceChooser = true }
+            if requested && !showAuthentication && !notificationOpening.hasPending { showExperienceChooser = true }
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active && session.user != nil { Task { await experience.load() } }
@@ -82,12 +94,13 @@ struct MarketplaceRootView: View {
         .onChange(of: showAuthentication) { _, showing in
             if !showing {
                 if session.user == nil { preserveCustomerContextOnSignIn = false }
-                if experience.asksForChoice { showExperienceChooser = true }
+                if experience.asksForChoice && !notificationOpening.hasPending { showExperienceChooser = true }
+                resolveNotification()
                 if case .publicProfile(let profile) = activeRoute { Task { await profile.loadFollow(refreshProfile: true) } }
             }
         }
         .ufitSheet(isPresented: $showAuthentication) {
-            UFitAuthenticationHost(session: session, onBrowse: { showAuthentication = false })
+            UFitAuthenticationHost(session: session, onBrowse: dismissAuthentication)
         }
         .ufitSheet(isPresented: $showExperienceChooser, onDismiss: experience.dismissChoiceRequest) { experienceChooser }
     }
@@ -95,6 +108,12 @@ struct MarketplaceRootView: View {
     @ViewBuilder
     private var routedContent: some View {
         switch activeRoute {
+        case .notification:
+            UFitNotificationOpeningContent(phase: notificationOpening.phase, onClose: closeNotification,
+                onRetry: resolveNotification, onSignIn: { requestSignIn(keepCustomerContext: true) })
+                .task { resolveNotification() }
+        case .ownedApplication(let application):
+            UFitOwnedApplicationHost(store: application, onBack: goBack, onCorrect: showApplicationForm, onPayments: showPayments)
         case .feed:
             HomeFeedView(
                 store: store,
@@ -577,6 +596,7 @@ private extension MarketplaceRootView {
     }
 
     func returnToFeed() {
+        notificationOpening.cancel()
         cancelCurrentForm()
         routeHistory = []
         activeRoute = .feed
@@ -606,8 +626,68 @@ private extension MarketplaceRootView {
                 else { chooseExperience(.customer) }
             })
     }
+    func dismissAuthentication() {
+        showAuthentication = false
+        if session.user == nil && notificationOpening.hasPending { closeNotification() }
+    }
     func requestSignIn(keepCustomerContext: Bool) {
         preserveCustomerContextOnSignIn = keepCustomerContext; showAuthentication = true
+    }
+    func beginNotificationOpening() {
+        showOnboarding = false; showExperienceChooser = false
+        if case .notification = activeRoute {} else { routeHistory.append(activeRoute); activeRoute = .notification }
+        resolveNotification()
+    }
+    func closeNotification() {
+        notificationOpening.cancel(); waitsForNotificationExperience = false
+        if appliedExperience != experience.selected { applyExperienceNavigation() } else { goBack() }
+    }
+    func resolveNotification() {
+        guard notificationOpening.hasPending, case .notification = activeRoute, !showAuthentication else { return }
+        Task {
+            if !session.isRestoring && session.isSignedIn && session.user == nil { await session.reloadProfile() }
+            await notificationOpening.resolve()
+            guard case .notification = activeRoute, let destination = notificationOpening.destination else { return }
+            if destination.brandID != nil {
+                await experience.load()
+                guard case .notification = activeRoute, notificationOpening.destination == destination else { return }
+                if experience.isLoading { waitsForNotificationExperience = true; return }
+            }
+            openNotificationDestination(destination)
+        }
+    }
+    func openNotificationDestination(_ destination: UFitNotificationDestination) {
+        do {
+            if let brandID = destination.brandID {
+                chooseExperience(.brand(brandID))
+                guard experience.selected == .brand(brandID), let space = experience.workspace else { throw UFitNotificationError.workspace }
+                activeTab = .brandOrders
+                switch destination {
+                case .brandOrder(let id, _):
+                    let list = try UFitBrandOrdersStore(space: space, session: session)
+                    routeHistory = [.brandOrders(list)]; activeRoute = .brandOrder(try UFitBrandOrderStore(id: id, list: list))
+                case .brandReturn(let id, _):
+                    let list = try UFitReturnsStore(scope: .brand(brandID: brandID), context: space.name, session: session)
+                    routeHistory = [.returns(list)]; activeRoute = .returnDetail(try UFitReturnDetailStore(id: id, list: list))
+                default: throw UFitNotificationError.document
+                }
+            } else {
+                chooseExperience(.customer); activeTab = .profile
+                switch destination {
+                case .creatorApplication(let id), .brandApplication(let id):
+                    let kind: UFitApplicationKind
+                    if case .creatorApplication = destination { kind = .creator } else { kind = .brand }
+                    routeHistory = [.applications]; activeRoute = .ownedApplication(try UFitOwnedApplicationStore(id: id, kind: kind, session: session))
+                case .customerOrder(let id):
+                    routeHistory = [.orders]; activeRoute = .order(UFitOrderDetailStore(id: id, client: session.api, session: session, orders: orders))
+                case .customerReturn(let id, let orderID):
+                    let list = try UFitReturnsStore(scope: .customer(orderID: orderID), context: ExperienceCopy.returns, session: session)
+                    routeHistory = [.returns(list)]; activeRoute = .returnDetail(try UFitReturnDetailStore(id: id, list: list))
+                default: throw UFitNotificationError.document
+                }
+            }
+            notificationOpening.cancel()
+        } catch { notificationOpening.fail(error) }
     }
     func showExperiencePicker() {
         guard session.user != nil else { requestSignIn(keepCustomerContext: false); return }
@@ -684,6 +764,8 @@ private extension MarketplaceRootView {
 }
 
 private enum AppRoute {
+    case notification
+    case ownedApplication(UFitOwnedApplicationStore)
     case feed
     case search
     case professionalHome

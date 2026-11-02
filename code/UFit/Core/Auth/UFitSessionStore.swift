@@ -84,9 +84,9 @@ final class UFitSessionStore {
             for await (event, session) in auth.auth.authStateChanges {
                 guard !Task.isCancelled, let self else { return }
                 self.isSignedIn = session != nil
-                self.isRestoring = false
                 if session == nil { self.user = nil }
                 else if self.user == nil || event == .userUpdated { await self.reloadProfile() }
+                self.isRestoring = false
                 if event == .passwordRecovery { self.needsNewPassword = true }
             }
         }
