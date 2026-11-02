@@ -38,10 +38,11 @@ struct UFitAdminActivityHost: View {
     let onOutfits: () -> Void
     let onReturns: () -> Void
     let onCommissions: () -> Void
+    let onUsers: () -> Void
     var body: some View {
         UFitAdminHomeContent(activity: store.activity, isLoading: store.isLoading, message: store.message,
             onRefresh: { Task { await store.load() } }, onApplications: onApplications, onProducts: onProducts,
-            onOutfits: onOutfits, onReturns: onReturns, onCommissions: onCommissions, onChooseExperience: onChooseExperience)
+            onOutfits: onOutfits, onReturns: onReturns, onCommissions: onCommissions, onUsers: onUsers, onChooseExperience: onChooseExperience)
             .task { await store.load() }.onDisappear { store.cancelLoading() }
     }
 }

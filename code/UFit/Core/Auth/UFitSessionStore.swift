@@ -31,10 +31,6 @@ struct UFitRuntimeConfiguration {
     }
 }
 
-enum UFitUserRole: String, Decodable {
-    case customer, creator, brandOwner = "brand_owner", brandManager = "brand_manager", admin, superAdmin = "super_admin"
-}
-
 struct UFitCurrentUser: Decodable, Identifiable {
     let id: String
     let email: String

@@ -114,7 +114,7 @@ struct MarketplaceRootView: View {
             } else { experienceChooser }
         case .administratorHome:
             UFitAdminActivityHost(store: adminActivity, onChooseExperience: showExperiencePicker, onApplications: showAdminApplications,
-                onProducts: showAdminProducts, onOutfits: showAdminOutfits, onReturns: showAdminReturns, onCommissions: showCommissionRules)
+                onProducts: showAdminProducts, onOutfits: showAdminOutfits, onReturns: showAdminReturns, onCommissions: showCommissionRules, onUsers: showUserAdministration)
         case .workspaceDashboard(let dashboard):
             UFitWorkspaceDashboardHost(store: dashboard, title: dashboard.workspace.isCreator ? AppTab.creatorEarnings.title : ExperienceCopy.sales, onBack: goBack, onCommissions: showWorkspaceCommissions)
         case .workspaceCommissions(let commissions):
@@ -179,6 +179,12 @@ struct MarketplaceRootView: View {
             UFitCommissionRuleDetailHost(store: detail, onBack: goBack, onEdit: showCommissionRuleEditor)
         case .commissionRuleForm(let form):
             UFitCommissionRuleFormHost(store: form, onBack: goBack, onSaved: { finishCommissionRuleForm(form, result: $0) })
+        case .adminUsers(let list):
+            UFitUserAdministrationHost(store: list, onBack: goBack, onOpen: showAdministeredUser)
+        case .adminUser(let detail):
+            UFitUserAdministrationDetailHost(store: detail, onBack: goBack, onDecide: showUserAccessDecision)
+        case .userAccessDecision(let form):
+            UFitUserAccessDecisionHost(store: form, onBack: goBack, onSaved: { finishUserAccessDecision(form, result: $0) })
         case .connect(let connect):
             UFitConnectHost(store: connect, onBack: goBack)
         case .orders:
@@ -425,6 +431,27 @@ private extension MarketplaceRootView {
         guard experience.kind == .administrator, session.user?.canAdminister == true else { return }
         routeHistory.append(activeRoute); activeRoute = .commissionRules(UFitCommissionRulesStore(session: session))
     }
+    func showUserAdministration() {
+        guard experience.kind == .administrator, session.user?.canAdminister == true else { return }
+        routeHistory.append(activeRoute); activeRoute = .adminUsers(UFitUserAdministrationStore(session: session))
+    }
+    func showAdministeredUser(_ detail: UFitUserAdministrationDetailStore) {
+        guard case .adminUsers(let list) = activeRoute, list.isCurrentAccount, detail.collection === list else { return }
+        routeHistory.append(activeRoute); activeRoute = .adminUser(detail)
+    }
+    func showUserAccessDecision(_ decision: UFitUserAccessDecision) {
+        guard case .adminUser(let detail) = activeRoute, detail.isCurrentAccount else { return }
+        do {
+            let form = try UFitUserAccessDecisionStore(detail: detail, decision: decision)
+            routeHistory.append(activeRoute); activeRoute = .userAccessDecision(form)
+        } catch { detail.report(error) }
+    }
+    func finishUserAccessDecision(_ form: UFitUserAccessDecisionStore, result: UFitAdministeredUserDTO) {
+        guard case .userAccessDecision(let current) = activeRoute, current === form, form.isCurrentAccount,
+              let previous = routeHistory.last, case .adminUser(let detail) = previous, detail === form.detail else { return }
+        do { try detail.receive(result); goBack() }
+        catch { form.report(error) }
+    }
     func showCommissionRuleCreation() {
         guard case .commissionRules(let list) = activeRoute, list.isCurrentAccount else { return }
         do {
@@ -635,6 +662,9 @@ private enum AppRoute {
     case commissionRules(UFitCommissionRulesStore)
     case commissionRule(UFitCommissionRuleDetailStore)
     case commissionRuleForm(UFitCommissionRuleFormStore)
+    case adminUsers(UFitUserAdministrationStore)
+    case adminUser(UFitUserAdministrationDetailStore)
+    case userAccessDecision(UFitUserAccessDecisionStore)
     case orders
     case order(UFitOrderDetailStore)
     case publicProfile(UFitPublicProfileStore)

@@ -10,6 +10,7 @@ struct UFitAdminHomeContent: View {
     let onOutfits: () -> Void
     let onReturns: () -> Void
     let onCommissions: () -> Void
+    let onUsers: () -> Void
     let onChooseExperience: () -> Void
     private enum Copy {
         static let title = String(localized: "À traiter"); static let context = String(localized: "Administration")
@@ -49,12 +50,15 @@ struct UFitAdminHomeContent: View {
                     UFitExperienceActionRow(title: Copy.returns, systemImage: Icon.returns, action: onReturns)
                     Divider()
                     UFitExperienceActionRow(title: UFitCommissionAdminCopy.title, systemImage: CommissionIcon.rates, action: onCommissions)
+                    Divider()
+                    UFitExperienceActionRow(title: UFitUserAdministrationCopy.title, systemImage: UserIcon.accounts, action: onUsers)
                 }.padding(.horizontal, Layout.page).padding(.bottom, UFitSpace.xl)
             }
         }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.ufitCanvas)
     }
 }
 private enum CommissionIcon { static let rates = "percent" }
+private enum UserIcon { static let accounts = "person.2" }
 
 private enum AdminDesignCopy {
     static let selection = String(localized: "Dossiers à examiner")
