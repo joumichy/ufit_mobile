@@ -7,7 +7,27 @@ de créateurs et de marques indépendantes.
 - Backend indépendant : `joumichy/ufit_backend`, sous `code/UFit_backend`.
 - Design Lab natif indépendant : `joumichy/ufit_design-lab`, sous `design-lab`.
 
-## Atelier maison SwiftUI
+## Travail sur l'application
+
+Le code produit et le backend se travaillent par défaut sur `charlie`. Partir
+de la tâche utilisateur et de la direction Ufit, concevoir composition, actions
+et états, puis coder directement dans l'application. Vérifier le rendu et les
+parcours concernés dans le simulateur réel, y compris vide, chargement, erreur
+et reprise lorsqu'ils s'appliquent ; corriger les défauts constatés et rapporter
+les parcours exercés ainsi que les limites restantes.
+
+Le Design Lab est l'espace de conception de l'utilisateur. Son usage est
+facultatif : preview ciblée utile pour un état difficile à reproduire dans
+l'app, ou travail demandé dans le Lab. Aucun ajout systématique d'écran ou
+d'état ni entretien réflexe du catalogue n'est requis. Un build, les composants
+du design system et le nombre de previews ne prouvent pas la qualité.
+Les instructions locales `AGENTS.md` et `docs/ufit_ios_complete_checklist.md`
+précisent le fonctionnement courant ; les anciennes promotions restent des
+traces historiques.
+
+## Atelier maison SwiftUI — usage facultatif
+
+Les commandes et le cycle ci-dessous concernent un travail choisi dans le Lab.
 
 ```bash
 git clone git@github.com:joumichy/ufit_design-lab.git design-lab
