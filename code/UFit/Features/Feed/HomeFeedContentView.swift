@@ -15,7 +15,15 @@ struct HomeFeedContentView: View {
     var loadError: String? = nil
     var onDismissFeedback: (() -> Void)? = nil
     var onRetry: (() -> Void)? = nil
-    private enum Copy { static let retry = String(localized: "Réessayer") }
+    var isLoadingMore = false
+    var moreError: String?
+    var onApproachOutfit: ((String) -> Void)? = nil
+    var onRetryMore: (() -> Void)? = nil
+    private enum Copy {
+        static let retry = String(localized: "Réessayer")
+        static let retryMore = String(localized: "Réessayer la suite")
+        static let loadingMore = String(localized: "Chargement des tenues…")
+    }
     var body: some View {
         ScrollView(.vertical) {
             LazyVStack(spacing: .zero) {
@@ -32,6 +40,7 @@ struct HomeFeedContentView: View {
                         }), selectedPhotoID: Binding(get: { photoIDs[outfit.id] }, set: { photoIDs[outfit.id] = $0 })
                     )
                     .containerRelativeFrame([.horizontal, .vertical])
+                    .onAppear { onApproachOutfit?(outfit.id) }
                 }
             }
             .scrollTargetLayout()
@@ -46,6 +55,12 @@ struct HomeFeedContentView: View {
                 if !outfits.isEmpty, let loadError {
                     UFitNotice(message: loadError, kind: .error)
                     if let onRetry { UFitActionButton(title: Copy.retry, kind: .secondary, action: onRetry) }
+                } else if let moreError {
+                    UFitNotice(message: moreError, kind: .error)
+                    if let onRetryMore { UFitActionButton(title: Copy.retryMore, kind: .secondary, action: onRetryMore) }
+                } else if isLoadingMore {
+                    UFitLoading(Copy.loadingMore).padding(UFitSpace.sm)
+                        .background(Color.ufitCanvas, in: RoundedRectangle(cornerRadius: UFitRadius.action))
                 } else if let feedback { UFitNotice(message: feedback, onDismiss: onDismissFeedback) }
             }.padding(.horizontal, UFitSpace.page).padding(.top, UFitSpace.md)
         }

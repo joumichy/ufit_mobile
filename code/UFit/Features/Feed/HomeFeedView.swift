@@ -12,9 +12,15 @@ struct HomeFeedView: View {
             expandedOutfitIDs: $store.expandedFeedIDs, photoIDs: $store.feedPhotoIDs, visibleOutfitID: $store.visibleFeedOutfitID,
             onToggleSaved: toggleLike, onOutfitTap: onOutfitTap, onAuthorTap: onAuthorTap, onItemTap: onItemTap,
             feedback: store.actionMessage, loadError: store.feedErrorMessage,
-            onDismissFeedback: { store.actionMessage = nil }, onRetry: { Task { await store.refreshFeed() } })
+            onDismissFeedback: { store.actionMessage = nil }, onRetry: { Task { await store.refreshFeed() } },
+            isLoadingMore: store.isLoadingMoreFeed, moreError: store.feedMoreError,
+            onApproachOutfit: { id in Task { await store.loadMoreFeedIfNeeded(near: id) } },
+            onRetryMore: { Task { await store.loadMoreFeed() } })
         .task {
             await store.loadFeedIfNeeded()
+        }
+        .onChange(of: store.isLoadingFeed) { _, loading in
+            if !loading, let id = store.visibleFeedOutfitID { Task { await store.loadMoreFeedIfNeeded(near: id) } }
         }
         .ufitRefreshable {
             await store.refreshFeed()

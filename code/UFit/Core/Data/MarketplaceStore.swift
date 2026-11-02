@@ -13,6 +13,8 @@ final class MarketplaceStore {
     private(set) var savingOutfitIDs = Set<String>()
     private(set) var isLoadingFeed = false
     private(set) var hasLoadedFeed = false
+    private(set) var isLoadingMoreFeed = false
+    private(set) var feedMoreError: String?
     private(set) var isLoadingSavedOutfits = false
     private(set) var hasLoadedSavedOutfits = false
     private(set) var savedErrorMessage: String?
@@ -23,6 +25,13 @@ final class MarketplaceStore {
     @ObservationIgnored private let session: UFitSessionStore?
     @ObservationIgnored private var accountGeneration = UUID()
     @ObservationIgnored private var detailedOutfits = [String: Outfit]()
+    @ObservationIgnored private var nextFeedCursor: String?
+    @ObservationIgnored private var consumedFeedCursors = Set<String>()
+    @ObservationIgnored private var feedGeneration = UUID()
+    private enum FeedPaging {
+        static let prefetchDistance = 3
+        static let unavailable = String(localized: "La suite des tenues n’a pas pu être chargée. Les tenues déjà affichées restent disponibles.")
+    }
 
     init(client: UFitAPIClient, session: UFitSessionStore? = nil, fallbackOutfits: [Outfit] = []) {
         self.client = client
@@ -45,17 +54,46 @@ final class MarketplaceStore {
 
     func refreshFeed() async {
         guard !isLoadingFeed else { return }
-        isLoadingFeed = true; feedErrorMessage = nil
-        defer { isLoadingFeed = false }
+        feedGeneration = UUID(); let request = feedGeneration
+        isLoadingFeed = true; isLoadingMoreFeed = false; feedErrorMessage = nil; feedMoreError = nil
+        defer { if feedGeneration == request { isLoadingFeed = false } }
         do {
             let response = try await client.fetchOutfitFeed()
+            guard feedGeneration == request else { return }
             let remoteOutfits = response.items.map { $0.toOutfit() }
             feedErrorMessage = nil
             outfits = remoteOutfits
+            nextFeedCursor = response.nextCursor; consumedFeedCursors = []
             hasLoadedFeed = true
             if let visibleFeedOutfitID, !remoteOutfits.contains(where: { $0.id == visibleFeedOutfitID }) { self.visibleFeedOutfitID = nil }
+        } catch is CancellationError {
         } catch {
-            feedErrorMessage = friendlyMessage(for: error)
+            if feedGeneration == request { feedErrorMessage = friendlyMessage(for: error) }
+        }
+    }
+
+    func loadMoreFeedIfNeeded(near id: String) async {
+        guard feedMoreError == nil, let index = outfits.firstIndex(where: { $0.id == id }),
+              index >= outfits.count - FeedPaging.prefetchDistance else { return }
+        await loadMoreFeed()
+    }
+
+    func loadMoreFeed() async {
+        guard !isLoadingFeed, !isLoadingMoreFeed, feedErrorMessage == nil, let cursor = nextFeedCursor else { return }
+        let request = feedGeneration
+        isLoadingMoreFeed = true; feedMoreError = nil
+        defer { if feedGeneration == request { isLoadingMoreFeed = false } }
+        do {
+            let page = try await client.fetchOutfitFeed(cursor: cursor)
+            guard feedGeneration == request else { return }
+            guard !consumedFeedCursors.contains(cursor), Set(outfits.map(\.id)).isDisjoint(with: page.items.map(\.id)) else {
+                throw UFitPublicProfileContractError.outfits
+            }
+            outfits.append(contentsOf: page.items.map { $0.toOutfit() })
+            nextFeedCursor = page.nextCursor; consumedFeedCursors.insert(cursor)
+        } catch is CancellationError {
+        } catch {
+            if feedGeneration == request { feedMoreError = FeedPaging.unavailable }
         }
     }
 
@@ -106,8 +144,6 @@ final class MarketplaceStore {
         savedOutfits = []
         savedOutfitIDs = []
         savingOutfitIDs = []
-        hasLoadedFeed = false
-        feedErrorMessage = nil
         hasLoadedSavedOutfits = false
         isLoadingSavedOutfits = false
         savedErrorMessage = nil
