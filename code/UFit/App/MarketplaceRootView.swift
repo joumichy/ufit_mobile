@@ -78,7 +78,7 @@ struct MarketplaceRootView: View {
         .onOpenURL { url in
             if notificationOpening.accept(url) { beginNotificationOpening(); return }
             if case .connect(let connect) = activeRoute { Task { await connect.handleCallback(url) } }
-            if !StripeAPI.handleURLCallback(with: url), url.host == "auth" { Task { await session.handle(url) } }
+            if !StripeAPI.handleURLCallback(with: url), UFitAuthenticationCallback.purpose(url) != nil { Task { await session.handle(url) } }
         }
         .onChange(of: session.user?.id) { previousUserID, userID in
             Task { await accountDeletion.reconcileSession() }
@@ -206,6 +206,7 @@ struct MarketplaceRootView: View {
             SavedOutfitsView(store: store, onOutfitTap: showOutfitDetail, onBrowse: returnToFeed)
         case .account:
             UFitAccountHost(session: session, onSignedOut: returnToFeed,
+                onSignIn: { requestSignIn(keepCustomerContext: true) },
                 onOrders: experience.kind == .customer ? showOrders : nil,
                 onApplications: experience.kind == .administrator ? nil : showApplications,
                 onChooseExperience: experience.canChooseAnotherExperience ? showExperiencePicker : nil,

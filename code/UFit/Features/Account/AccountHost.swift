@@ -3,6 +3,7 @@ import SwiftUI
 struct UFitAccountHost: View {
     let session: UFitSessionStore
     let onSignedOut: () -> Void
+    let onSignIn: () -> Void
     var onOrders: (() -> Void)?
     var onApplications: (() -> Void)?
     var onChooseExperience: (() -> Void)?
@@ -12,7 +13,11 @@ struct UFitAccountHost: View {
 
     var body: some View {
         Group {
-            if let user = session.user {
+            if session.isRestoring { UFitLoading() }
+            else if !session.isSignedIn {
+                UFitEmptyState(title: UFitAuthenticationCopy.accountTitle, message: UFitAuthenticationCopy.accountAccess,
+                    symbol: UFitAuthenticationCopy.accountIcon, actionTitle: UFitAuthenticationCopy.signIn, action: onSignIn)
+            } else if let user = session.user {
                 UFitAccountView(name: user.displayName ?? String(), email: user.email,
                     isBusy: session.isBusy, message: session.message,
                     onSaveName: { name in Task { await session.updateProfile(name: name) } },
@@ -27,6 +32,8 @@ struct UFitAccountHost: View {
                     action: { Task { await session.reloadProfile() } })
             } else { UFitLoading() }
         }
-        .task { if session.user == nil { await session.reloadProfile() } }
+        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .background(Color.ufitCanvas)
+        .task { if session.isSignedIn && session.user == nil { await session.reloadProfile() } }
     }
 }

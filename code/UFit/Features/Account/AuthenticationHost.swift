@@ -16,15 +16,21 @@ struct UFitAuthenticationHost: View {
     var body: some View {
         UFitAuthenticationView(mode: $mode, name: $name, email: $email, password: $password,
             isBusy: session.isBusy, message: appleError ?? session.message,
+            messageKind: appleError != nil || session.authenticationFailure != nil ? .error : .information,
             onSubmit: { Task { await submit() } },
-            onAppleRequest: prepareApple, onAppleComplete: completeApple, onBrowse: onBrowse)
+            onAppleRequest: prepareApple, onAppleComplete: completeApple, onBrowse: leave)
             .onChange(of: session.needsNewPassword) { _, needed in
                 if needed { mode = .newPassword }
+                else if mode == .newPassword { mode = .recovery }
             }
             .onChange(of: session.user?.id) { _, userID in
-                if userID != nil && !session.needsNewPassword { onBrowse() }
+                if userID != nil { finishAuthenticationIfReady() }
             }
+            .onChange(of: session.isHandlingAuthenticationCallback) { _, handling in if !handling { finishAuthenticationIfReady() } }
+            .onChange(of: mode) { _, _ in appleError = nil; appleNonce = nil; session.message = nil; password = String() }
             .onAppear { if session.needsNewPassword { mode = .newPassword } }
+            .onDisappear { if session.authenticationFailure != nil { session.message = nil } }
+            .interactiveDismissDisabled(session.isBusy || session.needsNewPassword)
             .task {
                 if session.isSignedIn && session.user == nil { await session.reloadProfile() }
             }
@@ -33,16 +39,35 @@ struct UFitAuthenticationHost: View {
     private func submit() async {
         appleError = nil
         switch mode {
-        case .signIn: await session.signIn(email: email, password: password)
-        case .signUp: await session.signUp(email: email, password: password, name: name)
-        case .recovery: await session.resetPassword(email: email)
-        case .newPassword: await session.updatePassword(password)
+        case .signIn:
+            await session.signIn(email: email, password: password)
+            if session.authenticationFailure == .unconfirmed { mode = .confirmEmail }
+        case .signUp:
+            if await session.signUp(email: email, password: password, name: name), !session.isSignedIn { mode = .confirmEmail }
+        case .confirmEmail: _ = await session.resendConfirmation(email: email)
+        case .recovery:
+            if await session.resetPassword(email: email) { mode = .recoverySent }
+        case .recoverySent:
+            if await session.resetPassword(email: email) { session.message = UFitAuthenticationCopy.sentAgain }
+        case .newPassword:
+            if await session.updatePassword(password) { onBrowse() }
         }
     }
 
+    private func finishAuthenticationIfReady() {
+        guard session.user != nil, !session.needsNewPassword, !session.isHandlingAuthenticationCallback,
+              session.authenticationFailure == nil else { return }
+        onBrowse()
+    }
+    private func leave() {
+        guard !session.isBusy else { return }
+        if session.needsNewPassword { Task { await session.cancelPasswordRecovery(); onBrowse() } }
+        else { onBrowse() }
+    }
+
     private func prepareApple(_ request: ASAuthorizationAppleIDRequest) {
-        let nonceLength = 32
-        var bytes = [UInt8](repeating: .zero, count: nonceLength)
+        appleError = nil; appleNonce = nil
+        var bytes = [UInt8](repeating: .zero, count: UFitAuthenticationCallback.nonceLength)
         guard SecRandomCopyBytes(kSecRandomDefault, bytes.count, &bytes) == errSecSuccess else {
             appleError = UFitSessionError.invalidAppleCredential.localizedDescription
             return
@@ -50,8 +75,7 @@ struct UFitAuthenticationHost: View {
         let nonce = Data(bytes).base64EncodedString()
         appleNonce = nonce
         request.requestedScopes = [.fullName, .email]
-        let hexadecimalFormat = "%02x"
-        request.nonce = SHA256.hash(data: Data(nonce.utf8)).map { String(format: hexadecimalFormat, $0) }.joined()
+        request.nonce = SHA256.hash(data: Data(nonce.utf8)).map { String(format: UFitAuthenticationCallback.hexadecimalByte, $0) }.joined()
     }
 
     private func completeApple(_ result: Result<ASAuthorization, Error>) {
@@ -67,7 +91,7 @@ struct UFitAuthenticationHost: View {
             Task { await session.signInWithApple(idToken: token, nonce: nonce) }
         case .failure(let error):
             appleNonce = nil
-            if (error as? ASAuthorizationError)?.code != .canceled { appleError = error.localizedDescription }
+            if (error as? ASAuthorizationError)?.code != .canceled { appleError = UFitAuthenticationCopy.appleFailed }
         }
     }
 }

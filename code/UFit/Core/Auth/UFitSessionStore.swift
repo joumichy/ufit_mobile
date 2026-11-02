@@ -6,7 +6,6 @@ struct UFitRuntimeConfiguration {
     let apiURL: URL
     let supabaseURL: URL?
     let supabaseKey: String?
-    static let callbackURL = URL(string: "ufit://auth/callback")!
     private static let resourceName = "UFitRuntime"
     private static let resourceExtension = "plist"
     private static let apiKey = "UFIT_API_BASE_URL"
@@ -61,6 +60,8 @@ final class UFitSessionStore {
     private(set) var isSignedIn = false
     var message: String?
     var needsNewPassword = false
+    private(set) var isHandlingAuthenticationCallback = false
+    private(set) var authenticationFailure: UFitAuthenticationFailure?
     @ObservationIgnored let api: UFitAPIClient
     @ObservationIgnored private let auth: SupabaseClient?
     @ObservationIgnored private var observation: Task<Void, Never>?
@@ -80,7 +81,8 @@ final class UFitSessionStore {
     init(configuration: UFitRuntimeConfiguration = .load()) {
         let client: SupabaseClient?
         if let url = configuration.supabaseURL, let key = configuration.supabaseKey, !key.isEmpty {
-            client = SupabaseClient(supabaseURL: url, supabaseKey: key)
+            client = SupabaseClient(supabaseURL: url, supabaseKey: key,
+                options: .init(auth: .init(redirectToURL: UFitAuthenticationCallback.confirmationURL, flowType: .pkce)))
         } else { client = nil }
         auth = client
         api = UFitAPIClient(configuration: UFitAPIConfiguration(baseURL: configuration.apiURL, bearerToken: nil), tokenProvider: {
@@ -95,6 +97,7 @@ final class UFitSessionStore {
         observation = Task { [weak self] in
             for await (event, session) in auth.auth.authStateChanges {
                 guard !Task.isCancelled, let self else { return }
+                if event == .passwordRecovery { self.needsNewPassword = true }
                 let identity = UFitAuthSessionIdentity(session)
                 if identity != self.observedAuthIdentity {
                     self.profileRequest = UUID(); self.user = nil; self.profileIdentity = nil
@@ -102,10 +105,9 @@ final class UFitSessionStore {
                 }
                 self.isSignedIn = session != nil && identity?.subject != self.deletedAuthSubject
                 if session == nil { self.deviceNotifications.prepareForAuthentication(); self.user = nil; self.profileIdentity = nil }
-                else if self.user == nil || event == .userUpdated { await self.reloadProfile() }
+                else if !self.isHandlingAuthenticationCallback && (self.user == nil || event == .userUpdated) { await self.reloadProfile() }
                 self.isRestoring = false
                 self.deviceNotifications.contextChanged()
-                if event == .passwordRecovery { self.needsNewPassword = true }
             }
         }
     }
@@ -120,11 +122,13 @@ final class UFitSessionStore {
         }
     }
 
-    func signUp(email: String, password: String, name: String) async {
+    @discardableResult
+    func signUp(email: String, password: String, name: String) async -> Bool {
         await perform {
             guard let auth = self.auth else { throw UFitSessionError.unavailable }
             self.prepareAuthenticationTransition()
-            let response = try await auth.auth.signUp(email: email.trimmingCharacters(in: .whitespacesAndNewlines), password: password, data: ["full_name": .string(name)], redirectTo: UFitRuntimeConfiguration.callbackURL)
+            let response = try await auth.auth.signUp(email: email.trimmingCharacters(in: .whitespacesAndNewlines), password: password,
+                data: [UFitAuthenticationCallback.nameMetadata: .string(name.trimmingCharacters(in: .whitespacesAndNewlines))], redirectTo: UFitAuthenticationCallback.confirmationURL)
             if response.session == nil { self.message = String(localized: "Consultez votre e-mail pour confirmer votre inscription.") }
             else { self.isSignedIn = true; await self.reloadProfile() }
         }
@@ -140,16 +144,19 @@ final class UFitSessionStore {
         }
     }
 
-    func resetPassword(email: String) async {
+    @discardableResult
+    func resetPassword(email: String) async -> Bool {
         await perform {
             guard let auth = self.auth else { throw UFitSessionError.unavailable }
-            try await auth.auth.resetPasswordForEmail(email.trimmingCharacters(in: .whitespacesAndNewlines), redirectTo: UFitRuntimeConfiguration.callbackURL)
+            try await auth.auth.resetPasswordForEmail(email.trimmingCharacters(in: .whitespacesAndNewlines), redirectTo: UFitAuthenticationCallback.recoveryURL)
             self.message = String(localized: "Si ce compte existe, un lien de réinitialisation vous a été envoyé.")
         }
     }
 
-    func updatePassword(_ password: String) async {
-        await perform {
+    @discardableResult
+    func updatePassword(_ password: String) async -> Bool {
+        guard needsNewPassword else { message = UFitAuthenticationFailure.expiredLink.localizedDescription; return false }
+        return await perform {
             guard let auth = self.auth else { throw UFitSessionError.unavailable }
             _ = try await auth.auth.update(user: .init(password: password))
             self.needsNewPassword = false
@@ -158,13 +165,38 @@ final class UFitSessionStore {
     }
 
     func handle(_ url: URL) async {
+        guard let purpose = UFitAuthenticationCallback.purpose(url) else { return }
         await perform {
             guard let auth = self.auth else { throw UFitSessionError.unavailable }
+            let previousRecovery = self.needsNewPassword
+            self.isHandlingAuthenticationCallback = true
+            // The installed SDK emits only signedIn after PKCE exchange. The
+            // exact recovery redirect carries purpose before profile publication.
+            self.needsNewPassword = purpose == .recovery
+            defer { self.isHandlingAuthenticationCallback = false }
             self.prepareAuthenticationTransition()
-            _ = try await auth.auth.session(from: url)
-            self.isSignedIn = true
-            await self.reloadProfile()
+            do {
+                _ = try await auth.auth.session(from: url)
+                self.isSignedIn = true
+                await self.reloadProfile()
+            } catch { self.needsNewPassword = previousRecovery; throw error }
         }
+    }
+
+    func resendConfirmation(email: String) async -> Bool {
+        await perform {
+            guard let auth = self.auth else { throw UFitSessionError.unavailable }
+            try await auth.auth.resend(email: email.trimmingCharacters(in: .whitespacesAndNewlines), type: .signup,
+                emailRedirectTo: UFitAuthenticationCallback.confirmationURL)
+            self.message = UFitAuthenticationCopy.sentAgain
+        }
+    }
+
+    func cancelPasswordRecovery() async {
+        guard !isBusy, needsNewPassword else { return }
+        prepareAuthenticationTransition(); needsNewPassword = false; isSignedIn = false; message = nil
+        // Local storage is removed by the SDK before its logout request.
+        try? await auth?.auth.signOut(scope: .local)
     }
 
     func signOut() async {
@@ -209,7 +241,7 @@ final class UFitSessionStore {
             user = current; profileIdentity = expected; message = nil; deviceNotifications.contextChanged()
         } catch {
             guard authIdentity == expected, profileRequest == request else { return }
-            message = error.localizedDescription
+            message = UFitAuthenticationFailure(error)?.localizedDescription ?? error.localizedDescription
         }
     }
 
@@ -217,13 +249,14 @@ final class UFitSessionStore {
     private func perform(_ operation: () async throws -> Void) async -> Bool {
         guard !isBusy else { return false }
         isBusy = true
-        message = nil
+        message = nil; authenticationFailure = nil
         defer { isBusy = false }
         do { try await operation(); return true }
         catch is CancellationError { return false }
         catch {
+            authenticationFailure = UFitAuthenticationFailure(error)
             if user == nil, auth?.auth.currentSession != nil { await reloadProfile() }
-            message = error.localizedDescription; return false
+            message = authenticationFailure?.localizedDescription ?? error.localizedDescription; return false
         }
     }
 }
