@@ -4,6 +4,8 @@ struct UFitOutfitGalleryContent: View {
     let photos: [UFitOutfitGalleryPhoto]
     var contentMode: ContentMode = .fill
     var imageHeight: CGFloat = Layout.hero
+    var surface: UFitPhotoSurface = .dark
+    var photoAccessibilityLabel: String? = nil
     var renewPhotoSource: ((String) async throws -> String)? = nil
     @State private var selectedPosition: Int?
     private enum Copy {
@@ -29,7 +31,7 @@ struct UFitOutfitGalleryContent: View {
                     ForEach(photos) { photo in
                         Group {
                             if contentMode == .fit || renewPhotoSource != nil {
-                                UFitPinnedPhotoContent(source: photo.url, pins: [], contentMode: contentMode, onPin: {_ in},
+                                UFitPinnedPhotoContent(source: photo.url, pins: [], contentMode: contentMode, surface: surface, onPin: {_ in},
                                     renewSource: renewPhotoSource.map { renew in { () async throws -> String in try await renew(photo.id) } })
                             } else { FashionImage(source: photo.url).clipped() }
                         }
@@ -40,7 +42,7 @@ struct UFitOutfitGalleryContent: View {
                 if photos.count > Layout.step {
                     UFitPhotoPageControl(count: photos.count, selection: Binding(get: { pageIndex }, set: { index in
                         if photos.indices.contains(index) { selectedPosition = photos[index].position }
-                    }), tint: UIColor(Color.ufitInk))
+                    }), tint: UIColor(Color.ufitInk), accessibilityLabel: photoAccessibilityLabel)
 
                 }
             }

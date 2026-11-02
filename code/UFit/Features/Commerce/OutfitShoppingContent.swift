@@ -82,12 +82,6 @@ private struct UFitShoppingPieceCard: View {
     let onQuantity: (Int) -> Void
     let onAdd: () -> Void
     private enum Copy {
-        static let variant = String(localized: "Taille et couleur")
-        static let choose = String(localized: "Choisir une option")
-        static let unavailable = String(localized: "Indisponible")
-        static let quantity = String(localized: "Quantité")
-        static let add = String(localized: "Ajouter au panier")
-        static let added = String(localized: "Ajouté · Ajouter à nouveau")
         static let photo = "photo"
         static let brandChevron = "chevron.right"
     }
@@ -95,7 +89,6 @@ private struct UFitShoppingPieceCard: View {
         static let spacing: CGFloat = UFitSpace.md
         static let image: CGFloat = 92
         static let radius: CGFloat = UFitRadius.card
-        static let minimum = 1
     }
     private enum BrandLayout { static let touch: CGFloat = UFitControlSize.touch }
     var body: some View {
@@ -115,18 +108,9 @@ private struct UFitShoppingPieceCard: View {
             }
             if let note = piece.note, !note.isEmpty { Text(note).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
             if let issue = piece.issue { Text(issue).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
-            if !piece.variants.isEmpty {
-                UFitSelection(Copy.variant, selection: Binding<String?>(get: { piece.selectedVariantID }, set: { if let value = $0 { onSelect(value) } }), options: [.init(value: nil, title: Copy.choose)] + piece.variants.map { .init(value: Optional($0.id), title: $0.isAvailable ? $0.label : $0.label + CopySeparator.value + Copy.unavailable, enabled: $0.isAvailable) }).tint(Color.ufitInk).disabled(piece.isBusy)
-                if piece.selectedVariantID != nil {
-                    UFitQuantityControl(Copy.quantity, value: Binding(get: {piece.quantity}, set: onQuantity), in: Layout.minimum...max(Layout.minimum, piece.maximumQuantity))
-                        .disabled(piece.isBusy)
-                }
-                UFitActionButton(title: piece.wasAdded ? Copy.added : Copy.add, isBusy: piece.isBusy, disabled: piece.selectedVariantID == nil, action: onAdd)
-            }
+            UFitPurchaseOptions(piece: piece, onSelect: onSelect, onQuantity: onQuantity, onAdd: onAdd)
         }
         .padding(Layout.spacing)
         .background(Color.ufitCanvas.opacity(0.45), in: RoundedRectangle(cornerRadius: Layout.radius))
     }
 }
-
-private enum CopySeparator { static let value = " · " }

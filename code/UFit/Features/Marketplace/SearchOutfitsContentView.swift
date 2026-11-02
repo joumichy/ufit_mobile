@@ -4,12 +4,17 @@ struct SearchOutfitsContentView: View {
     @Bindable var store: UFitOutfitSearchStore
     let onOutfitTap: (Outfit) -> Void
     var preferences: UFitStylePreferencesStore? = nil
+    var onCollections: (() -> Void)? = nil
     @State private var showingFilters = false
     private typealias Copy = UFitOutfitSearchCopy
     var body: some View {
         VStack(spacing: .zero) {
             HStack(spacing: .zero) {
                 RootScreenHeader(title: Copy.title)
+                if let onCollections {
+                    UFitButton(UFitEditorialCopy.title, action: onCollections).ufitButtonStyle(.text)
+                        .font(UFitTypography.subheadline).accessibilityLabel(UFitEditorialCopy.open).padding(.trailing, UFitSpace.sm)
+                }
                 UFitButton { Task { await store.search() } } label: {
                     if store.isLoading { UFitLoading() } else { UFitIcon(systemName: Copy.refreshIcon) }
                 }.ufitButtonStyle(.text).frame(minWidth: UFitControlSize.touch, minHeight: UFitControlSize.touch)

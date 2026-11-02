@@ -5,6 +5,7 @@ struct UFitPinnedPhotoContent: View {
     var previewData: Data? = nil
     let pins: [UFitPhotoPinPresentation]
     var contentMode: ContentMode = .fill
+    var surface: UFitPhotoSurface = .dark
     let onPin: (String) -> Void
     var onPlace: ((Int, Int) -> Void)? = nil
     var renewSource: (() async throws -> String)? = nil
@@ -25,7 +26,7 @@ struct UFitPinnedPhotoContent: View {
     var body: some View {
         GeometryReader { geometry in
             ZStack {
-                Color.black
+                surface.background
                 if let image {
                     let rect = imageRect(image.size, viewport: geometry.size)
                     Image(uiImage: image).resizable().frame(width: rect.width, height: rect.height).position(x: rect.midX, y: rect.midY)
@@ -52,8 +53,8 @@ struct UFitPinnedPhotoContent: View {
                         }
                     }
                 } else if failed {
-                    UFitButton { reload = UUID() } label: { Label(Copy.retry, systemImage: Copy.retryIcon).padding(UFitSpace.md) }.tint(.white)
-                } else { UFitLoading().tint(.white) }
+                    UFitButton { reload = UUID() } label: { Label(Copy.retry, systemImage: Copy.retryIcon).padding(UFitSpace.md) }.tint(surface.foreground)
+                } else { UFitLoading().tint(surface.foreground) }
             }.clipped()
         }.task(id: loadIdentity) { await load() }
     }

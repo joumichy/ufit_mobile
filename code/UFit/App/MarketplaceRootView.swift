@@ -154,7 +154,13 @@ struct MarketplaceRootView: View {
                 onSignIn: { requestSignIn(keepCustomerContext: true) }
             )
         case .search:
-            SearchOutfitsContentView(store: outfitSearch, onOutfitTap: showOutfitDetail, preferences: stylePreferences)
+            SearchOutfitsContentView(store: outfitSearch, onOutfitTap: showOutfitDetail, preferences: stylePreferences, onCollections: showEditorial)
+        case .editorial(let editorial):
+            UFitEditorialHost(store: editorial, session: session, cart: cart, onBack: goBack, onOutfit: { outfit in
+                guard case .editorial(let current) = activeRoute, current === editorial else { return }
+                showOutfitDetail(outfit)
+            }, onBrand: { id in showPublicProfile(.init(id: id, kind: .brand)) }, onCart: showCart,
+                onSignIn: { requestSignIn(keepCustomerContext: true) })
         case .professionalHome:
             professionalHome
         case .professionalProfile:
@@ -307,6 +313,11 @@ private extension MarketplaceRootView {
         case .adminOutfits:
             activeRoute = .managedOutfits(UFitManagedOutfitsStore(scope: nil, title: OutfitCopy.moderation, subtitle: OutfitCopy.allAuthors, access: .moderator, client: session.api, session: session))
         }
+    }
+
+    func showEditorial() {
+        routeHistory.append(activeRoute)
+        activeRoute = .editorial(UFitEditorialStore(client: session.api))
     }
 
     func showOutfitItem(_ outfit: Outfit, itemID: String) {
@@ -823,6 +834,7 @@ private enum AppRoute {
     case ownedApplication(UFitOwnedApplicationStore)
     case feed
     case search
+    case editorial(UFitEditorialStore)
     case professionalHome
     case professionalProfile
     case administratorHome

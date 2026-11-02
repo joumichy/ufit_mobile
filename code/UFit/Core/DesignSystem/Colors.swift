@@ -17,3 +17,10 @@ extension Color {
     static let greenText = Color(red: 6 / 255, green: 95 / 255, blue: 70 / 255)
     static let greenBackground = Color(red: 236 / 255, green: 253 / 255, blue: 245 / 255)
 }
+
+/// Photo fitting keeps a deliberate surface and readable loading/retry controls.
+enum UFitPhotoSurface {
+    case dark, canvas
+    var background: Color { self == .dark ? .black : .ufitCanvas }
+    var foreground: Color { self == .dark ? .white : .ufitInk }
+}

@@ -5,6 +5,7 @@ struct UFitPhotoPageControl: View {
     let count: Int
     @Binding var selection: Int
     let tint: UIColor
+    var accessibilityLabel: String? = nil
     private enum Drawing { static let dot: CGFloat = 6; static let selected: CGFloat = 18; static let gap: CGFloat = 6; static let inactiveOpacity = 0.40; static let step = 1 }
     private enum Copy {
         static let photos = String(localized: "Photos de la tenue")
@@ -18,7 +19,7 @@ struct UFitPhotoPageControl: View {
                         .frame(width: index == selection ? Drawing.selected : Drawing.dot, height: Drawing.dot)
                 }
             }.frame(minWidth: UFitControlSize.touch, minHeight: UFitControlSize.touch).contentShape(Rectangle())
-                .accessibilityRepresentation { UFitAccessiblePhotoPages(count: count, selection: $selection, label: Copy.photos, value: Copy.page(selection + Drawing.step, count: count)) }.onTapGesture { selection = selection + Drawing.step < count ? selection + Drawing.step : .zero }
+                .accessibilityRepresentation { UFitAccessiblePhotoPages(count: count, selection: $selection, label: accessibilityLabel ?? Copy.photos, value: Copy.page(selection + Drawing.step, count: count)) }.onTapGesture { selection = selection + Drawing.step < count ? selection + Drawing.step : .zero }
         }
     }
 }
