@@ -9,7 +9,7 @@ enum UFitEditorialHTTP {
     static let missing = 404; static let changed = 409
     static let protocols = ["http", "https"]
 }
-enum UFitEditorialKind: String, Decodable, Hashable { case outfit, product }
+enum UFitEditorialKind: String, Codable, Hashable { case outfit, product }
 struct UFitEditorialCollection: Decodable, Identifiable {
     let id: String
     let version: Int
@@ -69,8 +69,8 @@ enum UFitEditorialFailure: LocalizedError {
         return nil
     }
 }
-private func editorialUUID(_ raw: String) -> Bool { UUID(uuidString: raw)?.uuidString.lowercased() == raw }
-private func editorialImageURL(_ raw: String) -> Bool {
+func editorialUUID(_ raw: String) -> Bool { UUID(uuidString: raw)?.uuidString.lowercased() == raw }
+func editorialImageURL(_ raw: String) -> Bool {
     guard let url = URL(string: raw), let scheme = url.scheme, UFitEditorialHTTP.protocols.contains(scheme),
           url.host != nil, url.user == nil, url.password == nil else { return false }
     return true

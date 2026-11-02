@@ -161,6 +161,8 @@ struct MarketplaceRootView: View {
                 showOutfitDetail(outfit)
             }, onBrand: { id in showPublicProfile(.init(id: id, kind: .brand)) }, onCart: showCart,
                 onSignIn: { requestSignIn(keepCustomerContext: true) })
+        case .adminEditorial(let tool):
+            UFitEditorialAdministrationHost(store: tool, onBack: goBack)
         case .professionalHome:
             professionalHome
         case .professionalProfile:
@@ -170,7 +172,7 @@ struct MarketplaceRootView: View {
             } else { experienceChooser }
         case .administratorHome:
             UFitAdminActivityHost(store: adminActivity, onChooseExperience: showExperiencePicker, onApplications: showAdminApplications,
-                onProducts: showAdminProducts, onOutfits: showAdminOutfits, onReturns: showAdminReturns, onCommissions: showCommissionRules, onUsers: showUserAdministration, onGrades: showCreatorGradeAdministration)
+                onProducts: showAdminProducts, onOutfits: showAdminOutfits, onReturns: showAdminReturns, onCommissions: showCommissionRules, onUsers: showUserAdministration, onGrades: showCreatorGradeAdministration, onEditorial: showEditorialAdministration)
         case .workspaceDashboard(let dashboard):
             UFitWorkspaceDashboardHost(store: dashboard, title: dashboard.workspace.isCreator ? AppTab.creatorEarnings.title : ExperienceCopy.sales, onBack: goBack, onCommissions: showWorkspaceCommissions)
         case .workspaceCommissions(let commissions):
@@ -509,6 +511,12 @@ private extension MarketplaceRootView {
         activeRoute = .adminApplication(UFitApplicationReviewStore(kind: item.type, id: item.id, client: session.api, session: session, queue: adminApplications))
     }
 
+    func showEditorialAdministration() {
+        guard session.user?.canAdminister == true else { return }
+        routeHistory.append(activeRoute)
+        activeRoute = .adminEditorial(UFitEditorialAdministrationStore(session: session))
+    }
+
     func showCommissionRules() {
         guard experience.kind == .administrator, session.user?.canAdminister == true else { return }
         routeHistory.append(activeRoute); activeRoute = .commissionRules(UFitCommissionRulesStore(session: session))
@@ -829,58 +837,6 @@ private extension MarketplaceRootView {
     }
 }
 
-private enum AppRoute {
-    case notification
-    case ownedApplication(UFitOwnedApplicationStore)
-    case feed
-    case search
-    case editorial(UFitEditorialStore)
-    case professionalHome
-    case professionalProfile
-    case administratorHome
-    case workspaceDashboard(UFitWorkspaceDashboardStore)
-    case workspaceCommissions(UFitWorkspaceCommissionsStore)
-    case managedProfile(UFitManagedProfileStore)
-    case managedOutfits(UFitManagedOutfitsStore)
-    case managedOutfit(UFitManagedOutfitStore)
-    case outfitForm(UFitOutfitFormStore)
-    case brandCommercePolicy(UFitBrandCommercePolicyStore)
-    case returns(UFitReturnsStore)
-    case returnDetail(UFitReturnDetailStore)
-    case returnCreation(UFitReturnCreationStore, UFitReturnsStore)
-    case brandOrders(UFitBrandOrdersStore)
-    case brandOrder(UFitBrandOrderStore)
-    case catalog(UFitCatalogStore)
-    case catalogProduct(UFitCatalogProductStore)
-    case catalogForm(UFitCatalogFormStore)
-    case catalogStock(UFitCatalogStockStore)
-    case outfit(Outfit, UFitOutfitShoppingStore, String?)
-    case cart
-    case checkout(UFitCheckoutStore)
-    case saved
-    case account
-    case notificationPreferences(UFitNotificationPreferencesStore)
-    case stylePreferences
-    case applications
-    case applicationForm(UFitApplicationFormStore)
-    case adminApplications
-    case adminApplication(UFitApplicationReviewStore)
-    case connect(UFitConnectStore)
-    case commissionRules(UFitCommissionRulesStore)
-    case commissionRule(UFitCommissionRuleDetailStore)
-    case commissionRuleForm(UFitCommissionRuleFormStore)
-    case creatorGrades(UFitCreatorGradeAdministrationStore)
-    case creatorGrade(UFitCreatorGradeDetailStore)
-    case creatorGradeForm(UFitCreatorGradeFormStore)
-    case creatorGradeAssignment(UFitCreatorGradeAssignmentDetailStore)
-    case creatorGradeChange(UFitCreatorGradeChangeStore)
-    case adminUsers(UFitUserAdministrationStore)
-    case adminUser(UFitUserAdministrationDetailStore)
-    case userAccessDecision(UFitUserAccessDecisionStore)
-    case orders
-    case order(UFitOrderDetailStore)
-    case publicProfile(UFitPublicProfileStore)
-}
 
 #Preview {
     MarketplaceRootView(notifications: UFitNotificationsDelegate())

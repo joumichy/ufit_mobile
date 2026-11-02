@@ -13,6 +13,7 @@ struct UFitAdminHomeContent: View {
     let onUsers: () -> Void
     let onGrades: () -> Void
     let onChooseExperience: () -> Void
+    var onEditorial: (() -> Void)? = nil
     private enum Copy {
         static let title = String(localized: "À traiter"); static let context = String(localized: "Administration")
         static let applications = String(localized: "Candidatures"); static let products = String(localized: "Produits"); static let outfits = String(localized: "Tenues")
@@ -48,6 +49,10 @@ struct UFitAdminHomeContent: View {
                         } else { UFitEmptyState(title: AdminDesignCopy.empty, symbol: Icon.complete) }
                     }
                     UFitEditorialHeading(title: AdminDesignCopy.operations, editorial: false)
+                    if let onEditorial {
+                        UFitExperienceActionRow(title: UFitEditorialAdminCopy.title, systemImage: UFitEditorialAdminCopy.icon, action: onEditorial)
+                        Divider()
+                    }
                     UFitExperienceActionRow(title: Copy.returns, systemImage: Icon.returns, action: onReturns)
                     Divider()
                     UFitExperienceActionRow(title: UFitCommissionAdminCopy.title, systemImage: CommissionIcon.rates, action: onCommissions)
