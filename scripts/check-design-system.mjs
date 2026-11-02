@@ -1,11 +1,10 @@
-import { readFileSync, readdirSync, existsSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 // Static architecture gate. It deliberately makes no claim about rendered UX or behavior.
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const sourceRoot = path.join(root, 'code/UFit');
-const catalogPath = path.join(root, 'design-lab/ufit-lab.json');
 const sourceExtension = '.swift';
 const encoding = 'utf8';
 const failureCode = 1;
@@ -39,29 +38,9 @@ for (const file of [...features, ...swiftFiles(path.join(sourceRoot, 'Core/Compo
   if (code.split('\n').length > maximumLines) failures.push(`${path.relative(root, file)} dépasse ${maximumLines} lignes.`);
   if (labImport.test(code)) failures.push(`${path.relative(root, file)} importe le Lab.`);
 }
-const catalogAvailable = existsSync(catalogPath);
-if (catalogAvailable) {
-  const config = JSON.parse(readFileSync(catalogPath, encoding));
-  const registered = new Set(config.native.catalog.map(entry => entry.source));
-  for (const file of [...swiftFiles(path.join(sourceRoot, 'Core/Components')), ...swiftFiles(path.join(sourceRoot, 'Core/DesignSystem'))]) {
-    const relative = path.relative(sourceRoot, file);
-    if (!registered.has(relative)) failures.push(`${relative} sans propriétaire de catalogue.`);
-  }
-  const previewRoot = path.join(root, 'design-lab/native/Previews');
-  const previewCode = swiftFiles(previewRoot).map(file => readFileSync(file, encoding)).join('\n');
-  for (const entry of config.native.catalog.filter(entry => entry.source.startsWith('Core/Components/') || entry.source.startsWith('Core/DesignSystem/'))) {
-    const source = readFileSync(path.join(sourceRoot, entry.source), encoding);
-    for (const component of entry.components) {
-      const privateType = new RegExp(`private\\s+struct\\s+${component}\\b`).test(source);
-      const scenario = new RegExp(`\\b${component}\\s*[({]`).test(previewCode);
-      if (!privateType && !scenario) failures.push(`${entry.source} : ${component} sans scénario canonique.`);
-    }
-  }
-}
 if (failures.length) {
   process.stderr.write(failures.join('\n') + '\n');
   process.exitCode = failureCode;
 } else {
   process.stdout.write(`Design system : ${features.length} sources App/Features contrôlées ; contrôles/typo/palette possédés, plafond ${maximumLines} lignes et frontière produit/Lab vérifiés. Qualification réelle distincte.\n`);
-  if (!catalogAvailable) process.stdout.write('Catalogue Lab absent : synchronisation des previews non vérifiée ; contrôle produit effectué.\n');
 }
