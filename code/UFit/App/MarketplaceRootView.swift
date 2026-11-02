@@ -114,7 +114,7 @@ struct MarketplaceRootView: View {
             } else { experienceChooser }
         case .administratorHome:
             UFitAdminActivityHost(store: adminActivity, onChooseExperience: showExperiencePicker, onApplications: showAdminApplications,
-                onProducts: showAdminProducts, onOutfits: showAdminOutfits, onReturns: showAdminReturns, onCommissions: showCommissionRules, onUsers: showUserAdministration)
+                onProducts: showAdminProducts, onOutfits: showAdminOutfits, onReturns: showAdminReturns, onCommissions: showCommissionRules, onUsers: showUserAdministration, onGrades: showCreatorGradeAdministration)
         case .workspaceDashboard(let dashboard):
             UFitWorkspaceDashboardHost(store: dashboard, title: dashboard.workspace.isCreator ? AppTab.creatorEarnings.title : ExperienceCopy.sales, onBack: goBack, onCommissions: showWorkspaceCommissions)
         case .workspaceCommissions(let commissions):
@@ -179,6 +179,17 @@ struct MarketplaceRootView: View {
             UFitCommissionRuleDetailHost(store: detail, onBack: goBack, onEdit: showCommissionRuleEditor)
         case .commissionRuleForm(let form):
             UFitCommissionRuleFormHost(store: form, onBack: goBack, onSaved: { finishCommissionRuleForm(form, result: $0) })
+        case .creatorGrades(let tool):
+            UFitCreatorGradeAdministrationHost(store: tool, onBack: goBack, onCreate: showCreatorGradeCreation,
+                onDefinition: showCreatorGradeDefinition, onAssignment: showCreatorGradeAssignment)
+        case .creatorGrade(let detail):
+            UFitCreatorGradeDetailHost(store: detail, onBack: goBack, onRevise: showCreatorGradeRevision)
+        case .creatorGradeForm(let form):
+            UFitCreatorGradeFormHost(store: form, onBack: goBack, onSaved: { finishCreatorGradeForm(form, result: $0) })
+        case .creatorGradeAssignment(let detail):
+            UFitCreatorGradeAssignmentDetailHost(store: detail, onBack: goBack, onChangeGrade: showCreatorGradeChange)
+        case .creatorGradeChange(let form):
+            UFitCreatorGradeChangeHost(store: form, onBack: goBack, onSaved: { finishCreatorGradeChange(form, result: $0) })
         case .adminUsers(let list):
             UFitUserAdministrationHost(store: list, onBack: goBack, onOpen: showAdministeredUser)
         case .adminUser(let detail):
@@ -431,6 +442,51 @@ private extension MarketplaceRootView {
         guard experience.kind == .administrator, session.user?.canAdminister == true else { return }
         routeHistory.append(activeRoute); activeRoute = .commissionRules(UFitCommissionRulesStore(session: session))
     }
+    func showCreatorGradeAdministration() {
+        guard experience.kind == .administrator, session.user?.canAdminister == true else { return }
+        routeHistory.append(activeRoute); activeRoute = .creatorGrades(UFitCreatorGradeAdministrationStore(session: session))
+    }
+    func showCreatorGradeCreation() {
+        guard case .creatorGrades(let tool) = activeRoute, tool.isCurrentAccount, tool.section == .definitions else { return }
+        do {
+            let form = try UFitCreatorGradeFormStore(collection: tool.definitions, original: nil)
+            routeHistory.append(activeRoute); activeRoute = .creatorGradeForm(form)
+        } catch { tool.definitions.report(error) }
+    }
+    func showCreatorGradeDefinition(_ detail: UFitCreatorGradeDetailStore) {
+        guard case .creatorGrades(let tool) = activeRoute, tool.isCurrentAccount, detail.collection === tool.definitions else { return }
+        routeHistory.append(activeRoute); activeRoute = .creatorGrade(detail)
+    }
+    func showCreatorGradeAssignment(_ detail: UFitCreatorGradeAssignmentDetailStore) {
+        guard case .creatorGrades(let tool) = activeRoute, tool.isCurrentAccount, detail.collection === tool.assignments else { return }
+        routeHistory.append(activeRoute); activeRoute = .creatorGradeAssignment(detail)
+    }
+    func showCreatorGradeRevision() {
+        guard case .creatorGrade(let detail) = activeRoute, detail.isCurrentAccount else { return }
+        do {
+            let form = try UFitCreatorGradeFormStore(collection: detail.collection, original: detail.grade)
+            routeHistory.append(activeRoute); activeRoute = .creatorGradeForm(form)
+        } catch { detail.report(error) }
+    }
+    func showCreatorGradeChange() {
+        guard case .creatorGradeAssignment(let detail) = activeRoute, detail.isCurrentAccount else { return }
+        do {
+            let form = try UFitCreatorGradeChangeStore(detail: detail)
+            routeHistory.append(activeRoute); activeRoute = .creatorGradeChange(form)
+        } catch { detail.report(error) }
+    }
+    func finishCreatorGradeForm(_ form: UFitCreatorGradeFormStore, result: UFitCreatorGradeDTO) {
+        guard case .creatorGradeForm(let current) = activeRoute, current === form, form.isCurrentAccount else { return }
+        if form.isNew { activeRoute = .creatorGrade(UFitCreatorGradeDetailStore(grade: result, collection: form.collection)) }
+        else if let previous = routeHistory.last, case .creatorGrade(let detail) = previous, detail.collection === form.collection {
+            do { try detail.receive(result); goBack() } catch { form.report(error) }
+        }
+    }
+    func finishCreatorGradeChange(_ form: UFitCreatorGradeChangeStore, result: UFitCreatorGradeAssignmentDTO) {
+        guard case .creatorGradeChange(let current) = activeRoute, current === form, form.isCurrentAccount,
+              let previous = routeHistory.last, case .creatorGradeAssignment(let detail) = previous, detail === form.detail else { return }
+        do { try detail.receive(result); goBack() } catch { form.report(error) }
+    }
     func showUserAdministration() {
         guard experience.kind == .administrator, session.user?.canAdminister == true else { return }
         routeHistory.append(activeRoute); activeRoute = .adminUsers(UFitUserAdministrationStore(session: session))
@@ -662,6 +718,11 @@ private enum AppRoute {
     case commissionRules(UFitCommissionRulesStore)
     case commissionRule(UFitCommissionRuleDetailStore)
     case commissionRuleForm(UFitCommissionRuleFormStore)
+    case creatorGrades(UFitCreatorGradeAdministrationStore)
+    case creatorGrade(UFitCreatorGradeDetailStore)
+    case creatorGradeForm(UFitCreatorGradeFormStore)
+    case creatorGradeAssignment(UFitCreatorGradeAssignmentDetailStore)
+    case creatorGradeChange(UFitCreatorGradeChangeStore)
     case adminUsers(UFitUserAdministrationStore)
     case adminUser(UFitUserAdministrationDetailStore)
     case userAccessDecision(UFitUserAccessDecisionStore)

@@ -44,7 +44,10 @@ enum UFitCreatorGradeAdminFailure {
     private enum HTTP { static let unauthorized = 401; static let forbidden = 403; static let conflict = 409; static let unavailable = 500 }
     private enum Copy {
         static let exists = String(localized: "Ce code est déjà utilisé. Consultez le grade existant ou choisissez un autre code.")
-        static let changed = String(localized: "Ce grade a changé. Actualisez sa référence avant de réessayer. Votre saisie est conservée.")
+    }
+    static func conflict(_ error: Error) -> Bool {
+        guard case UFitAPIError.requestFailed(let status, _, _) = error else { return false }
+        return status == HTTP.conflict
     }
     static func revoked(_ error: Error) -> Bool {
         guard case UFitAPIError.requestFailed(let status, _, _) = error else { return false }
@@ -56,7 +59,7 @@ enum UFitCreatorGradeAdminFailure {
         return !(error is UFitAPIError)
     }
     static func message(_ error: Error, isNew: Bool = false) -> String {
-        if case UFitAPIError.requestFailed(let status, _, _) = error, status == HTTP.conflict { return isNew ? Copy.exists : Copy.changed }
+        if case UFitAPIError.requestFailed(let status, _, _) = error, status == HTTP.conflict { return isNew ? Copy.exists : UFitCreatorGradeAdminCopy.definitionChanged }
         return error.localizedDescription
     }
 }

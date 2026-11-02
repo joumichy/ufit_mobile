@@ -7,6 +7,8 @@ final class UFitCreatorGradesStore {
     private(set) var assignable: Bool?
     private(set) var grades = [UFitCreatorGradeDTO]()
     private(set) var rows = [UFitCreatorGradeRow]()
+    private(set) var hasLoaded = false
+    private(set) var accessRevoked = false
     private(set) var isLoading = false
     private(set) var openingIDs = Set<String>()
     private(set) var message: String?
@@ -18,10 +20,10 @@ final class UFitCreatorGradesStore {
     @ObservationIgnored private var appliedSearch = String()
     @ObservationIgnored private var loadingSearch: String?
     init(session: UFitSessionStore) { self.session = session; ownerID = session.user?.id }
-    var isCurrentAccount: Bool { ownerID != nil && ownerID == session.user?.id && session.user?.canAdminister == true && session.user?.status == UFitCreatorGradeContract.activeAccount }
+    var isCurrentAccount: Bool { !accessRevoked && ownerID != nil && ownerID == session.user?.id && session.user?.canAdminister == true && session.user?.status == UFitCreatorGradeContract.activeAccount }
     func cancelLoading() { generation = UUID(); navigationRequest = UUID(); isLoading = false; loadingSearch = nil; openingIDs = [] }
     func filter(assignable: Bool?) async {
-        cancelLoading(); self.assignable = assignable; grades = []; rows = []; nextCursor = nil
+        cancelLoading(); self.assignable = assignable; grades = []; rows = []; nextCursor = nil; hasLoaded = false
         await load()
     }
     func load(refresh: Bool = true) async {
@@ -30,17 +32,17 @@ final class UFitCreatorGradesStore {
         guard isCurrentAccount, !isLoading, refresh || nextCursor != nil else { return }
         let request = generation, cursor = refresh ? nil : nextCursor
         isLoading = true; loadingSearch = query; message = nil
-        if refresh && query != appliedSearch { grades = []; rows = []; nextCursor = nil }
+        if refresh && query != appliedSearch { grades = []; rows = []; nextCursor = nil; hasLoaded = false }
         defer { if generation == request { isLoading = false; loadingSearch = nil } }
         do {
             let result = try await session.api.fetchCreatorGrades(cursor: cursor, search: query, assignable: assignable)
             guard generation == request, isCurrentAccount, query == search else { return }
             let merged = refresh ? result.items : grades + result.items
             guard Set(merged.map(\.id)).count == merged.count, zip(merged, merged.dropFirst()).allSatisfy({ $0.code < $1.code }) else { throw UFitCreatorGradeFailure.page }
-            grades = merged; rows = merged.map(\.row); nextCursor = result.nextCursor; appliedSearch = query
+            grades = merged; rows = merged.map(\.row); nextCursor = result.nextCursor; appliedSearch = query; hasLoaded = true
         } catch {
             guard generation == request, isCurrentAccount, query == search else { return }
-            if UFitCreatorGradeAdminFailure.revoked(error) { grades = []; rows = []; nextCursor = nil }
+            if UFitCreatorGradeAdminFailure.revoked(error) { grades = []; rows = []; nextCursor = nil; hasLoaded = false; accessRevoked = true }
             message = UFitCreatorGradeAdminFailure.message(error)
         }
     }
@@ -54,17 +56,21 @@ final class UFitCreatorGradesStore {
             guard generation == request, navigationRequest == navigation, isCurrentAccount else { return nil }
             return UFitCreatorGradeDetailStore(grade: grade, collection: self)
         } catch {
-            if generation == request && navigationRequest == navigation && isCurrentAccount { message = UFitCreatorGradeAdminFailure.message(error) }
+            if generation == request && navigationRequest == navigation && isCurrentAccount { report(error) }
             return nil
         }
     }
-    func report(_ error: Error) { message = UFitCreatorGradeAdminFailure.message(error) }
+    func report(_ error: Error) {
+        if UFitCreatorGradeAdminFailure.revoked(error) { accessRevoked = true; grades = []; rows = []; nextCursor = nil; hasLoaded = false }
+        message = UFitCreatorGradeAdminFailure.message(error)
+    }
 }
 
 @MainActor @Observable
 final class UFitCreatorGradeDetailStore {
     private(set) var grade: UFitCreatorGradeDTO
     private(set) var history = [UFitCreatorGradeRevisionRow]()
+    private(set) var hasLoadedHistory = false
     private(set) var isLoading = false
     private(set) var message: String?
     private(set) var nextCursor: String?
@@ -73,10 +79,11 @@ final class UFitCreatorGradeDetailStore {
     @ObservationIgnored private var generation = UUID()
     init(grade: UFitCreatorGradeDTO, collection: UFitCreatorGradesStore) { self.grade = grade; self.collection = collection }
     var isCurrentAccount: Bool { collection.isCurrentAccount }
+    func report(_ error: Error) { collection.report(error); message = UFitCreatorGradeAdminFailure.message(error) }
     func cancelLoading() { generation = UUID(); isLoading = false }
     func receive(_ grade: UFitCreatorGradeDTO) throws {
         guard grade.code == self.grade.code else { throw UFitCreatorGradeFailure.document }
-        self.grade = grade; history = []; revisions = []; nextCursor = nil
+        self.grade = grade; history = []; revisions = []; nextCursor = nil; hasLoadedHistory = false
     }
     func load(refresh: Bool = true) async {
         guard isCurrentAccount, !isLoading, refresh || nextCursor != nil else { return }
@@ -95,7 +102,7 @@ final class UFitCreatorGradeDetailStore {
             let merged = refresh ? page.items : revisions + page.items
             guard Set(merged.map(\.id)).count == merged.count,
                   zip(merged, merged.dropFirst()).allSatisfy({ $0.version == $1.version + UFitCreatorGradeContract.versionStep && $0.previousRevisionId == $1.id }) else { throw UFitCreatorGradeFailure.page }
-            grade = current; revisions = merged; history = merged.map { $0.row(currentID: current.revisionId) }; nextCursor = page.nextCursor
-        } catch { if generation == request && isCurrentAccount { message = UFitCreatorGradeAdminFailure.message(error) } }
+            grade = current; revisions = merged; history = merged.map { $0.row(currentID: current.revisionId) }; nextCursor = page.nextCursor; hasLoadedHistory = true
+        } catch { if generation == request && isCurrentAccount { collection.report(error); message = UFitCreatorGradeAdminFailure.message(error) } }
     }
 }

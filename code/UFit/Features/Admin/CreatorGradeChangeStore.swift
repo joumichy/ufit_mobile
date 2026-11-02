@@ -9,8 +9,11 @@ final class UFitCreatorGradeChangeStore {
     private(set) var isBusy = false
     private(set) var isReloading = false
     private(set) var message: String?
+    private(set) var messageIsError = false
+    private(set) var referenceIsStale = false
     let detail: UFitCreatorGradeAssignmentDetailStore
     let choices: UFitCreatorGradesStore
+    @ObservationIgnored private var selectedUnavailable = false
     @ObservationIgnored private var baseline = UFitCreatorGradeChangeDraft()
     @ObservationIgnored private var generation = UUID()
     init(detail: UFitCreatorGradeAssignmentDetailStore) throws {
@@ -24,31 +27,44 @@ final class UFitCreatorGradeChangeStore {
     func cancelLoading() { generation = UUID(); isBusy = false; isReloading = false; choices.cancelLoading() }
     func clearError(_ field: UFitCreatorGradeChangeField) { errors[field] = nil }
     func canSelect(_ grade: UFitCreatorGradeRow) -> Bool {
-        isCurrentAccount && !isBusy && grade.id != reference.gradeCode && grade.assignable && choices.grades.contains { $0.code == grade.id && $0.assignable }
+        isCurrentAccount && canChangeGrade && !isBusy && !isReloading && !referenceIsStale && grade.id != reference.gradeCode && grade.assignable && choices.grades.contains { $0.code == grade.id && $0.assignable }
     }
     func choose(_ grade: UFitCreatorGradeRow) {
         guard canSelect(grade) else { return }
-        draft.grade = grade; errors[.grade] = nil; message = nil
+        selectedUnavailable = false
+        draft.grade = grade; errors[.grade] = nil; message = nil; messageIsError = false
     }
     func reloadReference() async {
         guard isCurrentAccount, !isBusy, !isReloading else { return }
         let request = generation
-        isReloading = true; message = nil
+        isReloading = true; message = nil; messageIsError = false
         defer { if generation == request { isReloading = false } }
         do {
             let current = try await detail.collection.session.api.fetchCreatorGradeAssignment(creatorID: reference.creatorId)
             guard generation == request, isCurrentAccount else { return }
-            reference = current; message = Copy.referenceUpdated
-        } catch { if generation == request && isCurrentAccount { message = failureMessage(error) } }
+            if let selected = draft.grade {
+                do {
+                    let grade = try await detail.collection.session.api.fetchCreatorGrade(code: selected.id)
+                    guard generation == request, isCurrentAccount else { return }
+                    draft.grade = grade.row; selectedUnavailable = !grade.assignable
+                    errors[.grade] = grade.assignable && grade.code != current.gradeCode ? nil : Copy.choose
+                } catch {
+                    guard generation == request, isCurrentAccount else { return }
+                    guard case UFitAPIError.requestFailed(let status, _, _) = error, status == HTTP.notFound else { throw error }
+                    selectedUnavailable = true; errors[.grade] = Copy.unavailable
+                }
+            }
+            reference = current; referenceIsStale = false; message = UFitCreatorGradeAdminCopy.assignmentUpdated
+        } catch { if generation == request && isCurrentAccount { report(error) } }
     }
     func save() async -> UFitCreatorGradeAssignmentDTO? {
-        guard isCurrentAccount, canChangeGrade, !isBusy, !isReloading, hasChanges, let actorID = detail.collection.session.user?.id else { return nil }
+        guard isCurrentAccount, canChangeGrade, !isBusy, !isReloading, !referenceIsStale, hasChanges, let actorID = detail.collection.session.user?.id else { return nil }
         errors = [:]
-        if draft.grade == nil || draft.grade?.id == reference.gradeCode { errors[.grade] = Copy.choose }
+        if selectedUnavailable || draft.grade == nil || draft.grade?.id == reference.gradeCode || draft.grade?.assignable != true { errors[.grade] = Copy.choose }
         if !UFitServerTextInput.valid(draft.reason, maximum: UFitCreatorGradeContract.reasonLimit) { errors[.reason] = Copy.reason }
         guard errors.isEmpty, let selected = draft.grade else { return nil }
         let request = generation, current = reference, submitted = draft, reason = UFitServerTextInput.trimmed(draft.reason)
-        isBusy = true; message = nil
+        isBusy = true; message = nil; messageIsError = false
         defer { if generation == request { isBusy = false } }
         do {
             let result: UFitCreatorGradeAssignmentDTO
@@ -61,9 +77,15 @@ final class UFitCreatorGradeChangeStore {
             guard generation == request, isCurrentAccount else { return nil }
             reference = result; baseline = submitted; return result
         } catch {
-            if generation == request && isCurrentAccount { message = failureMessage(error) }
+            if generation == request && isCurrentAccount { report(error) }
             return nil
         }
+    }
+    func report(_ error: Error) {
+        detail.collection.report(error)
+        messageIsError = true
+        if UFitCreatorGradeAdminFailure.conflict(error) { referenceIsStale = true }
+        message = failureMessage(error)
     }
     private func recover(_ previous: UFitCreatorGradeAssignmentDTO, gradeCode: String, reason: String, actorID: String) async throws -> UFitCreatorGradeAssignmentDTO? {
         guard isCurrentAccount else { return nil }
@@ -74,14 +96,13 @@ final class UFitCreatorGradeChangeStore {
         return current
     }
     private func failureMessage(_ error: Error) -> String {
-        if case UFitAPIError.requestFailed(let status, _, _) = error, status == HTTP.conflict { return Copy.changed }
+        if case UFitAPIError.requestFailed(let status, _, _) = error, status == HTTP.conflict { return UFitCreatorGradeAdminCopy.assignmentChanged }
         return UFitCreatorGradeAdminFailure.message(error)
     }
-    private enum HTTP { static let conflict = 409 }
+    private enum HTTP { static let conflict = 409; static let notFound = 404 }
     private enum Copy {
+        static let unavailable = String(localized: "Ce grade n’est plus disponible. Choisissez un autre grade.")
         static let choose = String(localized: "Choisissez un grade différent du grade actuel.")
         static let reason = String(localized: "Ajoutez un motif de 1 à 500 caractères.")
-        static let changed = String(localized: "Le grade, le créateur ou son accès a changé. Actualisez la référence et les choix avant de réessayer. Votre saisie est conservée.")
-        static let referenceUpdated = String(localized: "La référence est à jour. Vérifiez le grade choisi et votre motif avant de confirmer.")
     }
 }

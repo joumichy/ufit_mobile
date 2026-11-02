@@ -8,6 +8,8 @@ final class UFitCreatorGradeFormStore {
     private(set) var isBusy = false
     private(set) var isReloading = false
     private(set) var message: String?
+    private(set) var messageIsError = false
+    private(set) var referenceIsStale = false
     private(set) var original: UFitCreatorGradeDTO?
     let collection: UFitCreatorGradesStore
     @ObservationIgnored private var baseline: UFitCreatorGradeDraft
@@ -26,20 +28,20 @@ final class UFitCreatorGradeFormStore {
     func reloadReference() async {
         guard isCurrentAccount, let original, !isBusy, !isReloading else { return }
         let request = generation
-        isReloading = true; message = nil
+        isReloading = true; message = nil; messageIsError = false
         defer { if generation == request { isReloading = false } }
         do {
             let current = try await collection.session.api.fetchCreatorGrade(code: original.code)
             guard generation == request, isCurrentAccount else { return }
-            self.original = current; baseline = current.editingDraft; message = Copy.referenceUpdated
-        } catch { if generation == request && isCurrentAccount { message = UFitCreatorGradeAdminFailure.message(error) } }
+            self.original = current; baseline = current.editingDraft; referenceIsStale = false; message = UFitCreatorGradeAdminCopy.definitionUpdated
+        } catch { if generation == request && isCurrentAccount { report(error) } }
     }
     func save() async -> UFitCreatorGradeDTO? {
-        guard isCurrentAccount, !isBusy, !isReloading, hasChanges, let actorID = collection.session.user?.id else { return nil }
+        guard isCurrentAccount, !isBusy, !isReloading, !referenceIsStale, hasChanges, let actorID = collection.session.user?.id else { return nil }
         errors = UFitCreatorGradeInput.errors(draft, originalCode: original?.code)
         guard errors.isEmpty else { return nil }
         let request = generation, original = original, submitted = draft
-        isBusy = true; message = nil
+        isBusy = true; message = nil; messageIsError = false
         defer { if generation == request { isBusy = false } }
         do {
             let configuration = try UFitCreatorGradeInput.configuration(submitted, originalCode: original?.code)
@@ -54,9 +56,15 @@ final class UFitCreatorGradeFormStore {
             guard generation == request, isCurrentAccount else { return nil }
             baseline = submitted; return result
         } catch {
-            if generation == request && isCurrentAccount { message = UFitCreatorGradeAdminFailure.message(error, isNew: original == nil) }
+            if generation == request && isCurrentAccount { report(error) }
             return nil
         }
+    }
+    func report(_ error: Error) {
+        collection.report(error)
+        messageIsError = true
+        if original != nil, UFitCreatorGradeAdminFailure.conflict(error) { referenceIsStale = true }
+        message = UFitCreatorGradeAdminFailure.message(error, isNew: isNew)
     }
     private func recover(_ submitted: UFitCreatorGradeDraft, original: UFitCreatorGradeDTO?, configuration: UFitCreatorGradeConfiguration, actorID: String) async throws -> UFitCreatorGradeDTO? {
         guard isCurrentAccount else { return nil }
@@ -68,5 +76,4 @@ final class UFitCreatorGradeFormStore {
               revision.previousRevisionId == original?.revisionId, revision.changedByUserId == actorID, revision.reason == configuration.reason else { return nil }
         return current
     }
-    private enum Copy { static let referenceUpdated = String(localized: "La référence est à jour. Vérifiez votre saisie avant d’enregistrer.") }
 }

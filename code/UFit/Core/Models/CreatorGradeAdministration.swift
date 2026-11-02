@@ -20,6 +20,10 @@ struct UFitCreatorGradeRevisionRow: Identifiable {
     let id: String; let version: Int; let label: String; let rank: Int; let assignable: Bool; let reason: String?; let recordedAt: String; let isCurrent: Bool
 }
 enum UFitCreatorGradeAdminCopy {
+    static let definitionChanged = String(localized: "Ce grade a changé. Actualisez le grade avant de réessayer. Votre saisie est conservée.")
+    static let definitionUpdated = String(localized: "Le grade est à jour. Vérifiez votre saisie avant d’enregistrer.")
+    static let assignmentChanged = String(localized: "Le grade, le créateur ou son accès a changé. Actualisez l’attribution avant de réessayer. Votre saisie est conservée.")
+    static let assignmentUpdated = String(localized: "L’attribution est à jour. Vérifiez le grade choisi et votre motif avant de confirmer.")
     static let title = String(localized: "Grades créateurs")
     static let definitions = String(localized: "Grades")
     static let assignments = String(localized: "Créateurs")
