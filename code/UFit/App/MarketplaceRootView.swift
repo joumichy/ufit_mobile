@@ -184,7 +184,10 @@ struct MarketplaceRootView: View {
                 onOrders: experience.kind == .customer ? showOrders : nil,
                 onApplications: experience.kind == .administrator ? nil : showApplications,
                 onChooseExperience: experience.canChooseAnotherExperience ? showExperiencePicker : nil,
+                onNotifications: showNotificationPreferences,
                 onBack: routeHistory.isEmpty ? nil : goBack)
+        case .notificationPreferences(let preferences):
+            UFitNotificationPreferencesHost(store: preferences, onBack: goBack)
         case .applications:
             UFitApplicationsHost(store: applications, onBack: goBack, onApply: showApplicationForm, onPayments: showPayments)
         case .applicationForm(let form):
@@ -712,9 +715,15 @@ private extension MarketplaceRootView {
         selectTab(experience.kind.homeTab)
     }
     func cancelCurrentForm() {
+        if case .notificationPreferences(let preferences) = activeRoute { preferences.cancelLoading() }
         if case .catalogForm(let form) = activeRoute { form.cancelPhotoUploads() }
         if case .outfitForm(let form) = activeRoute { form.cancelPhotoUploads() }
         if case .commissionRuleForm(let form) = activeRoute { form.cancelLoading() }
+    }
+    func showNotificationPreferences() {
+        guard let userID = session.user?.id else { return }
+        routeHistory.append(activeRoute)
+        activeRoute = .notificationPreferences(UFitNotificationPreferencesStore(userID: userID, session: session))
     }
     func outfitCollection(_ space: UFitWorkspaceReference, status: UFitOutfitStatus? = nil) -> UFitManagedOutfitsStore {
         UFitManagedOutfitsStore(scope: .init(workspace: space), title: space.isCreator ? OutfitCopy.title : AppTab.brandPublications.title,
@@ -794,6 +803,7 @@ private enum AppRoute {
     case checkout(UFitCheckoutStore)
     case saved
     case account
+    case notificationPreferences(UFitNotificationPreferencesStore)
     case applications
     case applicationForm(UFitApplicationFormStore)
     case adminApplications

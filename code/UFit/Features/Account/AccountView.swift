@@ -10,6 +10,7 @@ struct UFitAccountView: View {
     var onOrders: (() -> Void)?
     var onApplications: (() -> Void)?
     var onChooseExperience: (() -> Void)?
+    var onNotifications: (() -> Void)?
     var onBack: (() -> Void)?
     @State private var editing = false
     @State private var editedName = String()
@@ -20,6 +21,7 @@ struct UFitAccountView: View {
         static let chooseIcon = "arrow.triangle.swap"
         static let orders = String(localized: "Mes commandes")
         static let ordersIcon = "bag"
+        static let notificationsIcon = "bell"
         static let title = String(localized: "Mon compte")
         static let edit = String(localized: "Modifier mon profil")
         static let name = String(localized: "Nom affiché")
@@ -64,6 +66,7 @@ struct UFitAccountView: View {
                 Divider()
                 if let onOrders { UFitButton(action: onOrders) { Label(Copy.orders, systemImage: Copy.ordersIcon) }.frame(minHeight: Layout.touch) }
                 if let onApplications { UFitButton(action: onApplications) { Label(Copy.applications, systemImage: Copy.applicationsIcon) }.frame(minHeight: Layout.touch) }
+                if let onNotifications { UFitButton(action: onNotifications) { Label(UFitNotificationPreferencesCopy.title, systemImage: Copy.notificationsIcon) }.frame(minHeight: Layout.touch) }
                 if let onChooseExperience { UFitButton(action: onChooseExperience) { Label(Copy.choose, systemImage: Copy.chooseIcon) }.frame(minHeight: Layout.touch) }
                 UFitButton(action: onSignOut) { Label(Copy.signOut, systemImage: Copy.exitIcon) }.disabled(isBusy)
             }
