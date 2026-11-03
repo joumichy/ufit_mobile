@@ -10,7 +10,7 @@ final class UFitOrderDetailStore {
     var message: String?
     @ObservationIgnored private let id: String
     @ObservationIgnored private let client: UFitAPIClient
-    @ObservationIgnored private let session: UFitSessionStore
+    @ObservationIgnored let session: UFitSessionStore
     @ObservationIgnored private let orders: UFitOrdersStore
     private enum Confirmation { static let attempts = 12; static let interval = Duration.seconds(1) }
     init(id: String, client: UFitAPIClient, session: UFitSessionStore, orders: UFitOrdersStore) {

@@ -27,6 +27,7 @@ final class UFitBrandOrdersStore {
         self.brandID = brandID.lowercased(); self.brandName = brandName; self.session = session; self.userID = userID; isAdministrative = true
     }
     var isCurrentAccount: Bool { session.user?.id == userID && (!isAdministrative || session.user?.canAdminister == true) }
+    var refundOrganizationScope: UFitRefundOrganizationScope {isAdministrative ? .administrator : .brand}
     var summaries: [UFitOrderSummary] { orders.map(\.presentation) }
     func select(_ status: UFitOrderLifecycle?) async {
         guard isCurrentAccount, status == nil || UFitBrandOrderInput.statuses.contains(where: { $0 == status }), status != filter else { return }

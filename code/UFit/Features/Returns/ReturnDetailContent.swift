@@ -8,6 +8,7 @@ struct UFitReturnDetailContent: View {
     let onBack: () -> Void
     let onRefresh: () -> Void
     let onCommand: (UFitReturnCommand) -> Void
+    var onRefundOrganization: (() -> Void)? = nil
     @State private var confirming: UFitReturnCommand?
     private enum Copy {
         static let title = String(localized: "Dossier de retour"); static let refresh = String(localized: "Actualiser le dossier")
@@ -46,6 +47,7 @@ struct UFitReturnDetailContent: View {
                             if detail.summary.status == .refundFailed, let note = detail.refundNote { Text(note).font(UFitTypography.callout) }
                             Text(String(localized: "Date limite de demande : \(detail.deadline)")).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText)
                         }
+                        if let onRefundOrganization {UFitButton(UFitRefundOrganizationCopy.follow, action: onRefundOrganization).ufitButtonStyle(.secondary).disabled(locked)}
                         section(Copy.reason, detail.reason)
                         ForEach(detail.items) { UFitOrderPieceContent(item: $0) }
                         Divider()

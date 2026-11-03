@@ -19,6 +19,7 @@ struct UFitReturnDetailHost: View {
     let onBack: () -> Void
     @State private var form: UFitReturnActionStore?
     @State private var openingMessage: String?
+    @State private var refundOrganization: UFitRefundOrganizationStore?
     var body: some View {
         UFitReturnDetailContent(detail: store.presentation, isLoading: store.isLoading, activeAction: store.activeAction,
             message: openingMessage ?? store.message, onBack: onBack, onRefresh: { openingMessage = nil; Task { await store.load() } }, onCommand: { command in
@@ -26,10 +27,18 @@ struct UFitReturnDetailHost: View {
                 if command.action.requiresForm {
                     do { form = try .init(parent: store, command: command) } catch { openingMessage = error.localizedDescription }
                 } else { Task { _ = await store.perform(command) } }
-            }).task { await store.load() }
+            }, onRefundOrganization: canOrganizeRefund ? showRefundOrganization : nil).task { await store.load() }
             .ufitSheet(item: $form) { item in
                 UFitReturnActionHost(store: item, onClose: { form = nil }, onRefresh: { form = nil; Task { await store.load() } })
             }
+            .ufitSheet(item: $refundOrganization, onDismiss: {Task {await store.load()}}) {current in
+                UFitRefundOrganizationHost(store: current, onClose: {refundOrganization = nil})
+            }
+    }
+    private var canOrganizeRefund: Bool {store.detail?.status == .refundFailed && store.detail?.refund?.providerStatus != .canceled}
+    private func showRefundOrganization() {
+        guard canOrganizeRefund, store.isCurrentAccount else {return}
+        refundOrganization = .init(scope: store.list.scope.refundOrganizationScope, reference: .init(kind: .orderReturn, id: store.id), session: store.list.session)
     }
 }
 private struct UFitReturnActionHost: View {

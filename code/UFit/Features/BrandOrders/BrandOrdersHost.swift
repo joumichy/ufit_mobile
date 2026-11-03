@@ -16,19 +16,27 @@ struct UFitBrandOrderHost: View {
     let store: UFitBrandOrderStore
     let onBack: () -> Void
     @State private var form: UFitShipmentFormStore?
+    @State private var refundOrganization: UFitRefundOrganizationStore?
     var body: some View {
         UFitBrandOrderContent(order: store.presentation, isLoading: store.isLoading, activeAction: store.activeAction, message: store.message,
             onBack: onBack, onRefresh: { Task { await store.load() } }, onCommand: { command in
                 if command.action.requiresForm {
                     do { form = try UFitShipmentFormStore(parent: store, command: command) } catch { store.recordFailure(error) }
                 } else { Task { await store.perform(command) } }
-            }).task { if store.order == nil { await store.load() } }
+            }, onRefundOrganization: store.order?.cancellation?.refundOrganizationReference == nil ? nil : showRefundOrganization).task { if store.order == nil { await store.load() } }
             .ufitSheet(item: $form) { current in
                 UFitShipmentFormHost(store: current, onClose: {
                     form = nil
                     if current.canRefresh { Task { await store.load() } }
                 }, onSaved: { form = nil }, onRefresh: { form = nil; Task { await store.load() } })
             }
+            .ufitSheet(item: $refundOrganization, onDismiss: {Task {await store.load()}}) {current in
+                UFitRefundOrganizationHost(store: current, onClose: {refundOrganization = nil})
+            }
+    }
+    private func showRefundOrganization() {
+        guard store.isCurrentAccount, let reference = store.order?.cancellation?.refundOrganizationReference else {return}
+        refundOrganization = .init(scope: store.list.refundOrganizationScope, reference: reference, session: store.list.session)
     }
 }
 private struct UFitShipmentFormHost: View {

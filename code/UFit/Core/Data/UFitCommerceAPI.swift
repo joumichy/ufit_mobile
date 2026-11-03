@@ -131,13 +131,16 @@ struct UFitOrderCancellationDTO: Decodable {
         let state: UFitCancellationRefundLifecycle
         @UFitRequiredNullable var providerStatus: UFitCancellationRefundProviderStatus?
     }
+    let id: String
     let status: UFitCancellationLifecycle
     let reason: UFitCancellationReason
     @UFitRequiredNullable var outcome: UFitCancellationOutcome?
     @UFitRequiredNullable var refund: Refund?
-    private enum CodingKeys: String, CodingKey { case status, reason, outcome, refund }
+    private enum CodingKeys: String, CodingKey { case id, status, reason, outcome, refund }
     init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
+        id = try values.decode(String.self, forKey: .id)
+        guard UUID(uuidString: id) != nil else {throw UFitCancellationContractError.document}
         status = try values.decode(UFitCancellationLifecycle.self, forKey: .status)
         reason = try values.decode(UFitCancellationReason.self, forKey: .reason)
         _outcome = try values.decode(UFitRequiredNullable<UFitCancellationOutcome>.self, forKey: .outcome)

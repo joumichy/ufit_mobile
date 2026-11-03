@@ -81,7 +81,7 @@ enum UFitCancellationCopy {
             if providerStatus == .cancelled {
                 financial = professional ? String(localized: "Le remboursement a été interrompu. Le client peut le reprendre depuis sa commande.") : String(localized: "Le remboursement a été interrompu. Vous pouvez le reprendre ; la commande reste annulée.")
             } else {
-                financial = professional ? String(localized: "Le remboursement de \(total) n’a pas abouti. Un autre moyen de remboursement doit être organisé avec le client.") : String(localized: "Le remboursement de \(total) n’a pas abouti. Ufit doit organiser avec vous un autre moyen de remboursement.")
+                financial = String(localized: "Le remboursement de \(total) sur le moyen de paiement d’origine n’a pas abouti. Consultez son suivi pour la suite du traitement.")
             }
         case .pending where providerStatus == .requiresAction:
             financial = String(localized: "Le remboursement nécessite une vérification supplémentaire. Il n’est pas encore confirmé.")

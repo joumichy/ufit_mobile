@@ -5,7 +5,7 @@ enum UFitRefundRecoveryKind: String, Codable, CaseIterable {
     var label: String { switch self { case .orderReturn: String(localized: "Retour"); case .cancellation: String(localized: "Annulation") } }
     var sourceTitle: String { switch self { case .orderReturn: String(localized: "Voir le retour"); case .cancellation: String(localized: "Voir la commande") } }
 }
-struct UFitRefundRecoveryReference: Hashable {
+struct UFitRefundRecoveryReference: Hashable, Codable {
     let kind: UFitRefundRecoveryKind
     let id: String
 }

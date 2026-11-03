@@ -8,6 +8,7 @@ struct UFitBrandOrderContent: View {
     let onBack: () -> Void
     let onRefresh: () -> Void
     let onCommand: (UFitShipmentCommand) -> Void
+    var onRefundOrganization: (() -> Void)? = nil
     @State private var confirming: UFitShipmentCommand?
     private enum Copy {
         static let title = String(localized: "Commande"); static let refresh = String(localized: "Actualiser la commande")
@@ -38,6 +39,7 @@ struct UFitBrandOrderContent: View {
                             Text(order.summary.status).font(UFitTypography.headline)
                         }
                         if let note = order.cancellationNote { Text(note).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
+                        if let onRefundOrganization {UFitButton(UFitRefundOrganizationCopy.follow, action: onRefundOrganization).ufitButtonStyle(.secondary).disabled(recordLocked)}
                         UFitOrderAddressContent(lines: order.address, phone: order.phone)
                         Divider()
                         ForEach(order.items) { UFitOrderPieceContent(item: $0) }

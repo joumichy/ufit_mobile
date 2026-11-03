@@ -9,6 +9,7 @@ struct UFitOrderDetailContent: View {
     let onPay: () -> Void
     let onCancel: () -> Void
     let onReturns: () -> Void
+    var onRefundOrganization: (() -> Void)? = nil
     @State private var confirmingCancellation = false
     private enum Copy {
         static let title = String(localized: "Ma commande")
@@ -52,6 +53,7 @@ struct UFitOrderDetailContent: View {
                 Text(order.status).font(UFitTypography.headline)
             }
             if let note = order.cancellationNote { Text(note).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
+            if let onRefundOrganization {UFitButton(UFitRefundOrganizationCopy.follow, action: onRefundOrganization).ufitButtonStyle(.secondary).disabled(isBusy)}
             if order.canResumePayment {
                 UFitButton(action: onPay) { Text(Copy.resume).frame(maxWidth: .infinity) }.ufitButtonStyle(.primary).disabled(isBusy)
             }

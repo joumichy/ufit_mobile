@@ -17,9 +17,13 @@ struct UFitRefundRecoveryDetailHost: View {
     let store: UFitRefundRecoveryDetailStore
     let onBack: () -> Void
     let onSource: () -> Void
+    @State private var organization: UFitRefundOrganizationStore
+    init(store: UFitRefundRecoveryDetailStore, onBack: @escaping () -> Void, onSource: @escaping () -> Void) {
+        self.store = store; self.onBack = onBack; self.onSource = onSource
+        _organization = State(initialValue: UFitRefundOrganizationStore(scope: .administrator, reference: store.reference, session: store.collection.session))
+    }
     var body: some View {
-        UFitRefundRecoveryDetailContent(document: store.presentation, isLoading: store.isLoading, message: store.message,
-            onBack: onBack, onRefresh: {Task {await store.load()}}, onSource: onSource)
+        UFitRefundOrganizationHost(store: organization, onClose: onBack, isSheet: false, sourceTitle: store.presentation?.sourceTitle, providerReference: store.presentation?.providerReference, onSource: onSource)
             .onDisappear {store.cancelLoading()}
     }
 }

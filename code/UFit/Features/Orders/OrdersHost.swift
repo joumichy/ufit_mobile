@@ -14,9 +14,10 @@ struct UFitOrderDetailHost: View {
     let store: UFitOrderDetailStore
     let onBack: () -> Void
     let onReturns: () -> Void
+    @State private var refundOrganization: UFitRefundOrganizationStore?
     var body: some View {
         UFitOrderDetailContent(order: store.presentation, isBusy: store.isBusy, message: store.message, onBack: onBack,
-            onRefresh: {Task {await store.load()}}, onPay: {Task {await store.resumePayment()}}, onCancel: {Task {await store.cancel()}}, onReturns: onReturns)
+            onRefresh: {Task {await store.load()}}, onPay: {Task {await store.resumePayment()}}, onCancel: {Task {await store.cancel()}}, onReturns: onReturns, onRefundOrganization: store.order?.cancellation?.refundOrganizationReference == nil ? nil : showRefundOrganization)
             .task {await store.load()}
             .task(id: store.order?.cancellation?.status) { await store.followCancellation() }
             .background {
@@ -24,5 +25,12 @@ struct UFitOrderDetailHost: View {
                     UFitStripePaymentPresentation(sheet: sheet) {result in Task {await store.paymentFinished(result)}}.id(ObjectIdentifier(sheet))
                 }
             }
+            .ufitSheet(item: $refundOrganization, onDismiss: {Task {await store.load()}}) {current in
+                UFitRefundOrganizationHost(store: current, onClose: {refundOrganization = nil})
+            }
+    }
+    private func showRefundOrganization() {
+        guard let reference = store.order?.cancellation?.refundOrganizationReference else {return}
+        refundOrganization = .init(scope: .customer, reference: reference, session: store.session)
     }
 }
