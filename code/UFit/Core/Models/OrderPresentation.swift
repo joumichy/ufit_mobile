@@ -66,7 +66,7 @@ enum UFitShipmentLifecycle: String, Decodable {
     }
 }
 enum UFitCancellationOutcome: String, Decodable {
-    case notCharged = "not_charged", refunded, refundFailed = "refund_failed", refundCancelled = "refund_canceled", refundBlocked = "refund_blocked"
+    case notCharged = "not_charged", refunded, refundedExternally = "refunded_externally", refundFailed = "refund_failed", refundCancelled = "refund_canceled", refundBlocked = "refund_blocked"
 }
 enum UFitCancellationLifecycle: String, Decodable { case requested, succeeded, failed }
 enum UFitCancellationRefundLifecycle: String, Decodable { case queued, pending, succeeded, failed, blocked }
@@ -74,6 +74,7 @@ enum UFitCancellationRefundProviderStatus: String, Decodable { case pending, req
 
 enum UFitCancellationCopy {
     static func note(reason: UFitCancellationReason, outcome: UFitCancellationOutcome?, refundState: UFitCancellationRefundLifecycle?, providerStatus: UFitCancellationRefundProviderStatus?, total: String, professional: Bool = false) -> String {
+        if outcome == .refundedExternally {return UFitRefundReviewCopy.settled(total)}
         let financial: String
         switch refundState {
         case .succeeded: financial = String(localized: "\(total) ont été remboursés sur le moyen de paiement utilisé.")
@@ -91,6 +92,7 @@ enum UFitCancellationCopy {
             switch outcome {
             case .notCharged: financial = String(localized: "Aucun paiement n’a été débité.")
             case .refunded: financial = String(localized: "\(total) ont été remboursés sur le moyen de paiement utilisé.")
+            case .refundedExternally: financial = UFitRefundReviewCopy.settled(total)
             case .refundFailed, .refundBlocked: financial = String(localized: "Le remboursement n’a pas abouti. Un autre moyen de remboursement doit être organisé.")
             case .refundCancelled: financial = String(localized: "Le remboursement a été interrompu.")
             case nil: financial = String(localized: "L’annulation est en cours de traitement. La commande ne sera pas expédiée.")

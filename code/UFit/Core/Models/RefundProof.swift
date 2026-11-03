@@ -22,6 +22,10 @@ enum UFitRefundProofCopy {
     static let notSubmitted = String(localized: "Le justificatif n’est pas encore soumis. Vous pouvez renvoyer la même demande et le même fichier.")
     static let localFailure = String(localized: "La demande locale ne peut pas être relue. Revenez au dossier pour vérifier le justificatif avant une nouvelle saisie.")
     static let cancelled = String(localized: "Document non sélectionné.")
+    static let replaceRejected = String(localized: "Remplacer le justificatif refusé")
+    static let history = String(localized: "Historique des justificatifs")
+    static let historyEmpty = String(localized: "Aucun justificatif transmis")
+    static let historyMore = String(localized: "Voir les justificatifs précédents")
 }
 enum UFitRefundProofFailure: LocalizedError {
     case file, local
@@ -53,17 +57,51 @@ struct UFitRefundProofSelection: Codable, Equatable {
 struct UFitRefundProofRequest: Codable {
     let requestId: String
     let expectedVersion: Int
+    let replacesProofId: String?
     let transferReference: String
     let transferredOn: String
     let file: UFitRefundProofSelection
     func validate() throws {
         guard UUID(uuidString: requestId) != nil, (UFitRefundOrganizationRules.firstVersion...UFitRefundOrganizationRules.maximumVersion).contains(expectedVersion),
+              replacesProofId == nil || UUID(uuidString: replacesProofId!) != nil,
               UFitServerTextInput.valid(transferReference, maximum: UFitRefundProofContract.referenceMaximum), UFitRefundProofContract.dateValue(transferredOn) != nil else {throw UFitRefundProofFailure.local}
         try file.validate()
+    }
+    private enum CodingKeys: String, CodingKey {case requestId, expectedVersion, replacesProofId, transferReference, transferredOn, file}
+    init(requestId: String, expectedVersion: Int, replacesProofId: String?, transferReference: String, transferredOn: String, file: UFitRefundProofSelection) {
+        self.requestId = requestId; self.expectedVersion = expectedVersion; self.replacesProofId = replacesProofId
+        self.transferReference = transferReference; self.transferredOn = transferredOn; self.file = file
+    }
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        requestId = try values.decode(String.self, forKey: .requestId); expectedVersion = try values.decode(Int.self, forKey: .expectedVersion)
+        replacesProofId = try values.decode(UFitRequiredNullable<String>.self, forKey: .replacesProofId).wrappedValue
+        transferReference = try values.decode(String.self, forKey: .transferReference); transferredOn = try values.decode(String.self, forKey: .transferredOn)
+        file = try values.decode(UFitRefundProofSelection.self, forKey: .file)
+        try validate()
+    }
+    func encode(to encoder: Encoder) throws {
+        var values = encoder.container(keyedBy: CodingKeys.self)
+        try values.encode(requestId, forKey: .requestId); try values.encode(expectedVersion, forKey: .expectedVersion)
+        try values.encode(replacesProofId, forKey: .replacesProofId); try values.encode(transferReference, forKey: .transferReference)
+        try values.encode(transferredOn, forKey: .transferredOn); try values.encode(file, forKey: .file)
+    }
+    struct Command: Encodable {
+        let request: UFitRefundProofRequest
+        func encode(to encoder: Encoder) throws {
+            var values = encoder.container(keyedBy: CodingKeys.self)
+            try values.encode(request.requestId, forKey: .requestId); try values.encode(request.expectedVersion, forKey: .expectedVersion)
+            try values.encode(request.replacesProofId, forKey: .replacesProofId); try values.encode(request.transferReference, forKey: .transferReference)
+            try values.encode(request.transferredOn, forKey: .transferredOn)
+        }
     }
 }
 
 struct UFitRefundProofPresentation {
     let reference: String
     let date: String
+    let status: String
+    let decisionReason: String?
+    let verificationReference: String?
+    let reviewedAt: String?
 }

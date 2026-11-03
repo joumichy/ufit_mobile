@@ -3,6 +3,8 @@ import SwiftUI
 struct UFitRefundOrganizationHost: View {
     @Bindable var store: UFitRefundOrganizationStore
     @State private var proofUpload: UFitRefundProofUploadStore?
+    @State private var proofReview: UFitRefundProofReviewStore?
+    @State private var showingHistory = false
     let onClose: () -> Void
     var isSheet = true
     var sourceTitle: String?
@@ -10,7 +12,11 @@ struct UFitRefundOrganizationHost: View {
     var onSource: (() -> Void)?
     var body: some View {
         Group {
-            if store.isEditing, let action = store.action {
+            if let proofReview, store.document != nil {
+                UFitRefundProofReviewContent(store: proofReview, onClose: {self.proofReview = nil; Task {await store.load()}}, onOpenProof: openCurrentProof, isOpeningProof: store.isOpeningProof, proofMessage: store.proofMessage)
+            } else if showingHistory, store.document != nil {
+                UFitRefundProofHistoryContent(store: store, onClose: {showingHistory = false})
+            } else if store.isEditing, let action = store.action {
                 UFitRefundOrganizationFormContent(action: action, reference: store.document?.summary.orderNumber ?? String(), amount: store.document.map {UFitMoney.format($0.summary.amount, currency: $0.summary.currency)} ?? String(), draft: Binding(get: {store.pending?.draft ?? store.draft}, set: {if !store.isSaving && !store.isUncertain {store.draft = $0}}),
                     hasChanges: store.hasChanges, allowsInitialValidation: store.document?.organization == nil || (action == .provideDetails && store.document?.organization?.customerDetails == nil), isSaving: store.isSaving, isLoading: store.isLoading, isStale: store.isStale, isUncertain: store.isUncertain,
                     canRetryExact: store.canRetryExact, replacesDetails: store.document?.organization?.customerDetails != nil, comparison: store.comparison?.presentation(scope: store.scope), errors: store.errors, message: store.message, messageIsError: store.messageIsError,
@@ -18,9 +24,11 @@ struct UFitRefundOrganizationHost: View {
                     onVerify: {Task {await store.verifyPending()}}, onRetryExact: {Task {await store.sendPending()}})
             } else {
                 UFitRefundOrganizationContent(document: store.document?.presentation(scope: store.scope), scope: store.scope, isLoading: store.isLoading, isSheet: isSheet,
-                    message: store.message, messageIsError: store.messageIsError, canRecoverLocal: store.localRecordFailed, sourceTitle: sourceTitle, providerReference: providerReference, onClose: onClose,
+                    message: store.proofMessage ?? store.message, messageIsError: store.proofMessage != nil || store.messageIsError, canRecoverLocal: store.localRecordFailed, sourceTitle: sourceTitle, providerReference: providerReference, onClose: onClose,
                     onRefresh: {Task {await store.load()}}, onEdit: store.edit, onRecoverLocal: {Task {await store.recoverLocalRecord()}}, onSource: onSource,
-                    onUploadProof: canUploadProof ? showProofUpload : nil, uploadProofTitle: store.hasProofRequest ? UFitRefundProofCopy.resume : UFitRefundProofCopy.upload, onViewProof: store.document?.proof == nil ? nil : {Task {await store.openProof()}}, isOpeningProof: store.isOpeningProof)
+                    onUploadProof: canUploadProof ? showProofUpload : nil, uploadProofTitle: store.hasProofRequest ? UFitRefundProofCopy.resume : store.document?.proof?.status == .rejected ? UFitRefundProofCopy.replaceRejected : UFitRefundProofCopy.upload,
+                    onViewProof: store.document?.proof == nil ? nil : openCurrentProof, isOpeningProof: store.isOpeningProof,
+                    onReviewProof: canReviewProof ? showProofReview : nil, reviewProofTitle: store.hasReviewRequest ? UFitRefundReviewCopy.resume : UFitRefundReviewCopy.title, onHistory: store.document == nil ? nil : {showingHistory = true})
             }
         }.interactiveDismissDisabled(store.isSaving || store.hasChanges)
             .task {await store.load()}.onDisappear {store.cancelLoading(); store.clearProofPreview()}
@@ -28,8 +36,15 @@ struct UFitRefundOrganizationHost: View {
                 UFitRefundProofUploadContent(store: current, onClose: {proofUpload = nil})
             }.ufitDocumentPreview($store.previewURL)
             .onChange(of: store.previewURL) {_, url in if url == nil {store.clearProofPreview()}}
+            .onChange(of: store.document == nil) {_, unavailable in if unavailable {proofReview = nil; showingHistory = false}}
     }
-    private var canUploadProof: Bool {store.scope == .brand && (store.hasProofRequest || (store.document?.organization?.status == .ready && store.document?.proof == nil))}
+    private var canUploadProof: Bool {store.scope == .brand && (store.hasProofRequest || (store.document?.organization?.status == .ready && store.document?.settlement == nil && (store.document?.proof == nil || store.document?.proof?.status == .rejected)))}
+    private var canReviewProof: Bool {store.scope == .administrator && (store.hasReviewRequest || store.document?.reviewActions.isEmpty == false)}
+    private func openCurrentProof() {if let proof = store.document?.proof {Task {await store.openProof(proof)}}}
+    private func showProofReview() {
+        guard store.isCurrentAccount, canReviewProof, let document = store.document, let actorID = store.session.user?.id else {return}
+        proofReview = .init(document: document, actorID: actorID, session: store.session)
+    }
     private func showProofUpload() {
         guard store.isCurrentAccount, canUploadProof, let document = store.document, let actorID = store.session.user?.id else {return}
         proofUpload = .init(document: document, session: store.session, actorID: actorID)
@@ -40,7 +55,7 @@ extension UFitReturnScope {
 }
 extension UFitOrderCancellationDTO {
     var refundOrganizationReference: UFitRefundRecoveryReference? {
-        guard refund?.providerStatus != .cancelled, refund?.state == .failed || refund?.state == .blocked else {return nil}
+        guard externalSettlement != nil || (refund?.providerStatus != .cancelled && (refund?.state == .failed || refund?.state == .blocked)) else {return nil}
         return .init(kind: .cancellation, id: id)
     }
 }

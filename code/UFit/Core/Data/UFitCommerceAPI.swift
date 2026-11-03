@@ -45,16 +45,20 @@ extension UFitAPIClient {
     func fetchOrders(cursor: String? = nil) async throws -> UFitOrdersPageDTO {
         var query = [URLQueryItem(name: CommerceHTTP.limit, value: String(CommerceHTTP.defaultLimit))]
         if let cursor { query.append(URLQueryItem(name: CommerceHTTP.cursor, value: cursor)) }
-        return try await send(CommerceHTTP.get, path: CommerceHTTP.orders, query: query, requiresAuth: true)
+        let result: UFitOrdersPageDTO = try await send(CommerceHTTP.get, path: CommerceHTTP.orders, query: query, requiresAuth: true)
+        try result.items.forEach {try $0.cancellation?.validateSettlement(amount: $0.totalAmount, currency: $0.currency)}
+        return result
     }
     func cancelOrder(id: String) async throws -> UFitOrderDTO {
-        try await send("POST", path: CommerceHTTP.orders + "/" + id + "/cancel", requiresAuth: true)
+        let result: UFitOrderDTO = try await send("POST", path: CommerceHTTP.orders + "/" + id + "/cancel", requiresAuth: true)
+        try result.cancellation?.validateSettlement(amount: result.totalAmount, currency: result.currency); return result
     }
     func resumeOrderPayment(id: String) async throws -> UFitPaymentIntentDTO {
         try await send("POST", path: CommerceHTTP.orders + "/" + id + "/payment", requiresAuth: true)
     }
     func fetchOrder(id: String) async throws -> UFitOrderDTO {
-        try await send(CommerceHTTP.get, path: CommerceHTTP.orders + "/" + id, requiresAuth: true)
+        let result: UFitOrderDTO = try await send(CommerceHTTP.get, path: CommerceHTTP.orders + "/" + id, requiresAuth: true)
+        try result.cancellation?.validateSettlement(amount: result.totalAmount, currency: result.currency); return result
     }
 }
 
@@ -136,7 +140,11 @@ struct UFitOrderCancellationDTO: Decodable {
     let reason: UFitCancellationReason
     @UFitRequiredNullable var outcome: UFitCancellationOutcome?
     @UFitRequiredNullable var refund: Refund?
-    private enum CodingKeys: String, CodingKey { case id, status, reason, outcome, refund }
+    @UFitRequiredNullable var externalSettlement: UFitExternalRefundSettlementDTO?
+    private enum CodingKeys: String, CodingKey { case id, status, reason, outcome, refund, externalSettlement }
+    func validateSettlement(amount: Int, currency: String) throws {
+        if let externalSettlement {guard externalSettlement.amount == amount, externalSettlement.currency == currency else {throw UFitCancellationContractError.document}}
+    }
     init(from decoder: Decoder) throws {
         let values = try decoder.container(keyedBy: CodingKeys.self)
         id = try values.decode(String.self, forKey: .id)
@@ -145,6 +153,13 @@ struct UFitOrderCancellationDTO: Decodable {
         reason = try values.decode(UFitCancellationReason.self, forKey: .reason)
         _outcome = try values.decode(UFitRequiredNullable<UFitCancellationOutcome>.self, forKey: .outcome)
         _refund = try values.decode(UFitRequiredNullable<Refund>.self, forKey: .refund)
+        _externalSettlement = try values.decode(UFitRequiredNullable<UFitExternalRefundSettlementDTO>.self, forKey: .externalSettlement)
+        if outcome == .refundedExternally {
+            guard externalSettlement != nil, status == .succeeded, let refund,
+                  (refund.state == .failed && refund.providerStatus == .failed) || (refund.state == .blocked && refund.providerStatus == nil) else {throw UFitCancellationContractError.document}
+            return
+        }
+        guard externalSettlement == nil else {throw UFitCancellationContractError.document}
         let expectedOutcome: UFitCancellationOutcome?
         if let refund {
             switch (refund.state, refund.providerStatus) {

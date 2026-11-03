@@ -35,7 +35,7 @@ struct UFitReturnDetailHost: View {
                 UFitRefundOrganizationHost(store: current, onClose: {refundOrganization = nil})
             }
     }
-    private var canOrganizeRefund: Bool {store.detail?.status == .refundFailed && store.detail?.refund?.providerStatus != .canceled}
+    private var canOrganizeRefund: Bool {store.detail?.externalSettlement != nil || (store.detail?.status == .refundFailed && store.detail?.refund?.providerStatus != .canceled)}
     private func showRefundOrganization() {
         guard canOrganizeRefund, store.isCurrentAccount else {return}
         refundOrganization = .init(scope: store.list.scope.refundOrganizationScope, reference: .init(kind: .orderReturn, id: store.id), session: store.list.session)

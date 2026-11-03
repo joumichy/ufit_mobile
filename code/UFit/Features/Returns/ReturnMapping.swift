@@ -31,7 +31,8 @@ extension UFitReturnDetailDTO {
               commands: stale ? [] : actions.map { .init(action: $0, expectedVersion: version) })
     }
     private var refundNote: String? {
-        switch status {
+        if let externalSettlement {return UFitRefundReviewCopy.settled(UFitMoney.format(externalSettlement.amount, currency: externalSettlement.currency))}
+        return switch status {
         case .refundPending: String(localized: "La réception est enregistrée. Le prestataire doit encore confirmer le remboursement. Actualisez pour suivre son résultat.")
         case .refundFailed:
             refund?.providerStatus == .canceled

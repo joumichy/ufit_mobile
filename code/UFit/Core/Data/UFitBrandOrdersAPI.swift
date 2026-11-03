@@ -116,6 +116,7 @@ struct UFitBrandOrderDetailDTO: Decodable {
               shippingAddress.country.range(of: UFitCountry.codePattern, options: .regularExpression) != nil else { throw UFitBrandOrderContractError.document }
         try items.forEach { try $0.validate() }
         try shipment?.validate(brandID: brandID, orderID: orderID)
+        try cancellation?.validateSettlement(amount: summary.totalAmount, currency: summary.currency)
     }
     mutating func receive(_ result: UFitShipmentResult) {
         summary.status = result.orderStatus; summary.shipmentStatus = result.shipment.status

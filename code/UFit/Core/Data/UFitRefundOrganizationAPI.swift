@@ -41,22 +41,31 @@ struct UFitRefundOrganizationDocumentDTO: Decodable {
     let summary: UFitRefundRecoverySummaryDTO
     @UFitRequiredNullable var organization: UFitRefundOrganizationDTO?
     @UFitRequiredNullable var proof: UFitRefundProofDTO?
+    @UFitRequiredNullable var settlement: UFitExternalRefundSettlementDTO?
     let actions: [UFitRefundOrganizationAction]
-    private enum CodingKeys: String, CodingKey, CaseIterable {case summary, organization, proof, actions}
+    let reviewActions: [UFitRefundProofDecision]
+    private enum CodingKeys: String, CodingKey, CaseIterable {case summary, organization, proof, settlement, actions, reviewActions}
     init(from decoder: Decoder) throws {
         try UFitStrictDecoding.keys(decoder, CodingKeys.self, failure: UFitRefundOrganizationFailure.contract)
         let v = try decoder.container(keyedBy: CodingKeys.self)
         summary = try v.decode(UFitRefundRecoverySummaryDTO.self, forKey: .summary)
         _organization = try v.decode(UFitRequiredNullable<UFitRefundOrganizationDTO>.self, forKey: .organization)
         _proof = try v.decode(UFitRequiredNullable<UFitRefundProofDTO>.self, forKey: .proof)
+        _settlement = try v.decode(UFitRequiredNullable<UFitExternalRefundSettlementDTO>.self, forKey: .settlement)
         actions = try v.decode([UFitRefundOrganizationAction].self, forKey: .actions)
+        reviewActions = try v.decode([UFitRefundProofDecision].self, forKey: .reviewActions)
     }
     func validate(scope: UFitRefundOrganizationScope, reference: UFitRefundRecoveryReference) throws {
         let expected: [UFitRefundOrganizationAction]
-        if proof != nil || organization?.version == UFitRefundOrganizationRules.maximumVersion {expected = []}
+        if (proof != nil && proof?.status != .rejected) || organization?.version == UFitRefundOrganizationRules.maximumVersion {expected = []}
         else {switch scope {case .administrator: expected = [.arrange]; case .customer: expected = organization == nil ? [] : [.provideDetails]; case .brand: expected = []}}
-        if let proof {guard proof.organizationVersion == organization?.version, proof.amount == summary.amount, proof.currency == summary.currency else {throw UFitRefundOrganizationFailure.contract}}
-        guard summary.reference == reference, actions == expected else {throw UFitRefundOrganizationFailure.contract}
+        if let proof {
+            guard let version = organization?.version, proof.organizationVersion <= version, proof.status == .rejected || proof.organizationVersion == version,
+                  proof.amount == summary.amount, proof.currency == summary.currency else {throw UFitRefundOrganizationFailure.contract}
+        }
+        let expectedReviews: [UFitRefundProofDecision] = scope == .administrator && proof?.status == .submitted && settlement == nil ? [.reject, .confirm] : []
+        guard summary.reference == reference, actions == expected, reviewActions == expectedReviews, (proof?.status == .verified) == (settlement != nil) else {throw UFitRefundOrganizationFailure.contract}
+        if let settlement {guard settlement.amount == summary.amount, settlement.currency == summary.currency, settlement.settledOn == proof?.transferredOn else {throw UFitRefundOrganizationFailure.contract}}
     }
 }
 struct UFitRefundOrganizationRequest: Codable, Equatable {

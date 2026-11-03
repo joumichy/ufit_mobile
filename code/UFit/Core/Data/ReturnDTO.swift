@@ -109,7 +109,11 @@ struct UFitReturnRefundDTO: Decodable {
     let attemptNumber: Int; let amount: Int; let state: UFitReturnRefundState
     @UFitRequiredNullable var providerStatus: UFitReturnProviderState?
     let updatedAt: UFitTimestamp
-    func validate(status: UFitReturnStatus) throws {
+    func validate(status: UFitReturnStatus, externallySettled: Bool) throws {
+        if externallySettled {
+            guard status == .refunded, (state == .failed && providerStatus == .failed) || (state == .blocked && providerStatus == nil) else {throw UFitReturnContractError.document}
+            return
+        }
         switch state {
         case .queued:
             guard status == .refundPending, providerStatus == nil else { throw UFitReturnContractError.document }
@@ -136,6 +140,7 @@ struct UFitReturnDetailDTO: Decodable, Identifiable {
     @UFitRequiredNullable var reception: UFitReturnReceptionDTO?
     let orderNumber: String; let currency: String; let returnPolicy: String
     @UFitRequiredNullable var refund: UFitReturnRefundDTO?
+    @UFitRequiredNullable var externalSettlement: UFitExternalRefundSettlementDTO?
     let actions: [UFitReturnAction]
     var summary: UFitReturnSummaryDTO {
         .init(id: id, orderId: orderId, brandId: brandId, orderNumber: orderNumber, version: version, status: status, requestedAt: requestedAt,
@@ -159,12 +164,13 @@ struct UFitReturnDetailDTO: Decodable, Identifiable {
         } else if items.contains(where: { $0.restockQuantity != nil }) { throw UFitReturnContractError.document }
         if let refund {
             guard UFitReturnContract.quantity(refund.attemptNumber), refund.amount == amounts.totalAmount, reception != nil else { throw UFitReturnContractError.document }
-            try refund.validate(status: status)
+            try refund.validate(status: status, externallySettled: externalSettlement != nil)
         }
         if status == .refunded {
-            guard refundedAt != nil, reception != nil, refund?.state == .succeeded,
-                  (amounts.totalAmount == .zero ? refund?.providerStatus == nil : refund?.providerStatus == .succeeded), actions.isEmpty else { throw UFitReturnContractError.document }
+            guard refundedAt != nil, reception != nil, actions.isEmpty,
+                  externalSettlement != nil || (refund?.state == .succeeded && (amounts.totalAmount == .zero ? refund?.providerStatus == nil : refund?.providerStatus == .succeeded)) else { throw UFitReturnContractError.document }
         } else if refundedAt != nil { throw UFitReturnContractError.document }
+        if let externalSettlement {guard status == .refunded, refund != nil, externalSettlement.amount == amounts.totalAmount, externalSettlement.currency == currency else {throw UFitReturnContractError.document}}
         if status == .refundPending || status == .refundFailed {
             guard reception != nil, refund != nil else { throw UFitReturnContractError.document }
         }

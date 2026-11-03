@@ -18,7 +18,13 @@ final class UFitRefundOrganizationStore: Identifiable {
     private(set) var pending: UFitRefundOrganizationRequest?
     private(set) var canRetryExact = false
     private(set) var hasProofRequest = false
-    private(set) var isOpeningProof = false
+    private(set) var hasReviewRequest = false
+    private(set) var openingProofIDs = Set<String>()
+    private(set) var proofDownloadErrors = [String: String]()
+    private(set) var proofHistory = [UFitRefundProofDTO]()
+    private(set) var historyCursor: String?
+    private(set) var isLoadingHistory = false
+    private(set) var historyMessage: String?
     var previewURL: URL?
     @ObservationIgnored private var previewFile: URL?
     private(set) var localRecordFailed = false
@@ -26,6 +32,7 @@ final class UFitRefundOrganizationStore: Identifiable {
     @ObservationIgnored let session: UFitSessionStore
     @ObservationIgnored private let ownerID: String?
     @ObservationIgnored private var generation = UUID()
+    @ObservationIgnored private var previewGeneration = UUID()
     @ObservationIgnored private var editingVersion = Int.zero
     @ObservationIgnored private var editingAction: UFitRefundOrganizationAction?
     @ObservationIgnored private var original = UFitRefundOrganizationDraft()
@@ -35,8 +42,10 @@ final class UFitRefundOrganizationStore: Identifiable {
     var action: UFitRefundOrganizationAction? {editingAction}
     var hasChanges: Bool {isEditing && draft != original}
     var isUncertain: Bool {pending != nil}
+    var isOpeningProof: Bool {document?.proof.map {openingProofIDs.contains($0.id)} ?? false}
+    var proofMessage: String? {document?.proof.flatMap {proofDownloadErrors[$0.id]}}
     var journal: UFitRefundOrganizationJournal? {ownerID.map {.init(actorID: $0, scope: scope, reference: reference)}}
-    func cancelLoading() {generation = UUID(); isLoading = false; isSaving = false; isOpeningProof = false}
+    func cancelLoading() {generation = UUID(); previewGeneration = UUID(); isLoading = false; isSaving = false; openingProofIDs = []; isLoadingHistory = false}
     func load() async {
         guard isCurrentAccount, !isLoading, !isSaving else {return}
         let request = generation; isLoading = true; message = nil; messageIsError = false
@@ -55,6 +64,10 @@ final class UFitRefundOrganizationStore: Identifiable {
             if scope == .brand, let ownerID {
                 do {hasProofRequest = try UFitRefundProofJournal(actorID: ownerID, reference: reference).read() != nil}
                 catch {hasProofRequest = true}
+            }
+            if scope == .administrator, let ownerID {
+                do {hasReviewRequest = try UFitRefundProofReviewJournal(actorID: ownerID, reference: reference).read() != nil}
+                catch {hasReviewRequest = true}
             }
             if pending != nil {await verifyPending()}
         } catch {if generation == request, isCurrentAccount {failure(error)}}
@@ -125,13 +138,33 @@ final class UFitRefundOrganizationStore: Identifiable {
             messageIsError = false; message = UFitRefundOrganizationCopy.localRecovered
         } catch {if generation == request, isCurrentAccount {failure(error)}}
     }
-    func openProof() async {
-        guard isCurrentAccount, !isOpeningProof, let proof = document?.proof else {return}
-        isOpeningProof = true; message = nil; messageIsError = false; let request = generation
-        defer {if request == generation {isOpeningProof = false}}
+    func loadHistory(reset: Bool) async {
+        guard isCurrentAccount, !isLoadingHistory, reset || historyCursor != nil else {return}
+        let request = generation; isLoadingHistory = true; historyMessage = nil
+        defer {if request == generation {isLoadingHistory = false}}
+        do {
+            let result = try await session.api.refundProofHistory(scope: scope, reference: reference, cursor: reset ? nil : historyCursor)
+            guard request == generation, isCurrentAccount else {return}
+            if !reset {
+                let existing = Set(proofHistory.map(\.id))
+                guard result.items.allSatisfy({!existing.contains($0.id)}), result.items.first == nil || proofHistory.last == nil || result.items.first!.sequence < proofHistory.last!.sequence else {throw UFitRefundOrganizationFailure.contract}
+            }
+            proofHistory = reset ? result.items : proofHistory + result.items; historyCursor = result.nextCursor
+        } catch {
+            if request == generation, isCurrentAccount {
+                if UFitRefundRecoveryFailure.revoked(error) || UFitRefundRecoveryFailure.missing(error) {failure(error)}
+                else {historyMessage = error.localizedDescription}
+            }
+        }
+    }
+    func openProof(_ proof: UFitRefundProofDTO) async {
+        guard isCurrentAccount, !openingProofIDs.contains(proof.id) else {return}
+        openingProofIDs.insert(proof.id); proofDownloadErrors[proof.id] = nil; let request = generation
+        let previewRequest = UUID(); previewGeneration = previewRequest
+        defer {if request == generation {openingProofIDs.remove(proof.id)}}
         do {
             let bytes = try await session.api.downloadRefundProof(scope: scope, reference: reference, proof: proof)
-            guard request == generation, isCurrentAccount else {return}
+            guard request == generation, previewRequest == previewGeneration, isCurrentAccount else {return}
             clearProofPreview()
             let directory = FileManager.default.temporaryDirectory.appendingPathComponent(UUID().uuidString, isDirectory: true)
             try FileManager.default.createDirectory(at: directory, withIntermediateDirectories: true)
@@ -142,7 +175,7 @@ final class UFitRefundOrganizationStore: Identifiable {
         } catch {
             if request == generation, isCurrentAccount {
                 if UFitRefundRecoveryFailure.revoked(error) || UFitRefundRecoveryFailure.missing(error) {failure(error)}
-                else {messageIsError = true; message = UFitRefundProofCopy.downloadFailure}
+                else {proofDownloadErrors[proof.id] = UFitRefundProofCopy.downloadFailure}
             }
         }
     }
@@ -159,7 +192,8 @@ final class UFitRefundOrganizationStore: Identifiable {
     private func failure(_ error: Error) {
         messageIsError = true
         if UFitRefundRecoveryFailure.revoked(error) || UFitRefundRecoveryFailure.missing(error) {
-            clearProofPreview(); hasProofRequest = false; document = nil; comparison = nil; draft = .init(); isEditing = false; editingAction = nil
+            clearProofPreview(); hasProofRequest = false; hasReviewRequest = false; document = nil; comparison = nil; draft = .init(); isEditing = false; editingAction = nil
+            proofHistory = []; historyCursor = nil; proofDownloadErrors = [:]
             try? journal?.resolve(); pending = nil
         }
         message = UFitRefundRecoveryFailure.message(error)

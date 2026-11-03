@@ -23,15 +23,16 @@ final class UFitRefundProofUploadStore: Identifiable {
     @ObservationIgnored private let session: UFitSessionStore
     @ObservationIgnored private let actorID: String
     @ObservationIgnored private var version: Int
+    @ObservationIgnored private var replacesProofID: String?
     @ObservationIgnored private var loaded = false
     @ObservationIgnored private var generation = UUID()
     init(document: UFitRefundOrganizationDocumentDTO, session: UFitSessionStore, actorID: String) {
         reference = document.summary.reference; amount = UFitMoney.format(document.summary.amount, currency: document.summary.currency)
-        version = document.organization?.version ?? .zero; self.session = session; self.actorID = actorID
+        version = document.organization?.version ?? .zero; replacesProofID = document.proof?.id; self.session = session; self.actorID = actorID
     }
     var isCurrent: Bool {session.user?.id == actorID}
     var hasChanges: Bool {!transferReference.isEmpty || !transferredOn.isEmpty || file != nil}
-    var canUseVersion: Bool {comparison?.proof == nil && comparison?.organization?.status == .ready}
+    var canUseVersion: Bool {(comparison?.proof == nil || comparison?.proof?.status == .rejected) && comparison?.organization?.status == .ready && comparison?.settlement == nil}
     private var journal: UFitRefundProofJournal {.init(actorID: actorID, reference: reference)}
     func cancelLoading() {generation = UUID(); isBusy = false}
     func load() async {
@@ -53,7 +54,7 @@ final class UFitRefundProofUploadStore: Identifiable {
         dateError = date == nil || date! > Date() ? UFitRefundProofCopy.dateRule : nil
         fileError = file == nil ? UFitRefundProofCopy.missingFile : nil
         guard referenceError == nil, dateError == nil, fileError == nil, let file else {message = UFitRefundOrganizationCopy.invalid; return}
-        let request = UFitRefundProofRequest(requestId: UUID().uuidString.lowercased(), expectedVersion: version, transferReference: clean, transferredOn: transferredOn, file: file)
+        let request = UFitRefundProofRequest(requestId: UUID().uuidString.lowercased(), expectedVersion: version, replacesProofId: replacesProofID, transferReference: clean, transferredOn: transferredOn, file: file)
         do {try journal.write(request); pending = request; restore(request); await send()}
         catch {message = error.localizedDescription}
     }
@@ -93,11 +94,11 @@ final class UFitRefundProofUploadStore: Identifiable {
             guard request == generation, isCurrent else {return}
             comparison = current
             if localFailed {try journal.archiveUnreadable(); localFailed = false; message = UFitRefundOrganizationCopy.localRecovered}
-            if current.proof != nil {isComplete = true}
+            if current.proof != nil && current.proof?.status != .rejected {isComplete = true}
         } catch {if request == generation, isCurrent {handle(error, uncertain: false)}}
     }
-    func useVersion() {guard isCurrent, canUseVersion, let version = comparison?.organization?.version, pending == nil, !isBusy else {return}; self.version = version; isStale = false; comparison = nil; message = nil}
-    private func restore(_ request: UFitRefundProofRequest) {transferReference = request.transferReference; transferredOn = request.transferredOn; file = request.file; version = request.expectedVersion}
+    func useVersion() {guard isCurrent, canUseVersion, let version = comparison?.organization?.version, pending == nil, !isBusy else {return}; self.version = version; replacesProofID = comparison?.proof?.id; isStale = false; comparison = nil; message = nil}
+    private func restore(_ request: UFitRefundProofRequest) {transferReference = request.transferReference; transferredOn = request.transferredOn; file = request.file; version = request.expectedVersion; replacesProofID = request.replacesProofId}
     private func accept(_ receipt: UFitRefundProofReceiptDTO) throws {
         if receipt.state == .submitted {try journal.resolve(); pending = nil; isComplete = true; message = nil}
         else {canRetry = true; message = UFitRefundProofCopy.notSubmitted}
