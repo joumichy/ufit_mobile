@@ -17,6 +17,7 @@ struct UFitAdminHomeContent: View {
     var onRefundRecoveries: (() -> Void)? = nil
     var refundRecoveryCount: Int? = nil
     var onCommissionLedger: (() -> Void)? = nil
+    var onOrders: (() -> Void)? = nil
     private enum Copy {
         static let title = String(localized: "À traiter"); static let context = String(localized: "Administration")
         static let applications = String(localized: "Candidatures"); static let products = String(localized: "Produits"); static let outfits = String(localized: "Tenues")
@@ -46,6 +47,10 @@ struct UFitAdminHomeContent: View {
                         } else if refundRecoveryCount == nil || refundRecoveryCount == .zero { UFitEmptyState(title: AdminDesignCopy.empty, symbol: Icon.complete) }
                     }
                     UFitEditorialHeading(title: AdminDesignCopy.operations, editorial: false)
+                    if let onOrders {
+                        UFitExperienceActionRow(title: UFitAdminOrdersCopy.title, systemImage: UFitAdminOrdersCopy.icon, action: onOrders)
+                        Divider()
+                    }
                     if let onRefundRecoveries, refundRecoveryCount == nil || refundRecoveryCount == .zero {
                         UFitExperienceActionRow(title: UFitRefundRecoveryCopy.action, systemImage: UFitRefundRecoveryCopy.icon, action: onRefundRecoveries)
                         Divider()

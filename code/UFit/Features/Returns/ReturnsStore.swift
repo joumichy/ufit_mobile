@@ -14,6 +14,7 @@ final class UFitReturnsStore {
     private(set) var hasLoaded = false
     private(set) var nextCursor: String?
     private(set) var message: String?
+    private(set) var accessRevoked = false
     init(scope: UFitReturnScope, context: String, session: UFitSessionStore) throws {
         guard let userID = session.user?.id else { throw UFitAPIError.authenticationRequired }
         _ = try scope.path
@@ -39,7 +40,7 @@ final class UFitReturnsStore {
                 guard Set(page.items.map(\.id)).isDisjoint(with: Set(returns.map(\.id))) else { throw UFitReturnContractError.page }
                 returns.append(contentsOf: page.items)
             }
-            nextCursor = page.nextCursor; hasLoaded = true
+            nextCursor = page.nextCursor; hasLoaded = true; accessRevoked = false
         } catch {
             guard generation == request, isCurrentAccount else { return }
             if (error as? UFitAPIError)?.losesReturnAccess == true { loseAccess(error) }
@@ -56,6 +57,7 @@ final class UFitReturnsStore {
     func reportOpeningFailure(_ error: Error) { guard isCurrentAccount else { return }; message = error.localizedDescription }
     func loseAccess(_ error: Error) {
         guard isCurrentAccount else { return }
+        accessRevoked = true
         generation = UUID(); returns = []; nextCursor = nil; hasLoaded = false; isLoading = false; message = error.localizedDescription
     }
 }
