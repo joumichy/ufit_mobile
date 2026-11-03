@@ -3,6 +3,7 @@ import SwiftUI
 struct UFitAdminOrderDetailContent: View {
     let store: UFitAdminOrderDetailStore
     let onBack: () -> Void; let onReturns: () -> Void
+    let onSettlement: (String) -> Void
     private var document: UFitAdminOrderDetail? { store.collection.canRead ? store.document : nil }
     var body: some View {
         VStack(spacing: .zero) {
@@ -51,6 +52,7 @@ struct UFitAdminOrderDetailContent: View {
                                 UFitLabeledValue(UFitAdminOrdersCopy.updatedAt, value: payment.updatedAt.label)
                             }.font(UFitTypography.callout)
                         }
+                        UFitExperienceActionRow(title: UFitPaymentSettlementCopy.title, systemImage: UFitPaymentSettlementCopy.icon) { onSettlement(payment.id) }
                     }
                 }
             }

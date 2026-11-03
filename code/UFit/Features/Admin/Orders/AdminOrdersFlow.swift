@@ -3,7 +3,7 @@ import Observation
 
 @MainActor @Observable
 final class UFitAdminOrdersFlowStore {
-    enum Route { case list, detail(UFitAdminOrderDetailStore), returns(UFitAdminOrderReturnsStore), returnDetail(UFitReturnDetailStore) }
+    enum Route { case list, detail(UFitAdminOrderDetailStore), returns(UFitAdminOrderReturnsStore), returnDetail(UFitReturnDetailStore), settlement(UFitPaymentSettlementStore) }
     let list: UFitAdminOrdersStore
     private(set) var route = Route.list
     @ObservationIgnored private var history = [Route]()
@@ -15,6 +15,7 @@ final class UFitAdminOrdersFlowStore {
         case .list: list.cancelLoading()
         case .detail(let store): store.cancelLoading()
         case .returns(let store): store.cancelLoading()
+        case .settlement(let store): store.cancelLoading()
         case .returnDetail: break
         }
         route = previous
@@ -27,6 +28,12 @@ final class UFitAdminOrdersFlowStore {
         guard case .detail(let store) = route, list.canRead, let document = store.document else { return }
         history.append(route)
         route = .returns(.init(orderID: document.order.id, reference: document.order.orderNumber, collection: list))
+    }
+    func showSettlement(_ paymentID: String) {
+        guard case .detail(let store) = route, list.canRead, let document = store.document,
+              document.payments.contains(where: { $0.id == paymentID }) else { return }
+        history.append(route)
+        route = .settlement(.init(paymentID: paymentID, orderID: document.order.id, collection: list))
     }
     func openReturn(_ id: String) {
         guard case .returns(let store) = route, list.canRead, store.rows.contains(where: { $0.id == id }) else { return }
@@ -50,7 +57,8 @@ struct UFitAdminOrdersFlowHost: View {
             } else {
                 switch store.route {
                 case .list: UFitAdminOrdersContent(store: store.list, onBack: back, onOpen: store.open)
-                case .detail(let detail): UFitAdminOrderDetailContent(store: detail, onBack: back, onReturns: store.showReturns).id(detail.id)
+                case .detail(let detail): UFitAdminOrderDetailContent(store: detail, onBack: back, onReturns: store.showReturns, onSettlement: store.showSettlement).id(detail.id)
+                case .settlement(let settlement): UFitPaymentSettlementHost(store: settlement, onBack: back).id(settlement.paymentID)
                 case .returns(let returns): UFitAdminOrderReturnsContent(store: returns, onBack: back, onOpen: store.openReturn)
                 case .returnDetail(let detail):
                     UFitReturnDetailHost(store: detail, onBack: back)
