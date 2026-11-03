@@ -23,6 +23,9 @@ enum UFitMultipartEncoding {
     static let mimeHeader = "Content-Type: "
     static let allowedSchemes = ["https", "http"]
     static func image(fields: [(String, String)], jpeg: Data) -> UFitMultipartBody {
+        file(fields: fields, bytes: jpeg, name: UFitImageUploadContract.filename, mime: UFitImageUploadContract.mime)
+    }
+    static func file(fields: [(String, String)], bytes: Data, name: String, mime: String) -> UFitMultipartBody {
         let boundary = UUID().uuidString
         var data = Data()
         func line(_ text: String) { data.append(contentsOf: (text + lineBreak).utf8) }
@@ -30,8 +33,8 @@ enum UFitMultipartEncoding {
             line(delimiter + boundary); line(disposition + name + quote); line(String()); line(value)
         }
         line(delimiter + boundary)
-        line(disposition + UFitImageUploadContract.file + filename + UFitImageUploadContract.filename + quote)
-        line(mimeHeader + UFitImageUploadContract.mime); line(String()); data.append(jpeg); line(String()); line(delimiter + boundary + delimiter)
+        line(disposition + UFitImageUploadContract.file + filename + name + quote)
+        line(mimeHeader + mime); line(String()); data.append(bytes); line(String()); line(delimiter + boundary + delimiter)
         return .init(data: data, contentType: contentType + boundary)
     }
 }

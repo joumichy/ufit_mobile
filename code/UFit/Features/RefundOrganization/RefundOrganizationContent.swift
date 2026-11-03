@@ -15,6 +15,10 @@ struct UFitRefundOrganizationContent: View {
     let onEdit: () -> Void
     let onRecoverLocal: () -> Void
     let onSource: (() -> Void)?
+    var onUploadProof: (() -> Void)? = nil
+    var uploadProofTitle = UFitRefundProofCopy.upload
+    var onViewProof: (() -> Void)? = nil
+    var isOpeningProof = false
     private enum Copy {static let refusal = String(localized: "Refus du moyen d’origine"), date = String(localized: "Mis à jour le"), provider = String(localized: "Référence Stripe")}
     var body: some View {
         VStack(spacing: .zero) {
@@ -34,8 +38,14 @@ struct UFitRefundOrganizationContent: View {
                             section(UFitRefundOrganizationCopy.method, method)
                             section(scope == .customer ? UFitRefundOrganizationCopy.clientInstructions : UFitRefundOrganizationCopy.instructions, instructions)
                             if let details = document.details {section(UFitRefundOrganizationCopy.sentDetails, details)}
-                            if scope == .customer, document.details != nil {Text(UFitRefundOrganizationCopy.noPaymentYet).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText)}
+                            if scope == .customer, document.details != nil, document.proof == nil {Text(UFitRefundOrganizationCopy.noPaymentYet).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText)}
                         } else if scope != .administrator {Text(UFitRefundOrganizationCopy.unorganized).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText)}
+                        if let proof = document.proof {
+                            section(UFitRefundProofCopy.reference, proof.reference)
+                            section(UFitRefundProofCopy.dateLabel, proof.date)
+                            if let onViewProof {UFitActionButton(title: UFitRefundProofCopy.view, kind: onUploadProof == nil ? .primary : .secondary, isBusy: isOpeningProof, action: onViewProof)}
+                        }
+                        if let onUploadProof {UFitButton(uploadProofTitle, action: onUploadProof).ufitButtonStyle(.primary).disabled(isLoading)}
                         if canRecoverLocal {UFitButton(UFitRefundOrganizationCopy.recoverLocal, action: onRecoverLocal).ufitButtonStyle(.secondary).disabled(isLoading)}
                         else if let title = document.actionTitle {UFitButton(title, action: onEdit).ufitButtonStyle(.primary).disabled(isLoading)}
                         if let date = document.updatedAt {UFitLabeledValue(Copy.date, value: date).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText)}

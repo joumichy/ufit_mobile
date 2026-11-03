@@ -2,6 +2,7 @@ import SwiftUI
 
 struct UFitRefundOrganizationHost: View {
     @Bindable var store: UFitRefundOrganizationStore
+    @State private var proofUpload: UFitRefundProofUploadStore?
     let onClose: () -> Void
     var isSheet = true
     var sourceTitle: String?
@@ -18,10 +19,20 @@ struct UFitRefundOrganizationHost: View {
             } else {
                 UFitRefundOrganizationContent(document: store.document?.presentation(scope: store.scope), scope: store.scope, isLoading: store.isLoading, isSheet: isSheet,
                     message: store.message, messageIsError: store.messageIsError, canRecoverLocal: store.localRecordFailed, sourceTitle: sourceTitle, providerReference: providerReference, onClose: onClose,
-                    onRefresh: {Task {await store.load()}}, onEdit: store.edit, onRecoverLocal: {Task {await store.recoverLocalRecord()}}, onSource: onSource)
+                    onRefresh: {Task {await store.load()}}, onEdit: store.edit, onRecoverLocal: {Task {await store.recoverLocalRecord()}}, onSource: onSource,
+                    onUploadProof: canUploadProof ? showProofUpload : nil, uploadProofTitle: store.hasProofRequest ? UFitRefundProofCopy.resume : UFitRefundProofCopy.upload, onViewProof: store.document?.proof == nil ? nil : {Task {await store.openProof()}}, isOpeningProof: store.isOpeningProof)
             }
         }.interactiveDismissDisabled(store.isSaving || store.hasChanges)
-            .task {await store.load()}.onDisappear {store.cancelLoading()}
+            .task {await store.load()}.onDisappear {store.cancelLoading(); store.clearProofPreview()}
+            .ufitSheet(item: $proofUpload, onDismiss: {Task {await store.load()}}) {current in
+                UFitRefundProofUploadContent(store: current, onClose: {proofUpload = nil})
+            }.ufitDocumentPreview($store.previewURL)
+            .onChange(of: store.previewURL) {_, url in if url == nil {store.clearProofPreview()}}
+    }
+    private var canUploadProof: Bool {store.scope == .brand && (store.hasProofRequest || (store.document?.organization?.status == .ready && store.document?.proof == nil))}
+    private func showProofUpload() {
+        guard store.isCurrentAccount, canUploadProof, let document = store.document, let actorID = store.session.user?.id else {return}
+        proofUpload = .init(document: document, session: store.session, actorID: actorID)
     }
 }
 extension UFitReturnScope {

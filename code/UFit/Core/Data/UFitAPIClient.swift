@@ -1,5 +1,7 @@
 import Foundation
 
+private enum UFitPrivateDownloadHTTP {static let get = "GET"}
+
 private enum UFitHTTPBodyContent {
     static let json = "application/json"
     static let contentTypeHeader = "Content-Type"
@@ -220,6 +222,18 @@ struct UFitAPIClient {
         cachePolicy: URLRequest.CachePolicy = .useProtocolCachePolicy,
         headers: [String: String] = [:]
     ) async throws -> Response {
+        let (data, _) = try await response(method, path: path, query: query, bodyData: bodyData, requiresAuth: requiresAuth, bodyContentType: bodyContentType, cachePolicy: cachePolicy, headers: headers)
+        return try decoder.decode(Response.self, from: data)
+    }
+
+    func downloadPrivateDocument(path: String, query: [URLQueryItem], contentType: String) async throws -> (data: Data, contentType: String?) {
+        let (data, reply) = try await response(UFitPrivateDownloadHTTP.get, path: path, query: query, bodyData: nil, requiresAuth: true, cachePolicy: .reloadIgnoringLocalCacheData, accept: contentType)
+        return (data, reply.mimeType)
+    }
+
+    private func response(_ method: String, path: String, query: [URLQueryItem], bodyData: Data?, requiresAuth: Bool,
+                          bodyContentType: String = UFitHTTPBodyContent.json, cachePolicy: URLRequest.CachePolicy = .useProtocolCachePolicy,
+                          headers: [String: String] = [:], accept: String = UFitHTTPBodyContent.json) async throws -> (Data, HTTPURLResponse) {
         let token: String?
         if let tokenProvider {
             token = requiresAuth ? try await tokenProvider() : nil
@@ -235,7 +249,7 @@ struct UFitAPIClient {
         var request = URLRequest(url: url, cachePolicy: cachePolicy)
         request.httpMethod = method
         for (name, value) in headers { request.setValue(value, forHTTPHeaderField: name) }
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue(accept, forHTTPHeaderField: "Accept")
         if let bodyData {
             request.httpBody = bodyData
             request.setValue(bodyContentType, forHTTPHeaderField: UFitHTTPBodyContent.contentTypeHeader)
@@ -255,7 +269,7 @@ struct UFitAPIClient {
         guard !data.isEmpty else {
             throw UFitAPIError.emptyResponse
         }
-        return try decoder.decode(Response.self, from: data)
+        return (data, httpResponse)
     }
 
     private func makeURL(path: String, query: [URLQueryItem]) -> URL? {

@@ -40,19 +40,22 @@ struct UFitRefundOrganizationDTO: Decodable {
 struct UFitRefundOrganizationDocumentDTO: Decodable {
     let summary: UFitRefundRecoverySummaryDTO
     @UFitRequiredNullable var organization: UFitRefundOrganizationDTO?
+    @UFitRequiredNullable var proof: UFitRefundProofDTO?
     let actions: [UFitRefundOrganizationAction]
-    private enum CodingKeys: String, CodingKey, CaseIterable {case summary, organization, actions}
+    private enum CodingKeys: String, CodingKey, CaseIterable {case summary, organization, proof, actions}
     init(from decoder: Decoder) throws {
         try UFitStrictDecoding.keys(decoder, CodingKeys.self, failure: UFitRefundOrganizationFailure.contract)
         let v = try decoder.container(keyedBy: CodingKeys.self)
         summary = try v.decode(UFitRefundRecoverySummaryDTO.self, forKey: .summary)
         _organization = try v.decode(UFitRequiredNullable<UFitRefundOrganizationDTO>.self, forKey: .organization)
+        _proof = try v.decode(UFitRequiredNullable<UFitRefundProofDTO>.self, forKey: .proof)
         actions = try v.decode([UFitRefundOrganizationAction].self, forKey: .actions)
     }
     func validate(scope: UFitRefundOrganizationScope, reference: UFitRefundRecoveryReference) throws {
         let expected: [UFitRefundOrganizationAction]
-        if organization?.version == UFitRefundOrganizationRules.maximumVersion {expected = []}
+        if proof != nil || organization?.version == UFitRefundOrganizationRules.maximumVersion {expected = []}
         else {switch scope {case .administrator: expected = [.arrange]; case .customer: expected = organization == nil ? [] : [.provideDetails]; case .brand: expected = []}}
+        if let proof {guard proof.organizationVersion == organization?.version, proof.amount == summary.amount, proof.currency == summary.currency else {throw UFitRefundOrganizationFailure.contract}}
         guard summary.reference == reference, actions == expected else {throw UFitRefundOrganizationFailure.contract}
     }
 }

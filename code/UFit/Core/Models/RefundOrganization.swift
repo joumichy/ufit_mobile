@@ -76,6 +76,7 @@ struct UFitRefundOrganizationPresentation {
     let instructions: String?
     let details: String?
     let updatedAt: String?
+    let proof: UFitRefundProofPresentation?
     let action: UFitRefundOrganizationAction?
     let actionTitle: String?
 }
