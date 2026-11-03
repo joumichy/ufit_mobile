@@ -2,7 +2,9 @@ import SwiftUI
 
 struct UFitWorkspaceCommissionsContent: View {
     let name: String
-    let entries: [UFitWorkspaceCommissionEntry]
+    @Binding var selectedState: UFitCommissionRelease.State?
+    let asOf: UFitTimestamp?
+    let entries: [UFitCommissionEntry]
     let isLoading: Bool
     let hasLoaded: Bool
     let hasMore: Bool
@@ -15,7 +17,6 @@ struct UFitWorkspaceCommissionsContent: View {
         static let title = String(localized: "Commissions")
         static let refresh = String(localized: "Actualiser les commissions")
         static let loading = String(localized: "Chargement des commissions")
-        static let empty = String(localized: "Aucune commission pour le moment.")
         static let retry = String(localized: "Réessayer")
         static let more = String(localized: "Voir les commissions précédentes")
         static let base = String(localized: "Base de calcul")
@@ -26,6 +27,8 @@ struct UFitWorkspaceCommissionsContent: View {
         static let recover = String(localized: "À récupérer sur le montant payé")
         static let details = String(localized: "Détail du calcul")
         static let releaseDate = String(localized: "Fin du délai de retour")
+        static let sale = String(localized: "Vente")
+        static let quantity = String(localized: "Quantité")
     }
     private enum Layout {
         static let page: CGFloat = UFitSpace.xl; static let gap: CGFloat = UFitSpace.md; static let small: CGFloat = UFitSpace.xs
@@ -40,26 +43,41 @@ struct UFitWorkspaceCommissionsContent: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: Layout.page) {
                     Text(name).font(UFitTypography.title.weight(.medium))
-                    if hasLoaded && entries.isEmpty && message == nil && !isLoading { Text(Copy.empty).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
+                    UFitSelection(UFitCommissionLedgerCopy.state, selection: $selectedState, options:
+                        [.init(value: Optional<UFitCommissionRelease.State>.none, title: UFitCommissionLedgerCopy.allStates)] +
+                        UFitCommissionRelease.State.allCases.map { .init(value: Optional($0), title: UFitCommissionRelease.filterTitle($0)) })
+                    if let asOf { Text(UFitCommissionLedgerCopy.asOf(asOf)).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText) }
+                    if hasLoaded && entries.isEmpty && message == nil && !isLoading {
+                        UFitEmptyState(title: selectedState == nil ? UFitCommissionLedgerCopy.empty : UFitCommissionLedgerCopy.noMatches,
+                            symbol: UFitCommissionLedgerCopy.icon, actionTitle: selectedState == nil ? nil : UFitCommissionLedgerCopy.reset,
+                            action: selectedState == nil ? nil : { selectedState = nil })
+                    }
                     ForEach(entries) { entry in
-                        VStack(alignment: .leading, spacing: Layout.gap) {
-                            Text(entry.net).font(UFitTypography.title2.weight(.medium)).monospacedDigit()
-                            Text(entry.releaseSummary).font(UFitTypography.subheadline.weight(.medium))
-                            Text(entry.date).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText)
-                            UFitDisclosure(Copy.details) {
-                                VStack(alignment: .leading, spacing: Layout.gap) {
-                                    row(Copy.base, entry.base)
-                                    row(Copy.rate, entry.rate)
-                                    row(Copy.original, entry.original)
-                                    row(Copy.adjustments, entry.adjusted)
-                                    row(Copy.net, entry.net)
-                                    if entry.hasPaidAdjustment { row(Copy.recover, entry.paidAdjustment) }
-                                    if let date = entry.releaseDate { row(Copy.releaseDate, date) }
-                                    Text(entry.id).font(UFitTypography.caption.monospaced()).textSelection(.enabled).foregroundStyle(Color.ufitSecondaryText)
-                                }.padding(.top, Layout.gap)
-                            }.frame(minHeight: Layout.touch)
+                        VStack(alignment: .leading, spacing: Layout.page) {
+                            VStack(alignment: .leading, spacing: Layout.gap) {
+                                VStack(alignment: .leading, spacing: Layout.small) {
+                                    Text(entry.productName).font(UFitTypography.headline)
+                                    Text(entry.brandName).font(UFitTypography.subheadline).foregroundStyle(Color.ufitSecondaryText)
+                                }
+                                Text(entry.net).font(UFitTypography.title2.weight(.medium)).monospacedDigit()
+                                Text(entry.releaseSummary).font(UFitTypography.subheadline.weight(.medium))
+                                Text(entry.date).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText)
+                                UFitDisclosure(Copy.details) {
+                                    VStack(alignment: .leading, spacing: Layout.gap) {
+                                        row(Copy.sale, entry.orderNumber)
+                                        row(Copy.quantity, entry.quantity.formatted())
+                                        row(Copy.base, entry.base)
+                                        row(Copy.rate, entry.rate)
+                                        row(Copy.original, entry.original)
+                                        row(Copy.adjustments, entry.adjusted)
+                                        row(Copy.net, entry.net)
+                                        if entry.hasPaidAdjustment { row(Copy.recover, entry.paidAdjustment) }
+                                        if let date = entry.releaseDate { row(Copy.releaseDate, date) }
+                                    }.padding(.top, Layout.gap)
+                                }.frame(minHeight: Layout.touch)
+                            }
+                            Divider()
                         }
-                        Divider()
                     }
                     if let message {
                         Text(message).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText).accessibilityAddTraits(.updatesFrequently)

@@ -13,13 +13,14 @@ struct UFitWorkspaceDashboardHost: View {
     }
 }
 struct UFitWorkspaceCommissionsHost: View {
-    let store: UFitWorkspaceCommissionsStore
+    @Bindable var store: UFitWorkspaceCommissionsStore
     let onBack: () -> Void
     var body: some View {
-        UFitWorkspaceCommissionsContent(name: store.name, entries: store.entries, isLoading: store.isLoading,
+        UFitWorkspaceCommissionsContent(name: store.name, selectedState: $store.selectedState, asOf: store.asOf, entries: store.entries, isLoading: store.isLoading,
             hasLoaded: store.hasLoaded, hasMore: store.hasMore, message: store.message, onBack: onBack,
-            onRefresh: { Task { await store.load() } }, onRetry: { Task { await store.retry() } }, onMore: { Task { await store.load(refresh: false) } })
+            onRefresh: { Task { store.cancelLoading(); await store.load() } }, onRetry: { Task { await store.retry() } }, onMore: { Task { await store.load(refresh: false) } })
             .task { await store.load() }
+            .onChange(of: store.selectedState) { _, _ in Task { store.cancelLoading(); await store.load() } }
             .onDisappear { store.cancelLoading() }
     }
 }

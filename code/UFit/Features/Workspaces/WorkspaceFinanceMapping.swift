@@ -6,7 +6,6 @@ private enum WorkspaceFinanceCopy {
     static let rejected = String(localized: "À corriger"); static let preparing = String(localized: "En préparation"); static let shipped = String(localized: "Expédiées")
     static let products = String(localized: "Produits"); static let active = String(localized: "En vente")
     static let paid = String(localized: "À préparer"); static let lowStock = String(localized: "Variantes à stock faible")
-    static let locale = Locale(identifier: "fr_CH"); static let maximumRateDigits = 2
 }
 extension UFitWorkspaceDashboardDocument {
     var presentation: UFitWorkspaceDashboardPresentation {
@@ -49,18 +48,5 @@ private extension UFitWorkspaceCommissionCurrencyDTO {
             pending: UFitMoney.format(pendingAmount, currency: currency), validated: UFitMoney.format(validatedAmount, currency: currency),
             paid: UFitMoney.format(paidAmount, currency: currency), paidAdjustment: UFitMoney.format(paidAdjustmentAmount, currency: currency),
             hasPaidAdjustment: paidAdjustmentAmount > .zero)
-    }
-}
-extension UFitWorkspaceCommissionDTO {
-    func presentation() throws -> UFitWorkspaceCommissionEntry {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .percent; formatter.locale = WorkspaceFinanceCopy.locale
-        formatter.maximumFractionDigits = WorkspaceFinanceCopy.maximumRateDigits
-        let decimal = NSDecimalNumber(decimal: Decimal(rateBps) / Decimal(UFitWorkspaceFinanceContract.basisPoints))
-        guard let rate = formatter.string(from: decimal) else { throw UFitWorkspaceFinanceFailure.document }
-        return .init(id: id, date: createdAt.label, state: status, releaseSummary: try release.summary(), releaseDate: release.detailDate,
-            currency: currency, base: UFitMoney.format(baseAmount, currency: currency), rate: rate,
-            original: UFitMoney.format(originalAmount, currency: currency), adjusted: UFitMoney.format(adjustedAmount, currency: currency),
-            net: UFitMoney.format(netAmount, currency: currency), paidAdjustment: UFitMoney.format(paidAdjustmentAmount, currency: currency), hasPaidAdjustment: paidAdjustmentAmount > .zero)
     }
 }

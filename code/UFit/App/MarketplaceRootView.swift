@@ -172,7 +172,9 @@ struct MarketplaceRootView: View {
             } else { experienceChooser }
         case .administratorHome:
             UFitAdminActivityHost(store: adminActivity, onChooseExperience: showExperiencePicker, onApplications: showAdminApplications,
-                onProducts: showAdminProducts, onOutfits: showAdminOutfits, onReturns: showAdminReturns, onCommissions: showCommissionRules, onUsers: showUserAdministration, onGrades: showCreatorGradeAdministration, onEditorial: showEditorialAdministration, onRefundRecoveries: showRefundRecoveries)
+                onProducts: showAdminProducts, onOutfits: showAdminOutfits, onReturns: showAdminReturns, onCommissions: showCommissionRules, onUsers: showUserAdministration, onGrades: showCreatorGradeAdministration, onEditorial: showEditorialAdministration, onRefundRecoveries: showRefundRecoveries, onCommissionLedger: showCommissionLedger)
+        case .commissionLedger(let flow):
+            UFitCommissionLedgerFlowHost(store: flow, onClose: goBack)
         case .refundRecoveries(let flow):
             UFitRefundRecoveryFlowHost(store: flow, onClose: goBack)
         case .workspaceDashboard(let dashboard):
@@ -350,7 +352,7 @@ private extension MarketplaceRootView {
         guard case .workspaceDashboard(let dashboard) = activeRoute, dashboard.isCurrentAccount,
             dashboard.workspace.isCreator, let document = dashboard.document, let userID = session.user?.id else { return }
         routeHistory.append(activeRoute)
-        activeRoute = .workspaceCommissions(UFitWorkspaceCommissionsStore(name: document.name, session: session, userID: userID))
+        activeRoute = .workspaceCommissions(UFitWorkspaceCommissionsStore(name: document.name, creatorID: dashboard.workspace.profileID, session: session, userID: userID))
     }
 
     func showManagedProfile(_ space: UFitWorkspaceReference) {
@@ -523,6 +525,10 @@ private extension MarketplaceRootView {
         activeRoute = .adminEditorial(UFitEditorialAdministrationStore(session: session))
     }
 
+    func showCommissionLedger() {
+        guard experience.kind == .administrator, session.user?.canAdminister == true else { return }
+        routeHistory.append(activeRoute); activeRoute = .commissionLedger(UFitCommissionLedgerFlowStore(session: session))
+    }
     func showCommissionRules() {
         guard experience.kind == .administrator, session.user?.canAdminister == true else { return }
         routeHistory.append(activeRoute); activeRoute = .commissionRules(UFitCommissionRulesStore(session: session))
@@ -781,6 +787,7 @@ private extension MarketplaceRootView {
         selectTab(experience.kind.homeTab)
     }
     func cancelCurrentForm() {
+        if case .commissionLedger(let flow) = activeRoute { flow.cancelLoading() }
         if case .notificationPreferences(let preferences) = activeRoute { preferences.cancelLoading() }
         if case .catalogForm(let form) = activeRoute { form.cancelPhotoUploads() }
         if case .outfitForm(let form) = activeRoute { form.cancelPhotoUploads() }

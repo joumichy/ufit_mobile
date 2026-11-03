@@ -9,13 +9,12 @@ private enum WorkspaceFinanceResponse {
         static let unavailable = String(localized: "Les données financières sont indisponibles. Réessayez.")
         static let offline = String(localized: "Connexion indisponible. Vérifiez votre réseau et réessayez.")
     }
-    static let persisted = "workspace_finance_persisted_invalid"
     static func revoked(_ error: Error) -> Bool {
         guard case UFitAPIError.requestFailed(let status, _, _) = error else { return false }
         return status == unauthorized || status == forbidden
     }
     static func message(_ error: Error) -> String {
-        if case UFitAPIError.requestFailed(_, _, let code) = error, code == persisted {
+        if case UFitAPIError.requestFailed(_, _, let code) = error, code == UFitWorkspaceFinanceContract.persistedCode {
             return Copy.verification
         }
         if case UFitAPIError.requestFailed(let status, _, _) = error, unavailableStatuses.contains(status) {
@@ -54,49 +53,47 @@ final class UFitWorkspaceDashboardStore {
 @MainActor @Observable
 final class UFitWorkspaceCommissionsStore {
     let name: String
-    private(set) var entries = [UFitWorkspaceCommissionEntry]()
+    var selectedState: UFitCommissionRelease.State?
+    private(set) var entries = [UFitCommissionEntry]()
     private(set) var hasLoaded = false
     private(set) var isLoading = false
     private(set) var message: String?
     private(set) var hasMore = false
+    private(set) var asOf: UFitTimestamp?
     @ObservationIgnored private let session: UFitSessionStore
     @ObservationIgnored private let userID: String
+    @ObservationIgnored private let creatorID: String
     @ObservationIgnored private var generation = UUID()
-    @ObservationIgnored private var nextOffset: Int?
-    @ObservationIgnored private var total: Int?
-    @ObservationIgnored private var rows = [UFitWorkspaceCommissionDTO]()
+    @ObservationIgnored private var nextCursor: String?
+    @ObservationIgnored private var revision: String?
+    @ObservationIgnored private var rows = [UFitCommissionEntryDTO]()
     @ObservationIgnored private var retryRefresh = true
-    var isCurrentAccount: Bool { session.user?.id == userID }
-    init(name: String, session: UFitSessionStore, userID: String) { self.name = name; self.session = session; self.userID = userID }
+    var isCurrentAccount: Bool { session.user?.id == userID && session.user?.roles.contains(.creator) == true }
+    init(name: String, creatorID: String, session: UFitSessionStore, userID: String) {
+        self.name = name; self.creatorID = creatorID; self.session = session; self.userID = userID
+    }
     func cancelLoading() { generation = UUID(); isLoading = false }
     func retry() async { await load(refresh: retryRefresh) }
     func load(refresh: Bool = true) async {
-        guard !isLoading, isCurrentAccount, refresh || nextOffset != nil else { return }
+        guard !isLoading, isCurrentAccount, refresh || nextCursor != nil else { return }
         let request = generation
-        let offset = refresh ? Int.zero : nextOffset!
         retryRefresh = refresh
-        if refresh { rows = []; entries = []; nextOffset = nil; total = nil; hasLoaded = false; hasMore = false }
+        if refresh { rows = []; entries = []; nextCursor = nil; revision = nil; hasLoaded = false; hasMore = false; asOf = nil }
         isLoading = true; message = nil
         defer { if generation == request { isLoading = false } }
         do {
-            let result = try await session.api.fetchWorkspaceCommissions(offset: offset)
+            let result = try await session.api.fetchCreatorCommissions(creatorID: creatorID, state: selectedState, cursor: nextCursor, revision: revision)
             guard generation == request, isCurrentAccount else { return }
-            guard total == nil || total == result.page.total else { throw UFitWorkspaceFinanceFailure.page }
+            try result.validateAppend(existing: rows, expectedLimit: UFitCommissionLedgerContract.limit, expectedRevision: revision)
             let combined = rows + result.items
-            guard Set(combined.map(\.id)).count == combined.count,
-                zip(combined, combined.dropFirst()).allSatisfy({ first, second in
-                    first.createdAt.value > second.createdAt.value || (first.createdAt == second.createdAt && first.id > second.id)
-                }) else { throw UFitWorkspaceFinanceFailure.page }
-            let rendered = try combined.map { try $0.presentation() }
-            rows = combined; entries = rendered; total = result.page.total; nextOffset = result.page.nextOffset
-            hasLoaded = true; hasMore = nextOffset != nil
+            entries = try combined.map { try $0.presentation() }; rows = combined
+            revision = result.revision; nextCursor = result.nextCursor; asOf = result.asOf
+            hasLoaded = true; hasMore = nextCursor != nil
         } catch {
             guard generation == request, isCurrentAccount else { return }
-            if WorkspaceFinanceResponse.revoked(error) {
-                rows = []; entries = []; total = nil; nextOffset = nil; hasLoaded = false; hasMore = false; retryRefresh = true
-            }
-            if error is UFitWorkspaceFinanceFailure { retryRefresh = true }
-            message = WorkspaceFinanceResponse.message(error)
+            if UFitCommissionLedgerCopy.isRevoked(error) { rows = []; entries = []; revision = nil; nextCursor = nil; hasLoaded = false; hasMore = false; asOf = nil; retryRefresh = true }
+            if UFitCommissionLedgerCopy.isChanged(error) { retryRefresh = true }
+            message = UFitCommissionLedgerCopy.message(error)
         }
     }
 }

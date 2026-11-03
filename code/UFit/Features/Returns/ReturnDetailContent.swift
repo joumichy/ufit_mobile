@@ -33,8 +33,8 @@ struct UFitReturnDetailContent: View {
     var body: some View {
         VStack(spacing: .zero) {
             DetailHeader(title: Copy.title, onBack: onBack) {
-                if isLoading { UFitLoading().frame(width: Layout.touch, height: Layout.touch) }
-                else { UFitButton(action: onRefresh) { UFitIcon(systemName: Icon.refresh).frame(width: Layout.touch, height: Layout.touch) }.accessibilityLabel(Copy.refresh) }
+                if isLoading && detail != nil { UFitLoading().frame(width: Layout.touch, height: Layout.touch) }
+                else if !isLoading { UFitButton(action: onRefresh) { UFitIcon(systemName: Icon.refresh).frame(width: Layout.touch, height: Layout.touch) }.accessibilityLabel(Copy.refresh) }
             }.disabled(activeAction != nil)
             if let message { Text(message).font(UFitTypography.callout).padding(.horizontal, Layout.page).padding(.top, Layout.gap) }
             ScrollView {

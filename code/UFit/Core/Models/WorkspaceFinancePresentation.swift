@@ -43,37 +43,3 @@ struct UFitWorkspaceDashboardPresentation {
     let sales: [UFitWorkspaceSalesFigure]
     let commissions: [UFitWorkspaceCommissionFigure]
 }
-enum UFitWorkspaceCommissionState: String, Decodable {
-    case estimated, pending, validated, paid, cancelled
-    var label: String {
-        switch self {
-        case .estimated: Copy.estimated
-        case .pending: Copy.pending
-        case .validated: Copy.validated
-        case .paid: Copy.paid
-        case .cancelled: Copy.cancelled
-        }
-    }
-    private enum Copy {
-        static let estimated = String(localized: "Estimée")
-        static let pending = String(localized: "En attente")
-        static let validated = String(localized: "Validée")
-        static let paid = String(localized: "Payée")
-        static let cancelled = String(localized: "Annulée")
-    }
-}
-struct UFitWorkspaceCommissionEntry: Identifiable {
-    let id: String
-    let date: String
-    let state: UFitWorkspaceCommissionState
-    let releaseSummary: String
-    let releaseDate: String?
-    let currency: String
-    let base: String
-    let rate: String
-    let original: String
-    let adjusted: String
-    let net: String
-    let paidAdjustment: String
-    let hasPaidAdjustment: Bool
-}

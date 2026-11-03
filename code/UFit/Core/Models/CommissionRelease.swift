@@ -1,9 +1,21 @@
 import Foundation
 
-struct UFitCommissionRelease: Decodable {
-    enum State: String, Decodable {
+struct UFitCommissionRelease: Decodable, Equatable {
+    enum State: String, Decodable, CaseIterable {
         case estimated, awaitingDelivery = "awaiting_delivery", returnWindow = "return_window"
         case returnOpen = "return_open", cancellationOpen = "cancellation_open", payable, paid, cancelled
+    }
+    static func filterTitle(_ state: State) -> String {
+        switch state {
+        case .estimated: String(localized: "Estimées")
+        case .awaitingDelivery: String(localized: "Livraison attendue")
+        case .returnWindow: String(localized: "Délai de retour")
+        case .returnOpen: String(localized: "Retour en cours")
+        case .cancellationOpen: String(localized: "Annulation en cours")
+        case .payable: String(localized: "Disponibles")
+        case .paid: String(localized: "Payées")
+        case .cancelled: String(localized: "Annulées")
+        }
     }
     let state: State
     let availableAt: UFitTimestamp?
@@ -21,7 +33,7 @@ struct UFitCommissionRelease: Decodable {
         case .returnOpen, .cancellationOpen: break
         }
     }
-    var status: UFitWorkspaceCommissionState {
+    var status: UFitCommissionState {
         switch state {
         case .estimated: .estimated
         case .paid: .paid
