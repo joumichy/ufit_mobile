@@ -81,7 +81,6 @@ struct UFitOrdersPageDTO: Decodable {
 }
 struct UFitOrderDTO: Decodable, Identifiable {
     struct Actions: Decodable { let cancel: Bool; let resumePayment: Bool }
-    struct Cancellation: Decodable { let status: String; let reason: UFitCancellationReason; let outcome: UFitCancellationOutcome? }
     struct Shipment: Decodable {
         let id: String
         let status: UFitShipmentLifecycle
@@ -97,7 +96,7 @@ struct UFitOrderDTO: Decodable, Identifiable {
     let createdAt: String
     let actions: Actions
     let shipment: Shipment?
-    let cancellation: Cancellation?
+    let cancellation: UFitOrderCancellationDTO?
     let commerceSnapshot: Terms?
     let id: String
     let orderNumber: String
@@ -125,4 +124,47 @@ struct UFitOrderItemDTO: Decodable, Identifiable {
     let quantity: Int
     let unitPrice: Int
     let totalPrice: Int
+}
+
+struct UFitOrderCancellationDTO: Decodable {
+    struct Refund: Decodable {
+        let state: UFitCancellationRefundLifecycle
+        @UFitRequiredNullable var providerStatus: UFitCancellationRefundProviderStatus?
+    }
+    let status: UFitCancellationLifecycle
+    let reason: UFitCancellationReason
+    @UFitRequiredNullable var outcome: UFitCancellationOutcome?
+    @UFitRequiredNullable var refund: Refund?
+    private enum CodingKeys: String, CodingKey { case status, reason, outcome, refund }
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        status = try values.decode(UFitCancellationLifecycle.self, forKey: .status)
+        reason = try values.decode(UFitCancellationReason.self, forKey: .reason)
+        _outcome = try values.decode(UFitRequiredNullable<UFitCancellationOutcome>.self, forKey: .outcome)
+        _refund = try values.decode(UFitRequiredNullable<Refund>.self, forKey: .refund)
+        let expectedOutcome: UFitCancellationOutcome?
+        if let refund {
+            switch (refund.state, refund.providerStatus) {
+            case (.queued, nil), (.pending, .pending), (.pending, .requiresAction): expectedOutcome = nil
+            case (.succeeded, .succeeded): expectedOutcome = .refunded
+            case (.failed, .failed): expectedOutcome = .refundFailed
+            case (.failed, .cancelled): expectedOutcome = .refundCancelled
+            case (.blocked, nil): expectedOutcome = .refundBlocked
+            default: throw UFitCancellationContractError.document
+            }
+        } else {
+            guard outcome == nil || outcome == .notCharged else { throw UFitCancellationContractError.document }
+            expectedOutcome = outcome
+        }
+        guard outcome == expectedOutcome else { throw UFitCancellationContractError.document }
+        switch status {
+        case .requested: guard outcome != .notCharged else { throw UFitCancellationContractError.document }
+        case .succeeded: guard outcome == .notCharged || outcome == .refunded else { throw UFitCancellationContractError.document }
+        case .failed: guard outcome == .refundFailed || outcome == .refundCancelled || outcome == .refundBlocked else { throw UFitCancellationContractError.document }
+        }
+    }
+}
+enum UFitCancellationContractError: LocalizedError {
+    case document
+    var errorDescription: String? { String(localized: "Le statut du remboursement reçu est incohérent. Actualisez la commande avant de continuer.") }
 }

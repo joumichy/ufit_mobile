@@ -33,20 +33,26 @@ final class UFitOrderDetailStore {
         catch {
             guard session.user?.id == userID else { return }
             let failure = error.localizedDescription
-            if let current = try? await client.fetchOrder(id: id), session.user?.id == userID { receive(current) }
+            if let current = try? await client.fetchOrder(id: id), session.user?.id == userID {
+                receive(current)
+                if current.cancellation != nil {
+                    message = String(localized: "L’annulation a été enregistrée. Le statut affiché a été actualisé.")
+                    return
+                }
+            }
             if session.user?.id == userID { message = failure }
         }
     }
     func followCancellation() async {
-        guard order?.status == .cancelling, let userID = session.user?.id else { return }
+        guard order?.cancellation?.status == .requested, let userID = session.user?.id else { return }
         do {
             for _ in .zero..<Confirmation.attempts {
                 try await Task.sleep(for: Confirmation.interval)
-                guard session.user?.id == userID, order?.status == .cancelling else { return }
+                guard session.user?.id == userID, order?.cancellation?.status == .requested else { return }
                 let current = try await client.fetchOrder(id: id)
-                guard session.user?.id == userID, order?.status == .cancelling else { return }
+                guard session.user?.id == userID, order?.cancellation?.status == .requested else { return }
                 receive(current)
-                if current.status != .cancelling { return }
+                if current.cancellation?.status != .requested { return }
             }
         } catch is CancellationError { return }
         catch { if session.user?.id == userID { message = error.localizedDescription } }

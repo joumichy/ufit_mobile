@@ -18,7 +18,7 @@ struct UFitOrderDetailHost: View {
         UFitOrderDetailContent(order: store.presentation, isBusy: store.isBusy, message: store.message, onBack: onBack,
             onRefresh: {Task {await store.load()}}, onPay: {Task {await store.resumePayment()}}, onCancel: {Task {await store.cancel()}}, onReturns: onReturns)
             .task {await store.load()}
-            .task(id: store.order?.status) { await store.followCancellation() }
+            .task(id: store.order?.cancellation?.status) { await store.followCancellation() }
             .background {
                 if let sheet = store.paymentSheet {
                     UFitStripePaymentPresentation(sheet: sheet) {result in Task {await store.paymentFinished(result)}}.id(ObjectIdentifier(sheet))

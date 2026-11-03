@@ -11,6 +11,7 @@ struct UFitBrandOrderPresentation {
     let total: String
     let shipment: UFitShipmentPresentation?
     let commands: [UFitShipmentCommand]
+    var cancellationNote: String? = nil
 }
 enum UFitBrandOrderInput {
     static let statuses = UFitOrderLifecycle.allCases.filter { $0 != .pendingPayment }

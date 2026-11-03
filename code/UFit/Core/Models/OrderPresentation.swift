@@ -49,6 +49,7 @@ struct UFitOrderDetailPresentation {
     let cancellationPending: Bool
     let canCancel: Bool
     let canResumePayment: Bool
+    var canRetryRefund = false
 }
 
 enum UFitShipmentLifecycle: String, Decodable {
@@ -64,12 +65,47 @@ enum UFitShipmentLifecycle: String, Decodable {
         }
     }
 }
-enum UFitCancellationOutcome: String, Decodable { case notCharged = "not_charged", refunded }
+enum UFitCancellationOutcome: String, Decodable {
+    case notCharged = "not_charged", refunded, refundFailed = "refund_failed", refundCancelled = "refund_canceled", refundBlocked = "refund_blocked"
+}
+enum UFitCancellationLifecycle: String, Decodable { case requested, succeeded, failed }
+enum UFitCancellationRefundLifecycle: String, Decodable { case queued, pending, succeeded, failed, blocked }
+enum UFitCancellationRefundProviderStatus: String, Decodable { case pending, requiresAction = "requires_action", succeeded, failed, cancelled = "canceled" }
+
+enum UFitCancellationCopy {
+    static func note(reason: UFitCancellationReason, outcome: UFitCancellationOutcome?, refundState: UFitCancellationRefundLifecycle?, providerStatus: UFitCancellationRefundProviderStatus?, total: String, professional: Bool = false) -> String {
+        let financial: String
+        switch refundState {
+        case .succeeded: financial = String(localized: "\(total) ont été remboursés sur le moyen de paiement utilisé.")
+        case .failed, .blocked:
+            if providerStatus == .cancelled {
+                financial = professional ? String(localized: "Le remboursement a été interrompu. Le client peut le reprendre depuis sa commande.") : String(localized: "Le remboursement a été interrompu. Vous pouvez le reprendre ; la commande reste annulée.")
+            } else {
+                financial = professional ? String(localized: "Le remboursement de \(total) n’a pas abouti. Un autre moyen de remboursement doit être organisé avec le client.") : String(localized: "Le remboursement de \(total) n’a pas abouti. Ufit doit organiser avec vous un autre moyen de remboursement.")
+            }
+        case .pending where providerStatus == .requiresAction:
+            financial = String(localized: "Le remboursement nécessite une vérification supplémentaire. Il n’est pas encore confirmé.")
+        case .queued, .pending:
+            financial = String(localized: "Le remboursement de \(total) est en cours. La commande ne sera pas expédiée.")
+        case nil:
+            switch outcome {
+            case .notCharged: financial = String(localized: "Aucun paiement n’a été débité.")
+            case .refunded: financial = String(localized: "\(total) ont été remboursés sur le moyen de paiement utilisé.")
+            case .refundFailed, .refundBlocked: financial = String(localized: "Le remboursement n’a pas abouti. Un autre moyen de remboursement doit être organisé.")
+            case .refundCancelled: financial = String(localized: "Le remboursement a été interrompu.")
+            case nil: financial = String(localized: "L’annulation est en cours de traitement. La commande ne sera pas expédiée.")
+            }
+        }
+        if reason == .stockUnavailable { return String(localized: "Une pièce est devenue indisponible après le paiement.") + UFitOrderFormatting.spaceBetweenSentences + financial }
+        return financial
+    }
+}
 
 enum UFitCancellationReason: String, Decodable { case customer = "customer_requested", stockUnavailable = "stock_unavailable" }
 
 enum UFitOrderFormatting {
     static let separator = " · "
+    static let spaceBetweenSentences = " "
     private static let space = " "
     private static let single = 1
     private static let countryLocale = Locale(identifier: "fr")

@@ -89,8 +89,9 @@ struct UFitBrandOrderDetailDTO: Decodable {
     let shippingAddress: UFitShippingAddress
     let items: [UFitBrandOrderItemDTO]
     @UFitRequiredNullable var shipment: UFitManagedShipment?
+    @UFitRequiredNullable var cancellation: UFitOrderCancellationDTO?
     var actions: [UFitShipmentAction]
-    private enum CodingKeys: String, CodingKey { case subtotalAmount, shippingAmount, taxAmount, shippingAddress, items, shipment, actions }
+    private enum CodingKeys: String, CodingKey { case subtotalAmount, shippingAmount, taxAmount, shippingAddress, items, shipment, cancellation, actions }
     init(from decoder: Decoder) throws {
         summary = try UFitBrandOrderSummaryDTO(from: decoder)
         let values = try decoder.container(keyedBy: CodingKeys.self)
@@ -100,6 +101,7 @@ struct UFitBrandOrderDetailDTO: Decodable {
         shippingAddress = try values.decode(UFitShippingAddress.self, forKey: .shippingAddress)
         items = try values.decode([UFitBrandOrderItemDTO].self, forKey: .items)
         _shipment = try values.decode(UFitRequiredNullable<UFitManagedShipment>.self, forKey: .shipment)
+        _cancellation = try values.decode(UFitRequiredNullable<UFitOrderCancellationDTO>.self, forKey: .cancellation)
         actions = try values.decode([UFitShipmentAction].self, forKey: .actions)
     }
     func validate(brandID: String, orderID: String) throws {

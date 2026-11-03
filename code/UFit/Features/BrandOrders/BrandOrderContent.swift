@@ -37,6 +37,7 @@ struct UFitBrandOrderContent: View {
                             Text(order.summary.date).font(UFitTypography.subheadline).foregroundStyle(Color.ufitSecondaryText)
                             Text(order.summary.status).font(UFitTypography.headline)
                         }
+                        if let note = order.cancellationNote { Text(note).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
                         UFitOrderAddressContent(lines: order.address, phone: order.phone)
                         Divider()
                         ForEach(order.items) { UFitOrderPieceContent(item: $0) }

@@ -25,6 +25,8 @@ extension UFitBrandOrderDetailDTO {
         }, address: UFitOrderFormatting.address(shippingAddress), phone: shippingAddress.phone,
             subtotal: UFitMoney.format(subtotalAmount, currency: summary.currency), shipping: UFitMoney.format(shippingAmount, currency: summary.currency),
             taxes: UFitMoney.format(taxAmount, currency: summary.currency), total: UFitMoney.format(summary.totalAmount, currency: summary.currency),
-            shipment: shipment?.presentation, commands: commands)
+            shipment: cancellation == nil ? shipment?.presentation : nil, commands: commands,
+            cancellationNote: cancellation.map { UFitCancellationCopy.note(reason: $0.reason, outcome: $0.outcome, refundState: $0.refund?.state, providerStatus: $0.refund?.providerStatus,
+                total: UFitMoney.format(summary.totalAmount, currency: summary.currency), professional: true) })
     }
 }

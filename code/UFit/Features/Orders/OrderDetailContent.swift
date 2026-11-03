@@ -17,6 +17,7 @@ struct UFitOrderDetailContent: View {
         static let cancel = String(localized: "Annuler la commande")
         static let confirmCancel = String(localized: "Confirmer l’annulation")
         static let continueCancel = String(localized: "Reprendre l’annulation")
+        static let retryRefund = String(localized: "Reprendre le remboursement")
         static let keep = String(localized: "Conserver la commande")
         static let unavailable = String(localized: "Commande indisponible")
         static let bag = "bag"
@@ -65,8 +66,8 @@ struct UFitOrderDetailContent: View {
             }
             UFitButton(Copy.returnDossiers, action: onReturns).frame(minHeight: Layout.touch).disabled(isBusy)
             if order.canCancel {
-                UFitButton(order.cancellationPending ? Copy.continueCancel : Copy.cancel, role: .destructive) {
-                    if order.cancellationPending { onCancel() } else { confirmingCancellation = true }
+                UFitButton(order.canRetryRefund ? Copy.retryRefund : order.cancellationPending ? Copy.continueCancel : Copy.cancel, role: order.canRetryRefund ? nil : .destructive) {
+                    if order.cancellationPending || order.canRetryRefund { onCancel() } else { confirmingCancellation = true }
                 }.frame(minHeight: Layout.touch).disabled(isBusy)
             }
         }
