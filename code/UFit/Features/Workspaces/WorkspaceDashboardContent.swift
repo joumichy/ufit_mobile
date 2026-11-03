@@ -6,6 +6,11 @@ struct UFitWorkspaceDashboardContent: View {
     let document: UFitWorkspaceDashboardPresentation?
     let isLoading: Bool
     let message: String?
+    let revenue: UFitWorkspaceRevenueDTO?
+    @Binding var revenuePeriod: UFitRevenuePeriod
+    let isRevenueLoading: Bool
+    let revenueMessage: String?
+    let onRevenueRetry: () -> Void
     let onBack: () -> Void
     let onRefresh: () -> Void
     let onCommissions: () -> Void
@@ -63,6 +68,9 @@ struct UFitWorkspaceDashboardContent: View {
                             if let grade = document.grade { Text(grade).font(UFitTypography.subheadline.weight(.medium)) }
                         }
                         if showsActivity { activity(document.activity) }
+                        UFitWorkspaceRevenueContent(document: revenue, period: $revenuePeriod, isLoading: isRevenueLoading,
+                            message: revenueMessage, isCreator: document.kind == .creator, onRetry: onRevenueRetry)
+                        Text(String(localized: "Depuis le début")).font(UFitTypography.title2.weight(.medium))
                         sales(document)
                         if document.kind == .creator { commissions(document.commissions) }
                     } else if isLoading || message == nil { UFitLoading(Copy.loading).frame(maxWidth: .infinity) }

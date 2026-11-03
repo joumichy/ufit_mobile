@@ -8,12 +8,14 @@ private enum WorkspaceFinanceResponse {
         static let verification = String(localized: "Les données financières nécessitent une vérification. Réessayez plus tard.")
         static let unavailable = String(localized: "Les données financières sont indisponibles. Réessayez.")
         static let offline = String(localized: "Connexion indisponible. Vérifiez votre réseau et réessayez.")
+        static let access = String(localized: "L’accès à cet espace a changé. Actualisez pour vérifier vos droits.")
     }
     static func revoked(_ error: Error) -> Bool {
         guard case UFitAPIError.requestFailed(let status, _, _) = error else { return false }
         return status == unauthorized || status == forbidden
     }
     static func message(_ error: Error) -> String {
+        if revoked(error) { return Copy.access }
         if case UFitAPIError.requestFailed(_, _, let code) = error, code == UFitWorkspaceFinanceContract.persistedCode {
             return Copy.verification
         }
@@ -30,14 +32,47 @@ final class UFitWorkspaceDashboardStore {
     private(set) var document: UFitWorkspaceDashboardPresentation?
     private(set) var isLoading = false
     private(set) var message: String?
+    var revenuePeriod: UFitRevenuePeriod = .month
+    private(set) var revenue: UFitWorkspaceRevenueDTO?
+    private(set) var isRevenueLoading = false
+    private(set) var revenueMessage: String?
     @ObservationIgnored private let session: UFitSessionStore
     @ObservationIgnored private let userID: String
     @ObservationIgnored private var generation = UUID()
+    @ObservationIgnored private var revenueGeneration = UUID()
     var isCurrentAccount: Bool { session.user?.id == userID }
     init(workspace: UFitWorkspaceReference, session: UFitSessionStore, userID: String) {
         self.workspace = workspace; self.session = session; self.userID = userID
     }
-    func cancelLoading() { generation = UUID(); isLoading = false }
+    func cancelLoading() { generation = UUID(); isLoading = false; revenueGeneration = UUID(); isRevenueLoading = false }
+    func changeRevenuePeriod() async {
+        revenueGeneration = UUID(); isRevenueLoading = false
+        await loadRevenue()
+    }
+    func loadRevenue() async {
+        guard !isRevenueLoading, isCurrentAccount else { return }
+        let request = revenueGeneration
+        let period = revenuePeriod
+        isRevenueLoading = true; revenue = nil; revenueMessage = nil
+        defer { if revenueGeneration == request { isRevenueLoading = false } }
+        do {
+            let result = try await session.api.fetchWorkspaceRevenue(workspace, period: period)
+            guard revenueGeneration == request, isCurrentAccount, period == revenuePeriod else { return }
+            revenue = result
+        } catch {
+            guard revenueGeneration == request, isCurrentAccount else { return }
+            revenueMessage = WorkspaceFinanceResponse.message(error)
+            if WorkspaceFinanceResponse.revoked(error) {
+                generation = UUID(); isLoading = false; document = nil
+                message = revenueMessage
+            }
+        }
+    }
+    func refresh() async {
+        async let dashboard: Void = load()
+        async let chart: Void = loadRevenue()
+        _ = await (dashboard, chart)
+    }
     func load() async {
         guard !isLoading, isCurrentAccount else { return }
         let request = generation
