@@ -70,6 +70,9 @@ struct UFitWorkspaceDashboardContent: View {
                         }
                         UFitExperienceActionRow(title: UFitWorkspaceTransfersCopy.title, systemImage: UFitWorkspaceTransfersCopy.historyIcon, action: onTransfers)
                         if showsActivity { activity(document.activity) }
+                        if document.sales.contains(where: { $0.liveMode == nil }) || document.commissions.contains(where: { $0.liveMode == nil }) {
+                            Text(UFitWorkspaceFinancialModeCopy.unclassified).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText)
+                        }
                         UFitWorkspaceRevenueContent(document: revenue, period: $revenuePeriod, isLoading: isRevenueLoading,
                             message: revenueMessage, isCreator: document.kind == .creator, onRetry: onRevenueRetry)
                         Text(String(localized: "Depuis le début")).font(UFitTypography.title2.weight(.medium))
@@ -104,7 +107,11 @@ struct UFitWorkspaceDashboardContent: View {
             if document.sales.isEmpty { Text(Copy.noSales).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
             ForEach(document.sales) { value in
                 VStack(alignment: .leading, spacing: Layout.gap) {
-                    Text(value.currency).font(UFitTypography.headline)
+                    HStack(alignment: .firstTextBaseline) {
+                        Text(value.currency).font(UFitTypography.headline)
+                        Spacer(minLength: UFitSpace.sm)
+                        Text(UFitWorkspaceFinancialModeCopy.label(value.liveMode)).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText)
+                    }
                     Text(value.ordersLabel).font(UFitTypography.subheadline).foregroundStyle(Color.ufitSecondaryText)
                     figure(Copy.captured, value.captured)
                     figure(Copy.refunded, value.refunded)
@@ -121,7 +128,11 @@ struct UFitWorkspaceDashboardContent: View {
             if values.isEmpty { Text(Copy.noCommissions).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
             ForEach(values) { value in
                 VStack(alignment: .leading, spacing: Layout.gap) {
-                    Text(value.currency).font(UFitTypography.headline)
+                    HStack(alignment: .firstTextBaseline) {
+                        Text(value.currency).font(UFitTypography.headline)
+                        Spacer(minLength: UFitSpace.sm)
+                        Text(UFitWorkspaceFinancialModeCopy.label(value.liveMode)).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText)
+                    }
                     figure(Copy.original, value.original)
                     figure(Copy.adjustments, value.adjusted)
                     figure(Copy.commissionNet, value.net, emphasized: true)

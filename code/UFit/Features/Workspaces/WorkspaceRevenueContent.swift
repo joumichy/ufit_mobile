@@ -38,7 +38,11 @@ struct UFitWorkspaceRevenueContent: View {
                 }
                 ForEach(document.currencies) { currency in
                     VStack(alignment: .leading, spacing: UFitSpace.lg) {
-                        if document.currencies.count > 1 { Text(currency.currency).font(UFitTypography.title3.weight(.semibold)) }
+                        HStack(alignment: .firstTextBaseline) {
+                            Text(currency.currency).font(UFitTypography.title3.weight(.semibold))
+                            Spacer(minLength: UFitSpace.sm)
+                            Text(UFitWorkspaceFinancialModeCopy.label(currency.liveMode)).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText)
+                        }
                         if isCreator {
                             UFitWorkspaceRevenueCard(currency: currency, granularity: document.granularity, isCommission: true, metric: $commissionMetric)
                             UFitRevenueCommissionDistribution(currency: currency)

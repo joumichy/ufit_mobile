@@ -34,14 +34,14 @@ extension UFitWorkspaceDashboardDocument {
 }
 private extension UFitWorkspaceSalesCurrencyDTO {
     var presentation: UFitWorkspaceSalesFigure {
-        .init(currency: currency, orderCount: capturedOrderCount, captured: UFitMoney.format(capturedAmount, currency: currency),
+        .init(currency: currency, liveMode: liveMode, orderCount: capturedOrderCount, captured: UFitMoney.format(capturedAmount, currency: currency),
             refunded: UFitMoney.format(refundedAmount, currency: currency), inProgress: UFitMoney.format(refundInProgressAmount, currency: currency),
             net: UFitMoney.format(netAmount, currency: currency), hasRefundInProgress: refundInProgressAmount > .zero)
     }
 }
 private extension UFitWorkspaceCommissionCurrencyDTO {
     var presentation: UFitWorkspaceCommissionFigure {
-        .init(currency: currency, original: UFitMoney.format(originalAmount, currency: currency), adjusted: UFitMoney.format(adjustedAmount, currency: currency),
+        .init(currency: currency, liveMode: liveMode, original: UFitMoney.format(originalAmount, currency: currency), adjusted: UFitMoney.format(adjustedAmount, currency: currency),
             net: UFitMoney.format(netAmount, currency: currency), estimated: UFitMoney.format(estimatedAmount, currency: currency),
             pending: UFitMoney.format(pendingAmount, currency: currency), validated: UFitMoney.format(validatedAmount, currency: currency),
             paid: UFitMoney.format(paidAmount, currency: currency), paidAdjustment: UFitMoney.format(paidAdjustmentAmount, currency: currency),

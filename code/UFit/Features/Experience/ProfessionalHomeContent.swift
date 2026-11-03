@@ -124,7 +124,14 @@ struct UFitBrandActivityContent: View {
                         VStack(alignment: .leading, spacing: UFitSpace.sm) {
                             UFitEditorialHeading(title: Copy.sales, editorial: false)
                             if document.sales.isEmpty { Text(Copy.noSales).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
-                            else { Text(Copy.net).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText); ForEach(document.sales) { row in Text(row.net).font(UFitTypography.title2).monospacedDigit() } }
+                            else {
+                                Text(Copy.net).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText)
+                                ForEach(document.sales) { row in
+                                    UFitLabeledValue(UFitWorkspaceFinancialModeCopy.label(row.liveMode)) {
+                                        Text(row.net).font(UFitTypography.title2).monospacedDigit()
+                                    }.font(UFitTypography.caption)
+                                }
+                            }
                             UFitExperienceActionRow(title: Copy.salesDetail, action: onSales)
                         }
                         if isLoading { UFitLoading(Copy.loading).frame(maxWidth: .infinity) }

@@ -29,8 +29,9 @@ struct UFitRevenuePointDTO: Decodable, Identifiable {
 }
 struct UFitRevenueCurrencyDTO: Decodable, Identifiable {
     let currency: String
+    @UFitRequiredNullable var liveMode: Bool?
     let points: [UFitRevenuePointDTO]
-    var id: String { currency }
+    var id: UFitWorkspaceFinancialGroup { .init(currency: currency, liveMode: liveMode) }
     func total(_ metric: UFitRevenueMetric) -> Int { points.reduce(.zero) { $0 + $1.amount(metric) } }
 }
 struct UFitWorkspaceRevenueDTO: Decodable {
@@ -59,7 +60,7 @@ struct UFitWorkspaceRevenueDTO: Decodable {
               basis == (workspace.isCreator ? .attributedMerchandise : .orderTotal), granularity == expectedGranularity,
               let startDate = UFitRevenueCalendar.parse(start), startDate == expectedStart,
               let endDate = UFitRevenueCalendar.parse(end), endDate == calendar.date(byAdding: .day, value: UFitRevenueContract.step, to: today),
-              Set(currencies.map(\.currency)).count == currencies.count else { throw UFitWorkspaceFinanceFailure.document }
+              Set(currencies.map(\.id)).count == currencies.count else { throw UFitWorkspaceFinanceFailure.document }
         var tick = granularity == .week ? calendar.dateInterval(of: .weekOfYear, for: startDate)!.start : startDate
         var dates: [Date] = []
         while tick < endDate {

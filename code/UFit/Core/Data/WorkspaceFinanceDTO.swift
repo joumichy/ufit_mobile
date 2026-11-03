@@ -35,16 +35,19 @@ enum UFitWorkspaceFinanceContract {
 }
 struct UFitWorkspaceSalesCurrencyDTO: Decodable {
     let currency: String
+    let liveMode: Bool?
+    var group: UFitWorkspaceFinancialGroup { .init(currency: currency, liveMode: liveMode) }
     let capturedOrderCount: Int
     let capturedAmount: Int
     let refundedAmount: Int
     let refundInProgressAmount: Int
     let netAmount: Int
-    private enum CodingKeys: String, CodingKey, CaseIterable { case currency, capturedOrderCount, capturedAmount, refundedAmount, refundInProgressAmount, netAmount }
+    private enum CodingKeys: String, CodingKey, CaseIterable { case currency, liveMode, capturedOrderCount, capturedAmount, refundedAmount, refundInProgressAmount, netAmount }
     init(from decoder: Decoder) throws {
         try UFitStrictDecoding.keys(decoder, CodingKeys.self, failure: UFitWorkspaceFinanceFailure.document)
         let value = try decoder.container(keyedBy: CodingKeys.self)
         currency = try value.decode(String.self, forKey: .currency)
+        liveMode = try value.decode(Bool?.self, forKey: .liveMode)
         capturedOrderCount = try value.decode(Int.self, forKey: .capturedOrderCount)
         capturedAmount = try value.decode(Int.self, forKey: .capturedAmount)
         refundedAmount = try value.decode(Int.self, forKey: .refundedAmount)
@@ -65,22 +68,25 @@ struct UFitWorkspaceSalesDTO: Decodable {
         let value = try decoder.container(keyedBy: CodingKeys.self)
         basis = try value.decode(UFitWorkspaceSalesBasis.self, forKey: .basis)
         currencies = try value.decode([UFitWorkspaceSalesCurrencyDTO].self, forKey: .currencies)
-        guard Set(currencies.map(\.currency)).count == currencies.count else { throw UFitWorkspaceFinanceFailure.document }
+        guard Set(currencies.map(\.group)).count == currencies.count else { throw UFitWorkspaceFinanceFailure.document }
     }
 }
 struct UFitWorkspaceCommissionCurrencyDTO: Decodable {
     let currency: String
+    let liveMode: Bool?
+    var group: UFitWorkspaceFinancialGroup { .init(currency: currency, liveMode: liveMode) }
     let originalAmount: Int; let adjustedAmount: Int; let netAmount: Int
     let estimatedAmount: Int; let pendingAmount: Int; let validatedAmount: Int; let paidAmount: Int; let paidAdjustmentAmount: Int
     let estimatedCount: Int; let pendingCount: Int; let validatedCount: Int; let paidCount: Int; let cancelledCount: Int
     private enum CodingKeys: String, CodingKey, CaseIterable {
-        case currency, originalAmount, adjustedAmount, netAmount, estimatedAmount, pendingAmount, validatedAmount, paidAmount, paidAdjustmentAmount
+        case currency, liveMode, originalAmount, adjustedAmount, netAmount, estimatedAmount, pendingAmount, validatedAmount, paidAmount, paidAdjustmentAmount
         case estimatedCount, pendingCount, validatedCount, paidCount, cancelledCount
     }
     init(from decoder: Decoder) throws {
         try UFitStrictDecoding.keys(decoder, CodingKeys.self, failure: UFitWorkspaceFinanceFailure.document)
         let value = try decoder.container(keyedBy: CodingKeys.self)
         currency = try value.decode(String.self, forKey: .currency)
+        liveMode = try value.decode(Bool?.self, forKey: .liveMode)
         originalAmount = try value.decode(Int.self, forKey: .originalAmount); adjustedAmount = try value.decode(Int.self, forKey: .adjustedAmount); netAmount = try value.decode(Int.self, forKey: .netAmount)
         estimatedAmount = try value.decode(Int.self, forKey: .estimatedAmount); pendingAmount = try value.decode(Int.self, forKey: .pendingAmount)
         validatedAmount = try value.decode(Int.self, forKey: .validatedAmount); paidAmount = try value.decode(Int.self, forKey: .paidAmount)
@@ -113,7 +119,7 @@ struct UFitCreatorDashboardDTO: Decodable {
         guard workspace.isCreator, profile.id == workspace.profileID, profile.userId == userID, profile.status != .suspended,
             UUID(uuidString: profile.id) != nil, !UFitServerTextInput.trimmed(profile.displayName).isEmpty, !UFitServerTextInput.trimmed(profile.grade.label).isEmpty,
             performance.sales.basis == .attributedMerchandise,
-            Set(performance.commissions.map(\.currency)).count == performance.commissions.count,
+            Set(performance.commissions.map(\.group)).count == performance.commissions.count,
             (performance.outfits.counts + [performance.outfits.total]).allSatisfy(UFitWorkspaceFinanceContract.integer),
             let count = UFitWorkspaceFinanceContract.sum(performance.outfits.counts), count <= performance.outfits.total else { throw UFitWorkspaceFinanceFailure.document }
     }

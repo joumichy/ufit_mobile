@@ -16,6 +16,7 @@ enum WorkspaceFinanceResponse {
     }
     static func message(_ error: Error) -> String {
         if revoked(error) { return Copy.access }
+        if error is DecodingError { return UFitWorkspaceFinanceFailure.document.localizedDescription }
         if case UFitAPIError.requestFailed(_, _, let code) = error, code == UFitWorkspaceFinanceContract.persistedCode {
             return Copy.verification
         }
