@@ -1,7 +1,7 @@
 import Foundation
 import Observation
 
-private enum WorkspaceFinanceResponse {
+enum WorkspaceFinanceResponse {
     static let unauthorized = 401; static let forbidden = 403
     static let unavailableStatuses = 500...599
     private enum Copy {
@@ -41,6 +41,10 @@ final class UFitWorkspaceDashboardStore {
     @ObservationIgnored private var generation = UUID()
     @ObservationIgnored private var revenueGeneration = UUID()
     var isCurrentAccount: Bool { session.user?.id == userID }
+    func revokeFinancialAccess(_ error: Error) {
+        cancelLoading(); document = nil; revenue = nil
+        message = WorkspaceFinanceResponse.message(error); revenueMessage = message
+    }
     init(workspace: UFitWorkspaceReference, session: UFitSessionStore, userID: String) {
         self.workspace = workspace; self.session = session; self.userID = userID
     }

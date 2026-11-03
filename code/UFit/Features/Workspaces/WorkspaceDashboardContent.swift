@@ -14,6 +14,7 @@ struct UFitWorkspaceDashboardContent: View {
     let onBack: () -> Void
     let onRefresh: () -> Void
     let onCommissions: () -> Void
+    let onTransfers: () -> Void
     var sectionTitle: String = Copy.title
     var showsActivity = true
     private enum Copy {
@@ -67,6 +68,7 @@ struct UFitWorkspaceDashboardContent: View {
                             Text(document.status).font(UFitTypography.subheadline).foregroundStyle(Color.ufitSecondaryText)
                             if let grade = document.grade { Text(grade).font(UFitTypography.subheadline.weight(.medium)) }
                         }
+                        UFitExperienceActionRow(title: UFitWorkspaceTransfersCopy.title, systemImage: UFitWorkspaceTransfersCopy.historyIcon, action: onTransfers)
                         if showsActivity { activity(document.activity) }
                         UFitWorkspaceRevenueContent(document: revenue, period: $revenuePeriod, isLoading: isRevenueLoading,
                             message: revenueMessage, isCreator: document.kind == .creator, onRetry: onRevenueRetry)

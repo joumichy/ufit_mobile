@@ -185,9 +185,11 @@ struct MarketplaceRootView: View {
         case .refundRecoveries(let flow):
             UFitRefundRecoveryFlowHost(store: flow, onClose: goBack)
         case .workspaceDashboard(let dashboard):
-            UFitWorkspaceDashboardHost(store: dashboard, title: dashboard.workspace.isCreator ? AppTab.creatorEarnings.title : ExperienceCopy.sales, onBack: goBack, onCommissions: showWorkspaceCommissions)
+            UFitWorkspaceDashboardHost(store: dashboard, title: dashboard.workspace.isCreator ? AppTab.creatorEarnings.title : ExperienceCopy.sales, onBack: goBack, onCommissions: showWorkspaceCommissions, onTransfers: showWorkspaceTransfers)
         case .workspaceCommissions(let commissions):
             UFitWorkspaceCommissionsHost(store: commissions, onBack: goBack)
+        case .workspaceTransfers(let transfers):
+            UFitWorkspaceTransfersHost(store: transfers, onBack: goBack, onAccount: { performProfileAction(.payments, space: transfers.workspace) })
         case .managedOutfits(let outfits):
             UFitManagedOutfitsHost(store: outfits, onBack: goBack, onOpen: showManagedOutfit, onCreate: showOutfitForm)
         case .managedOutfit(let outfit):
@@ -360,6 +362,11 @@ private extension MarketplaceRootView {
             dashboard.workspace.isCreator, let document = dashboard.document, let userID = session.user?.id else { return }
         routeHistory.append(activeRoute)
         activeRoute = .workspaceCommissions(UFitWorkspaceCommissionsStore(name: document.name, creatorID: dashboard.workspace.profileID, session: session, userID: userID))
+    }
+    func showWorkspaceTransfers() {
+        guard case .workspaceDashboard(let dashboard) = activeRoute, dashboard.isCurrentAccount, dashboard.document != nil else { return }
+        routeHistory.append(activeRoute)
+        activeRoute = .workspaceTransfers(UFitWorkspaceTransfersStore(dashboard: dashboard, session: session))
     }
 
     func showManagedProfile(_ space: UFitWorkspaceReference) {

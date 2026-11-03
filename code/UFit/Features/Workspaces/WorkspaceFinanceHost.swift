@@ -5,11 +5,12 @@ struct UFitWorkspaceDashboardHost: View {
     let title: String
     let onBack: () -> Void
     let onCommissions: () -> Void
+    let onTransfers: () -> Void
     var body: some View {
         UFitWorkspaceDashboardContent(document: store.document, isLoading: store.isLoading, message: store.message,
             revenue: store.revenue, revenuePeriod: $store.revenuePeriod, isRevenueLoading: store.isRevenueLoading, revenueMessage: store.revenueMessage,
             onRevenueRetry: { Task { await store.loadRevenue() } },
-            onBack: onBack, onRefresh: { Task { await store.refresh() } }, onCommissions: onCommissions, sectionTitle: title, showsActivity: false)
+            onBack: onBack, onRefresh: { Task { await store.refresh() } }, onCommissions: onCommissions, onTransfers: onTransfers, sectionTitle: title, showsActivity: false)
             .task { await store.refresh() }
             .onChange(of: store.revenuePeriod) { _, _ in Task { await store.changeRevenuePeriod() } }
             .onDisappear { store.cancelLoading() }
