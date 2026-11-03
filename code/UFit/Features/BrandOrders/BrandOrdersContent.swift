@@ -42,8 +42,10 @@ struct UFitBrandOrdersContent: View {
                         if selectedStatus != nil { UFitActionButton(title: Copy.clear, kind: .secondary) { onStatus(nil) } }
                     }
                     ForEach(orders) { order in
-                        UFitButton { onSelect(order.id) } label: { row(order) }.ufitButtonStyle(.text)
-                        Divider()
+                        VStack(spacing: Layout.page) {
+                            UFitButton { onSelect(order.id) } label: { row(order) }.ufitButtonStyle(.text)
+                            Divider()
+                        }
                     }
                     if let message {
                         Text(message).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText)

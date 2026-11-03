@@ -9,7 +9,7 @@ struct UFitBrandOrdersHost: View {
             hasLoaded: store.hasLoaded, isLoading: store.isLoading, hasMore: store.nextCursor != nil, message: store.message,
             onBack: onBack, onRefresh: { Task { await store.load() } }, onRetry: { Task { await store.retry() } },
             onMore: { Task { await store.load(reset: false) } }, onSelect: onOpen, onStatus: { status in Task { await store.select(status) } })
-            .task { if !store.hasLoaded { await store.load() } }
+            .task(id: ObjectIdentifier(store)) { if !store.hasLoaded { await store.load() } }
     }
 }
 struct UFitBrandOrderHost: View {
