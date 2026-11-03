@@ -32,13 +32,23 @@ struct UFitUserAdministrationDetailHost: View {
     let store: UFitUserAdministrationDetailStore
     let onBack: () -> Void
     let onDecide: (UFitUserAccessDecision) -> Void
+    @State private var showingProfiles = false
+    @State private var profiles: UFitProfileAdministrationStore
+    init(store: UFitUserAdministrationDetailStore, onBack: @escaping () -> Void, onDecide: @escaping (UFitUserAccessDecision) -> Void) {
+        self.store = store; self.onBack = onBack; self.onDecide = onDecide
+        let kind: UFitAdministeredProfileKind = store.user.roles.contains(.creator) ? .creator :
+            (store.user.roles.contains(.brandOwner) || store.user.roles.contains(.brandManager) ? .brand : .creator)
+        _profiles = State(initialValue: UFitProfileAdministrationStore(collection: store.collection, userID: store.user.id, initialKind: kind))
+    }
     var body: some View {
         Group {
-            if store.isCurrentAccount {
+            if store.isCurrentAccount, showingProfiles {
+                UFitProfileAdministrationHost(store: profiles, onBack: { showingProfiles = false })
+            } else if store.isCurrentAccount {
                 UFitUserAdministrationDetailContent(document: store.user.document, history: store.history.map(\.row),
                     isLoading: store.isLoading, hasLoadedHistory: store.hasLoadedHistory, hasMore: store.nextCursor != nil,
                     message: store.message, onBack: onBack, onRefresh: { Task { await store.load() } }, onDecide: onDecide,
-                    onMore: { Task { await store.load(refresh: false) } })
+                    onMore: { Task { await store.load(refresh: false) } }, onProfiles: { showingProfiles = true })
             } else {
                 UFitEmptyState(title: UFitUserAdministrationCopy.unavailable, actionTitle: UFitUserAdministrationCopy.back, action: onBack)
             }

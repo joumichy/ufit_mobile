@@ -11,6 +11,7 @@ struct UFitUserAdministrationDetailContent: View {
     let onRefresh: () -> Void
     let onDecide: (UFitUserAccessDecision) -> Void
     let onMore: () -> Void
+    var onProfiles: (() -> Void)? = nil
     private enum Icon { static let refresh = "arrow.clockwise" }
     var body: some View {
         VStack(spacing: .zero) {
@@ -39,6 +40,9 @@ struct UFitUserAdministrationDetailContent: View {
                             UFitButton(decision.label, role: decision.isDestructive ? .destructive : nil) { onDecide(decision) }
                                 .ufitButtonStyle(.secondary).frame(maxWidth: .infinity, alignment: .leading)
                         }
+                    }
+                    if let onProfiles {
+                        UFitExperienceActionRow(title: UFitProfileAdministrationCopy.title, systemImage: UFitProfileAdministrationCopy.icon, action: onProfiles)
                     }
                     UFitDisclosure(UFitUserAdministrationCopy.accountDetails) {
                         VStack(spacing: UFitSpace.sm) {

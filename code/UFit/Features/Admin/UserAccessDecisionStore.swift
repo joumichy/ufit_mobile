@@ -69,6 +69,7 @@ final class UFitUserAccessDecisionStore {
             return current
         } catch {
             guard generation == request, isCurrentAccount else { return nil }
+            if UFitUserAdministrationError.revoked(error) { detail.collection.recordReadFailure(error) }
             requiresReferenceReload = UFitUserAdministrationError.conflict(error)
             message = UFitUserAdministrationError.message(error)
             messageIsError = true
@@ -76,24 +77,30 @@ final class UFitUserAccessDecisionStore {
         }
     }
     private func recover(original: UFitAdministeredUserDTO, reason: String, actorID: String) async throws -> UFitAdministeredUserDTO? {
-        guard isCurrentAccount else { return nil }
-        let current = try await detail.collection.session.api.fetchAdministeredUser(id: original.id)
-        guard isCurrentAccount, current.version == original.version + UFitUserAdministrationContract.versionStep else { return nil }
-        let page = try await detail.collection.session.api.fetchUserAccessHistory(userID: original.id)
-        guard isCurrentAccount, let change = page.items.first, change.version == current.version,
-              change.decidedByUserId == actorID, change.reason == reason, change.fromStatus == original.status,
-              change.toStatus == current.status, change.adminBefore == original.roles.contains(.admin),
-              change.adminAfter == current.roles.contains(.admin) else { return nil }
-        switch decision {
-        case .suspend, .activate:
-            guard change.kind == .status, current.status == (decision == .suspend ? .suspended : .active), current.roleCodes == original.roleCodes else { return nil }
-        case .grantAdmin, .revokeAdmin:
-            var expectedRoles = original.roleCodes
-            if decision == .grantAdmin { expectedRoles.insert(UFitUserRole.admin.rawValue) } else { expectedRoles.remove(UFitUserRole.admin.rawValue) }
-            guard change.kind == .adminAccess, current.status == original.status, current.roleCodes == expectedRoles else { return nil }
+        do {
+            guard isCurrentAccount else { return nil }
+            let current = try await detail.collection.session.api.fetchAdministeredUser(id: original.id)
+            guard isCurrentAccount, current.version == original.version + UFitUserAdministrationContract.versionStep else { return nil }
+            let page = try await detail.collection.session.api.fetchUserAccessHistory(userID: original.id)
+            guard isCurrentAccount, let change = page.items.first, change.version == current.version,
+                  change.decidedByUserId == actorID, change.reason == reason, change.fromStatus == original.status,
+                  change.toStatus == current.status, change.adminBefore == original.roles.contains(.admin),
+                  change.adminAfter == current.roles.contains(.admin) else { return nil }
+            switch decision {
+            case .suspend, .activate:
+                guard change.kind == .status, current.status == (decision == .suspend ? .suspended : .active), current.roleCodes == original.roleCodes else { return nil }
+            case .grantAdmin, .revokeAdmin:
+                var expectedRoles = original.roleCodes
+                if decision == .grantAdmin { expectedRoles.insert(UFitUserRole.admin.rawValue) } else { expectedRoles.remove(UFitUserRole.admin.rawValue) }
+                guard change.kind == .adminAccess, current.status == original.status, current.roleCodes == expectedRoles else { return nil }
+            }
+            return current
+        } catch {
+            if UFitUserAdministrationError.revoked(error) { detail.collection.recordReadFailure(error) }
+            throw error
         }
-        return current
     }
+
     private enum Copy {
         static let reason = String(localized: "Ajoutez un motif de 1 à 500 caractères.")
         static let referenceUpdated = String(localized: "Les accès sont à jour. Vérifiez la décision. Votre motif est conservé.")
