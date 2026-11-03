@@ -4,6 +4,7 @@ struct UFitPaymentSettlementContent: View {
     let document: UFitPaymentSettlementDocument?
     let isLoading: Bool; let isSending: Bool; let message: String?; let needsStatusRefresh: Bool
     let onBack: () -> Void; let onRefresh: () -> Void; let onSynchronize: () -> Void
+    var onAllocation: (() -> Void)? = nil
     private typealias Copy = UFitPaymentSettlementCopy
     var body: some View {
         VStack(spacing: .zero) {
@@ -20,6 +21,10 @@ struct UFitPaymentSettlementContent: View {
                         if needsStatusRefresh {
                             UFitActionButton(title: Copy.refreshStatus, kind: .secondary, isBusy: isLoading, action: onRefresh)
                         } else { settlement(document) }
+                        if let onAllocation {
+                            UFitExperienceActionRow(title: UFitPaymentAllocationCopy.title, systemImage: UFitPaymentAllocationCopy.icon, action: onAllocation)
+                                .disabled(isLoading || isSending || needsStatusRefresh)
+                        }
                         references(document)
                         Text(Copy.consulted(document.asOf)).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText)
                     } else if message != nil {

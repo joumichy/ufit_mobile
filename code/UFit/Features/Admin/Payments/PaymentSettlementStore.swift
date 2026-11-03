@@ -4,14 +4,14 @@ import Observation
 @MainActor @Observable
 final class UFitPaymentSettlementStore {
     enum Operation { case idle, loading, synchronizing, polling }
-    let paymentID: String; let orderID: String; let collection: UFitAdminOrdersStore
+    let paymentID: String; let orderID: String; let brandID: String; let collection: UFitAdminOrdersStore
     private(set) var operation = Operation.idle
     private(set) var message: String?
     private(set) var needsStatusRefresh = false
     private var received: UFitPaymentSettlementDocument?
     @ObservationIgnored private var generation = UUID()
-    init(paymentID: String, orderID: String, collection: UFitAdminOrdersStore) {
-        self.paymentID = paymentID; self.orderID = orderID; self.collection = collection
+    init(paymentID: String, orderID: String, brandID: String, collection: UFitAdminOrdersStore) {
+        self.paymentID = paymentID; self.orderID = orderID; self.brandID = brandID; self.collection = collection
     }
     var document: UFitPaymentSettlementDocument? { collection.canRead ? received : nil }
     var isLoading: Bool { operation == .loading }
