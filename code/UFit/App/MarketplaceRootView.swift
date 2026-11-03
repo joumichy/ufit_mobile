@@ -113,7 +113,11 @@ struct MarketplaceRootView: View {
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
-                Task { await session.deviceNotifications.refresh(); if session.user != nil { await experience.load() } }
+                Task {
+                    if session.isSignedIn { await session.reloadProfile() }
+                    await session.deviceNotifications.refresh()
+                    if session.user != nil { await experience.load() }
+                }
             }
         }
         .onChange(of: session.needsNewPassword) { _, needed in

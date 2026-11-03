@@ -56,12 +56,28 @@ final class UFitSessionStore {
     private(set) var user: UFitCurrentUser?
     private(set) var isRestoring = true
     private(set) var isBusy = false
+    private(set) var isLoadingProfile = false
     private(set) var isSignedIn = false
     var message: String?
     var needsNewPassword = false
     private(set) var isHandlingAuthenticationCallback = false
     private(set) var authenticationFailure: UFitAuthenticationFailure?
-    @ObservationIgnored let api: UFitAPIClient
+    @ObservationIgnored private let configuration: UFitRuntimeConfiguration
+    @ObservationIgnored lazy var api = UFitAPIClient(
+        configuration: UFitAPIConfiguration(baseURL: configuration.apiURL, bearerToken: nil),
+        tokenProvider: { [weak self, auth] in
+            guard let auth else { return nil }
+            let previousToken = auth.auth.currentSession?.accessToken
+            do { return try await auth.auth.session.accessToken }
+            catch {
+                if UFitAuthenticationFailure(error) == .sessionExpired, let previousToken {
+                    await self?.invalidateAuthentication(accessToken: previousToken)
+                }
+                throw error
+            }
+        }, onAuthenticationRejected: { [weak self] token in
+            await self?.invalidateAuthentication(accessToken: token)
+        })
     @ObservationIgnored private let auth: SupabaseClient?
     @ObservationIgnored private var observation: Task<Void, Never>?
     @ObservationIgnored private var profileRequest = UUID()
@@ -78,16 +94,13 @@ final class UFitSessionStore {
     }
 
     init(configuration: UFitRuntimeConfiguration = .load()) {
+        self.configuration = configuration
         let client: SupabaseClient?
         if let url = configuration.supabaseURL, let key = configuration.supabaseKey, !key.isEmpty {
             client = SupabaseClient(supabaseURL: url, supabaseKey: key,
                 options: .init(auth: .init(redirectToURL: UFitAuthenticationCallback.confirmationURL, flowType: .pkce)))
         } else { client = nil }
         auth = client
-        api = UFitAPIClient(configuration: UFitAPIConfiguration(baseURL: configuration.apiURL, bearerToken: nil), tokenProvider: {
-            guard let client else { return nil }
-            return try await client.auth.session.accessToken
-        })
     }
 
     func start() {
@@ -229,17 +242,29 @@ final class UFitSessionStore {
 
     private func prepareAuthenticationTransition() {
         deviceNotifications.prepareForAuthentication()
-        profileRequest = UUID(); profileIdentity = nil; user = nil
+        profileRequest = UUID(); profileIdentity = nil; user = nil; isLoadingProfile = false
+    }
+    private func invalidateAuthentication(accessToken: String) async {
+        // A delayed rejection from the previous account must not close a newer session.
+        guard auth?.auth.currentSession?.accessToken == accessToken else { return }
+        prepareAuthenticationTransition()
+        isSignedIn = false; needsNewPassword = false
+        authenticationFailure = .sessionExpired
+        message = UFitAuthenticationFailure.sessionExpired.localizedDescription
+        try? await auth?.auth.signOut(scope: .local)
     }
     func reloadProfile() async {
         guard authIdentity?.subject != deletedAuthSubject || deletedAuthSubject == nil else { return }
         let expected = authIdentity, request = UUID(); profileRequest = request
+        isLoadingProfile = true
+        defer { if profileRequest == request { isLoadingProfile = false } }
         do {
             let current = try await api.fetchCurrentUser()
             guard authIdentity == expected, profileRequest == request else { return }
             user = current; profileIdentity = expected; message = nil; deviceNotifications.contextChanged()
         } catch {
             guard authIdentity == expected, profileRequest == request else { return }
+            user = nil; profileIdentity = nil; deviceNotifications.contextChanged()
             message = UFitAuthenticationFailure(error)?.localizedDescription ?? error.localizedDescription
         }
     }

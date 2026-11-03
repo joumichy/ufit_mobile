@@ -1,6 +1,12 @@
 import Foundation
 import Supabase
 
+enum UFitAuthenticationHTTP {
+    static let unauthorized = 401
+    static let get = "GET"
+    static let me = "me"
+}
+
 enum UFitAuthenticationCallback {
     enum Purpose { case confirmation, recovery }
     static let scheme = "ufit", host = "auth", confirmationPath = "/callback", recoveryPath = "/recovery"

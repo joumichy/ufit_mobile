@@ -127,13 +127,17 @@ struct UFitAPIClient {
     let configuration: UFitAPIConfiguration
     private let session: URLSession
     private let tokenProvider: (@Sendable () async throws -> String?)?
+    private let onAuthenticationRejected: (@Sendable (String) async -> Void)?
     private let decoder = JSONDecoder()
     private let encoder = JSONEncoder()
 
-    init(configuration: UFitAPIConfiguration = .live(), session: URLSession = .shared, tokenProvider: (@Sendable () async throws -> String?)? = nil) {
+    init(configuration: UFitAPIConfiguration = .live(), session: URLSession = .shared,
+         tokenProvider: (@Sendable () async throws -> String?)? = nil,
+         onAuthenticationRejected: (@Sendable (String) async -> Void)? = nil) {
         self.configuration = configuration
         self.session = session
         self.tokenProvider = tokenProvider
+        self.onAuthenticationRejected = onAuthenticationRejected
     }
 
     func updateProfile(name: String) async throws -> UFitCurrentUser {
@@ -142,7 +146,8 @@ struct UFitAPIClient {
     }
 
     func fetchCurrentUser() async throws -> UFitCurrentUser {
-        try await send("GET", path: "me", requiresAuth: true)
+        try await send(UFitAuthenticationHTTP.get, path: UFitAuthenticationHTTP.me,
+                       requiresAuth: true, cachePolicy: .reloadIgnoringLocalCacheData)
     }
 
     func fetchOutfitFeed(limit: Int = UFitOutfitPublicHTTP.defaultLimit, cursor: String? = nil, author: UFitPublicProfileReference? = nil,
@@ -263,6 +268,9 @@ struct UFitAPIClient {
             throw UFitAPIError.emptyResponse
         }
         guard 200..<300 ~= httpResponse.statusCode else {
+            if requiresAuth, httpResponse.statusCode == UFitAuthenticationHTTP.unauthorized, let token {
+                await onAuthenticationRejected?(token)
+            }
             let failure = try? decoder.decode(UFitServerFailure.self, from: data)
             throw UFitAPIError.requestFailed(statusCode: httpResponse.statusCode, message: failure?.message?.text ?? String(), code: failure?.code)
         }
