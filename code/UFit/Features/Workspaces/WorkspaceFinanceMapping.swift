@@ -58,7 +58,8 @@ extension UFitWorkspaceCommissionDTO {
         formatter.maximumFractionDigits = WorkspaceFinanceCopy.maximumRateDigits
         let decimal = NSDecimalNumber(decimal: Decimal(rateBps) / Decimal(UFitWorkspaceFinanceContract.basisPoints))
         guard let rate = formatter.string(from: decimal) else { throw UFitWorkspaceFinanceFailure.document }
-        return .init(id: id, date: createdAt.label, state: status, currency: currency, base: UFitMoney.format(baseAmount, currency: currency), rate: rate,
+        return .init(id: id, date: createdAt.label, state: status, releaseSummary: try release.summary(), releaseDate: release.detailDate,
+            currency: currency, base: UFitMoney.format(baseAmount, currency: currency), rate: rate,
             original: UFitMoney.format(originalAmount, currency: currency), adjusted: UFitMoney.format(adjustedAmount, currency: currency),
             net: UFitMoney.format(netAmount, currency: currency), paidAdjustment: UFitMoney.format(paidAdjustmentAmount, currency: currency), hasPaidAdjustment: paidAdjustmentAmount > .zero)
     }

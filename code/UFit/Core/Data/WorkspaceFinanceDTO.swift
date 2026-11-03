@@ -97,8 +97,9 @@ struct UFitWorkspaceCommissionDTO: Decodable, Identifiable {
     let status: UFitWorkspaceCommissionState; let currency: String
     let baseAmount: Int; let rateBps: Int; let originalAmount: Int; let adjustedAmount: Int; let netAmount: Int; let paidAdjustmentAmount: Int
     let createdAt: UFitTimestamp
+    let release: UFitCommissionRelease
     private enum CodingKeys: String, CodingKey, CaseIterable {
-        case id, orderItemId, brandId, sourceOutfitId, status, currency, baseAmount, rateBps, originalAmount, adjustedAmount, netAmount, paidAdjustmentAmount, createdAt
+        case id, orderItemId, brandId, sourceOutfitId, status, currency, baseAmount, rateBps, originalAmount, adjustedAmount, netAmount, paidAdjustmentAmount, createdAt, release
     }
     init(from decoder: Decoder) throws {
         try UFitStrictDecoding.keys(decoder, CodingKeys.self, failure: UFitWorkspaceFinanceFailure.document)
@@ -110,9 +111,10 @@ struct UFitWorkspaceCommissionDTO: Decodable, Identifiable {
         originalAmount = try value.decode(Int.self, forKey: .originalAmount); adjustedAmount = try value.decode(Int.self, forKey: .adjustedAmount)
         netAmount = try value.decode(Int.self, forKey: .netAmount); paidAdjustmentAmount = try value.decode(Int.self, forKey: .paidAdjustmentAmount)
         createdAt = try value.decode(UFitTimestamp.self, forKey: .createdAt)
+        release = try value.decode(UFitCommissionRelease.self, forKey: .release)
         guard [id, orderItemId, brandId, sourceOutfitId].allSatisfy({ UUID(uuidString: $0) != nil }), UFitWorkspaceFinanceContract.currency(currency),
             [baseAmount, rateBps, originalAmount, adjustedAmount, netAmount, paidAdjustmentAmount].allSatisfy(UFitWorkspaceFinanceContract.integer), rateBps <= UFitWorkspaceFinanceContract.basisPoints,
-            UFitWorkspaceFinanceContract.sum([adjustedAmount, netAmount]) == originalAmount,
+            UFitWorkspaceFinanceContract.sum([adjustedAmount, netAmount]) == originalAmount, release.status == status,
             status == .paid ? paidAdjustmentAmount == adjustedAmount : paidAdjustmentAmount == .zero else { throw UFitWorkspaceFinanceFailure.document }
     }
 }

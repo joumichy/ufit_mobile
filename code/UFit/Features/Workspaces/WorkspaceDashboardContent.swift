@@ -33,7 +33,7 @@ struct UFitWorkspaceDashboardContent: View {
         static let commissionNet = String(localized: "Après ajustements")
         static let estimated = String(localized: "Estimées")
         static let pending = String(localized: "En attente")
-        static let validated = String(localized: "Validées")
+        static let validated = String(localized: "Disponibles pour versement")
         static let paid = String(localized: "Payées")
         static let recover = String(localized: "À récupérer sur les commissions payées")
         static let ledger = String(localized: "Historique des commissions")
@@ -48,8 +48,7 @@ struct UFitWorkspaceDashboardContent: View {
     var body: some View {
         VStack(spacing: .zero) {
             DetailHeader(title: sectionTitle, onBack: onBack) {
-                if isLoading { UFitLoading().frame(width: Layout.touch, height: Layout.touch) }
-                else { UFitButton(action: onRefresh) { UFitIcon(systemName: Icon.refresh).frame(width: Layout.touch, height: Layout.touch) }.accessibilityLabel(Copy.refresh) }
+                if !isLoading { UFitButton(action: onRefresh) { UFitIcon(systemName: Icon.refresh).frame(width: Layout.touch, height: Layout.touch) }.accessibilityLabel(Copy.refresh) }
             }
             ScrollView {
                 VStack(alignment: .leading, spacing: Layout.page) {

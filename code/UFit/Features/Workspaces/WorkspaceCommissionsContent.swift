@@ -25,6 +25,7 @@ struct UFitWorkspaceCommissionsContent: View {
         static let net = String(localized: "Après ajustements")
         static let recover = String(localized: "À récupérer sur le montant payé")
         static let details = String(localized: "Détail du calcul")
+        static let releaseDate = String(localized: "Fin du délai de retour")
     }
     private enum Layout {
         static let page: CGFloat = UFitSpace.xl; static let gap: CGFloat = UFitSpace.md; static let small: CGFloat = UFitSpace.xs
@@ -34,8 +35,7 @@ struct UFitWorkspaceCommissionsContent: View {
     var body: some View {
         VStack(spacing: .zero) {
             DetailHeader(title: Copy.title, onBack: onBack) {
-                if isLoading { UFitLoading().frame(width: Layout.touch, height: Layout.touch) }
-                else { UFitButton(action: onRefresh) { UFitIcon(systemName: Icon.refresh).frame(width: Layout.touch, height: Layout.touch) }.accessibilityLabel(Copy.refresh) }
+                if !isLoading { UFitButton(action: onRefresh) { UFitIcon(systemName: Icon.refresh).frame(width: Layout.touch, height: Layout.touch) }.accessibilityLabel(Copy.refresh) }
             }
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: Layout.page) {
@@ -43,9 +43,9 @@ struct UFitWorkspaceCommissionsContent: View {
                     if hasLoaded && entries.isEmpty && message == nil && !isLoading { Text(Copy.empty).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
                     ForEach(entries) { entry in
                         VStack(alignment: .leading, spacing: Layout.gap) {
-                            Text(entry.date).font(UFitTypography.headline)
-                            Text(entry.state.label).font(UFitTypography.subheadline.weight(.medium))
                             Text(entry.net).font(UFitTypography.title2.weight(.medium)).monospacedDigit()
+                            Text(entry.releaseSummary).font(UFitTypography.subheadline.weight(.medium))
+                            Text(entry.date).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText)
                             UFitDisclosure(Copy.details) {
                                 VStack(alignment: .leading, spacing: Layout.gap) {
                                     row(Copy.base, entry.base)
@@ -54,6 +54,7 @@ struct UFitWorkspaceCommissionsContent: View {
                                     row(Copy.adjustments, entry.adjusted)
                                     row(Copy.net, entry.net)
                                     if entry.hasPaidAdjustment { row(Copy.recover, entry.paidAdjustment) }
+                                    if let date = entry.releaseDate { row(Copy.releaseDate, date) }
                                     Text(entry.id).font(UFitTypography.caption.monospaced()).textSelection(.enabled).foregroundStyle(Color.ufitSecondaryText)
                                 }.padding(.top, Layout.gap)
                             }.frame(minHeight: Layout.touch)

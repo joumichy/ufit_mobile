@@ -66,6 +66,8 @@ struct UFitWorkspaceCommissionEntry: Identifiable {
     let id: String
     let date: String
     let state: UFitWorkspaceCommissionState
+    let releaseSummary: String
+    let releaseDate: String?
     let currency: String
     let base: String
     let rate: String
