@@ -6,6 +6,7 @@ final class UFitBrandOrdersStore {
     let brandID: String
     let brandName: String
     @ObservationIgnored let session: UFitSessionStore
+    @ObservationIgnored private let isAdministrative: Bool
     @ObservationIgnored private let userID: String
     @ObservationIgnored private var generation = UUID()
     @ObservationIgnored private var retryMore = false
@@ -18,9 +19,14 @@ final class UFitBrandOrdersStore {
     init(space: UFitWorkspaceReference, session: UFitSessionStore) throws {
         guard !space.isCreator, space.status == .active || space.status == .paused, UUID(uuidString: space.profileID) != nil,
               let userID = session.user?.id else { throw UFitBrandOrderContractError.document }
-        brandID = space.profileID.lowercased(); brandName = space.name; self.session = session; self.userID = userID
+        brandID = space.profileID.lowercased(); brandName = space.name; self.session = session; self.userID = userID; isAdministrative = false
     }
-    var isCurrentAccount: Bool { session.user?.id == userID }
+    init(administrating brandID: String, brandName: String, session: UFitSessionStore) throws {
+        guard session.user?.canAdminister == true, let userID = session.user?.id, UUID(uuidString: brandID) != nil,
+              !UFitServerTextInput.trimmed(brandName).isEmpty else { throw UFitBrandOrderContractError.document }
+        self.brandID = brandID.lowercased(); self.brandName = brandName; self.session = session; self.userID = userID; isAdministrative = true
+    }
+    var isCurrentAccount: Bool { session.user?.id == userID && (!isAdministrative || session.user?.canAdminister == true) }
     var summaries: [UFitOrderSummary] { orders.map(\.presentation) }
     func select(_ status: UFitOrderLifecycle?) async {
         guard isCurrentAccount, status == nil || UFitBrandOrderInput.statuses.contains(where: { $0 == status }), status != filter else { return }

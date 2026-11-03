@@ -172,7 +172,9 @@ struct MarketplaceRootView: View {
             } else { experienceChooser }
         case .administratorHome:
             UFitAdminActivityHost(store: adminActivity, onChooseExperience: showExperiencePicker, onApplications: showAdminApplications,
-                onProducts: showAdminProducts, onOutfits: showAdminOutfits, onReturns: showAdminReturns, onCommissions: showCommissionRules, onUsers: showUserAdministration, onGrades: showCreatorGradeAdministration, onEditorial: showEditorialAdministration)
+                onProducts: showAdminProducts, onOutfits: showAdminOutfits, onReturns: showAdminReturns, onCommissions: showCommissionRules, onUsers: showUserAdministration, onGrades: showCreatorGradeAdministration, onEditorial: showEditorialAdministration, onRefundRecoveries: showRefundRecoveries)
+        case .refundRecoveries(let flow):
+            UFitRefundRecoveryFlowHost(store: flow, onClose: goBack)
         case .workspaceDashboard(let dashboard):
             UFitWorkspaceDashboardHost(store: dashboard, title: dashboard.workspace.isCreator ? AppTab.creatorEarnings.title : ExperienceCopy.sales, onBack: goBack, onCommissions: showWorkspaceCommissions)
         case .workspaceCommissions(let commissions):
@@ -377,6 +379,10 @@ private extension MarketplaceRootView {
             let list = try UFitReturnsStore(scope: .brand(brandID: space.profileID), context: space.name, session: session)
             routeHistory.append(activeRoute); activeRoute = .returns(list)
         } catch { workspaces.reportOpeningFailure(error, space: space) }
+    }
+    func showRefundRecoveries() {
+        guard experience.kind == .administrator, session.user?.canAdminister == true else {return}
+        routeHistory.append(activeRoute); activeRoute = .refundRecoveries(UFitRefundRecoveryFlowStore(session: session))
     }
     func showAdminReturns() {
         guard experience.kind == .administrator, session.user?.canAdminister == true else { return }

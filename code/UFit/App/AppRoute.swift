@@ -8,6 +8,7 @@ enum AppRoute {
     case professionalHome
     case professionalProfile
     case administratorHome
+    case refundRecoveries(UFitRefundRecoveryFlowStore)
     case workspaceDashboard(UFitWorkspaceDashboardStore)
     case workspaceCommissions(UFitWorkspaceCommissionsStore)
     case managedProfile(UFitManagedProfileStore)

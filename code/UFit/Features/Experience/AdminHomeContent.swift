@@ -14,6 +14,8 @@ struct UFitAdminHomeContent: View {
     let onGrades: () -> Void
     let onChooseExperience: () -> Void
     var onEditorial: (() -> Void)? = nil
+    var onRefundRecoveries: (() -> Void)? = nil
+    var refundRecoveryCount: Int? = nil
     private enum Copy {
         static let title = String(localized: "À traiter"); static let context = String(localized: "Administration")
         static let applications = String(localized: "Candidatures"); static let products = String(localized: "Produits"); static let outfits = String(localized: "Tenues")
@@ -32,6 +34,10 @@ struct UFitAdminHomeContent: View {
                         Text(message).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText)
                         UFitButton(Copy.retry, action: onRefresh).frame(minHeight: Layout.touch)
                     }
+                    if let onRefundRecoveries, let refundRecoveryCount, refundRecoveryCount > .zero {
+                        UFitExperienceActionRow(title: UFitRefundRecoveryCopy.action, count: refundRecoveryCount, systemImage: UFitRefundRecoveryCopy.icon, action: onRefundRecoveries)
+                        Divider()
+                    }
                     if let activity {
                         if activity.applications > .zero || activity.products > .zero || activity.outfits > .zero {
                             UFitEditorialHeading(title: AdminDesignCopy.selection, editorial: false)
@@ -46,9 +52,13 @@ struct UFitAdminHomeContent: View {
                                 }
                                 if activity.outfits > .zero { UFitExperienceActionRow(title: Copy.outfits, count: activity.outfits, systemImage: Icon.outfits, action: onOutfits) }
                             }
-                        } else { UFitEmptyState(title: AdminDesignCopy.empty, symbol: Icon.complete) }
+                        } else if refundRecoveryCount == nil || refundRecoveryCount == .zero { UFitEmptyState(title: AdminDesignCopy.empty, symbol: Icon.complete) }
                     }
                     UFitEditorialHeading(title: AdminDesignCopy.operations, editorial: false)
+                    if let onRefundRecoveries, refundRecoveryCount == nil || refundRecoveryCount == .zero {
+                        UFitExperienceActionRow(title: UFitRefundRecoveryCopy.action, systemImage: UFitRefundRecoveryCopy.icon, action: onRefundRecoveries)
+                        Divider()
+                    }
                     if let onEditorial {
                         UFitExperienceActionRow(title: UFitEditorialAdminCopy.title, systemImage: UFitEditorialAdminCopy.icon, action: onEditorial)
                         Divider()
@@ -71,6 +81,6 @@ private enum UserIcon { static let accounts = "person.2" }
 
 private enum AdminDesignCopy {
     static let selection = String(localized: "Dossiers à examiner")
-    static let empty = String(localized: "Aucun dossier à examiner")
+    static let empty = String(localized: "Aucune modération en attente")
     static let operations = String(localized: "Opérations")
 }
