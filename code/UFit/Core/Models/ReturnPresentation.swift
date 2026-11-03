@@ -13,7 +13,7 @@ enum UFitReturnStatus: String, Codable, CaseIterable, Identifiable {
         case .disputed: String(localized: "Arbitrage demandé")
         case .inTransit: String(localized: "Colis de retour envoyé")
         case .refundPending: String(localized: "Remboursement en cours")
-        case .refundFailed: String(localized: "Remboursement à reprendre")
+        case .refundFailed: String(localized: "Remboursement non effectué")
         case .refunded: String(localized: "Remboursé")
         case .closed: String(localized: "Refus confirmé par l’administration")
         case .withdrawn: String(localized: "Demande retirée")

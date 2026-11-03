@@ -103,7 +103,7 @@ struct UFitReturnTrackingDTO: Decodable {
 }
 struct UFitReturnRestockDTO: Codable { let orderItemId: String; let restockQuantity: Int }
 struct UFitReturnReceptionDTO: Decodable { let at: UFitTimestamp; let items: [UFitReturnRestockDTO] }
-enum UFitReturnRefundState: String, Decodable { case queued, pending, succeeded, failed }
+enum UFitReturnRefundState: String, Decodable { case queued, pending, succeeded, failed, blocked }
 enum UFitReturnProviderState: String, Decodable { case pending, requiresAction = "requires_action", succeeded, failed, canceled }
 struct UFitReturnRefundDTO: Decodable {
     let attemptNumber: Int; let amount: Int; let state: UFitReturnRefundState
@@ -117,6 +117,8 @@ struct UFitReturnRefundDTO: Decodable {
             guard status == .refundPending, providerStatus == .pending || providerStatus == .requiresAction else { throw UFitReturnContractError.document }
         case .failed:
             guard status == .refundFailed, providerStatus == .failed || providerStatus == .canceled else { throw UFitReturnContractError.document }
+        case .blocked:
+            guard status == .refundFailed, amount > .zero, providerStatus == nil else { throw UFitReturnContractError.document }
         case .succeeded:
             guard status == .refunded, amount == .zero ? providerStatus == nil : providerStatus == .succeeded else { throw UFitReturnContractError.document }
         }
@@ -187,13 +189,13 @@ struct UFitReturnDetailDTO: Decodable, Identifiable {
             switch status {
             case .requested: return [.approve, .reject]
             case .approved, .inTransit: return [.receive]
-            case .refundFailed: return [.retryRefund]
+            case .refundFailed: return refund?.providerStatus == .canceled ? [.retryRefund] : []
             default: return []
             }
         case .administrator:
             switch status {
             case .disputed: return [.arbitrateApprove, .arbitrateReject]
-            case .refundFailed: return [.retryRefund]
+            case .refundFailed: return refund?.providerStatus == .canceled ? [.retryRefund] : []
             default: return []
             }
         }

@@ -45,7 +45,7 @@ struct UFitReturnCreationContent: View {
                 VStack(alignment: .leading, spacing: Layout.page) {
                     if let options {
                         Text(options.orderNumber).font(UFitTypography.title2.weight(.semibold))
-                        if let date = options.deadline { Text(String(localized: "Demande possible jusqu’au \(date)")).font(UFitTypography.subheadline) }
+                        if let date = options.deadline { Text(String(localized: "Date limite de demande : \(date)")).font(UFitTypography.subheadline) }
                         if let policy = options.returnPolicy { VStack(alignment: .leading, spacing: Layout.small) { Text(Copy.conditions).font(UFitTypography.headline); Text(policy).font(UFitTypography.callout) } }
                         Text(options.refundPolicy.explanation).font(UFitTypography.footnote).foregroundStyle(Color.ufitSecondaryText)
                         if options.canRequest || isUnresolved || preview != nil {

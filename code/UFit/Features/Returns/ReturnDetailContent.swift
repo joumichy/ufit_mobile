@@ -43,7 +43,8 @@ struct UFitReturnDetailContent: View {
                             Text(detail.summary.orderNumber).font(UFitTypography.title2.weight(.semibold))
                             Text(detail.summary.date).font(UFitTypography.subheadline).foregroundStyle(Color.ufitSecondaryText)
                             Text(detail.summary.status.label).font(UFitTypography.headline)
-                            Text(String(localized: "Demande possible jusqu’au \(detail.deadline)")).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText)
+                            if detail.summary.status == .refundFailed, let note = detail.refundNote { Text(note).font(UFitTypography.callout) }
+                            Text(String(localized: "Date limite de demande : \(detail.deadline)")).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText)
                         }
                         section(Copy.reason, detail.reason)
                         ForEach(detail.items) { UFitOrderPieceContent(item: $0) }
@@ -53,7 +54,7 @@ struct UFitReturnDetailContent: View {
                             amount(Copy.merchandise, detail.amounts.merchandise); amount(Copy.shipping, detail.amounts.shipping); amount(Copy.taxes, detail.amounts.taxes)
                             Divider(); amount(Copy.total, detail.amounts.total).fontWeight(.semibold)
                             Text(detail.amounts.policy.explanation).font(UFitTypography.footnote).foregroundStyle(Color.ufitSecondaryText)
-                            if let note = detail.refundNote { Text(note).font(UFitTypography.callout) }
+                            if detail.summary.status != .refundFailed, let note = detail.refundNote { Text(note).font(UFitTypography.callout) }
                             if let date = detail.refundDate { Text(String(localized: "Remboursement confirmé le \(date)")).font(UFitTypography.subheadline) }
                         }
                         section(Copy.conditions, detail.returnPolicy)

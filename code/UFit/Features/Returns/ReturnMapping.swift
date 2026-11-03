@@ -33,7 +33,10 @@ extension UFitReturnDetailDTO {
     private var refundNote: String? {
         switch status {
         case .refundPending: String(localized: "La réception est enregistrée. Le prestataire doit encore confirmer le remboursement. Actualisez pour suivre son résultat.")
-        case .refundFailed: String(localized: "Le remboursement n’a pas abouti. La marque ou l’administration doit reprendre son traitement.")
+        case .refundFailed:
+            refund?.providerStatus == .canceled
+                ? String(localized: "Le remboursement a été annulé. La marque ou l’administration peut reprendre son traitement.")
+                : String(localized: "Le remboursement sur le moyen de paiement d’origine n’est plus possible. La marque doit organiser un autre moyen de remboursement avec le client.")
         case .refunded:
             amounts.totalAmount == .zero ? String(localized: "Le retour est traité. Aucun montant n’était à rembourser.") : String(localized: "Le remboursement est confirmé par le prestataire. Son affichage sur votre compte dépend de votre banque.")
         default: nil
