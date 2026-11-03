@@ -80,7 +80,7 @@ struct UFitReturnDetailContent: View {
                         }
                         ForEach(detail.commands.filter { !$0.action.isPrimary }) { command in action(command, primary: false) }
                     } else if isLoading { UFitLoading(Copy.loading).frame(maxWidth: .infinity) }
-                    else { UFitEmptyState(title: Copy.unavailable, symbol: Icon.unavailable); UFitButton(Copy.retry, action: onRefresh).frame(minHeight: Layout.touch) }
+                    else { UFitEmptyState(title: Copy.unavailable, symbol: Icon.unavailable); UFitActionButton(title: Copy.retry, kind: .secondary, action: onRefresh) }
                 }.padding(Layout.page).frame(maxWidth: .infinity, alignment: .leading)
             }
         }.safeAreaInset(edge: .bottom, spacing: .zero) {

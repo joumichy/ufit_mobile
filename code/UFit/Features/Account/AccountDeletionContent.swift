@@ -39,7 +39,7 @@ struct UFitAccountDeletionContent: View {
             VStack(spacing: UFitSpace.xs) {
                 if store.isSending {
                     UFitActionButton(title: Copy.sending, kind: .destructive, isBusy: true) {}
-                    UFitButton(Copy.close, action: onClose).ufitButtonStyle(.text)
+                    UFitActionButton(title: Copy.close, kind: .secondary, action: onClose)
                 } else if store.isCompleted {
                     UFitActionButton(title: Copy.done, disabled: store.isBusy) { if store.finish() { onClose() } }
                 } else if store.receipt != nil || store.hasRequest {
@@ -47,10 +47,10 @@ struct UFitAccountDeletionContent: View {
                         UFitActionButton(title: Copy.retry, kind: .destructive, disabled: !store.canConfirm) { Task { await store.confirm() } }
                     }
                     UFitActionButton(title: Copy.refresh, kind: store.canResubmit ? .secondary : .primary, isBusy: store.isBusy) { Task { await store.refresh() } }
-                    UFitButton(Copy.browse, action: onClose).ufitButtonStyle(.text)
+                    UFitActionButton(title: Copy.browse, kind: .secondary, action: onClose)
                 } else {
                     UFitActionButton(title: Copy.confirm, kind: .destructive, isBusy: store.isSending, disabled: !store.canConfirm) { Task { await store.confirm() } }
-                    UFitButton(Copy.cancel, action: onClose).ufitButtonStyle(.text)
+                    UFitActionButton(title: Copy.cancel, kind: .secondary, action: onClose)
                 }
             }.padding(UFitSpace.page).background(Color.ufitCanvas).overlay(alignment: .top) { Divider() }
         }.foregroundStyle(Color.ufitInk).background(Color.ufitCanvas)

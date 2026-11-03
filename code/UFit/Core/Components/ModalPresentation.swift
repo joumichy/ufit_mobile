@@ -73,7 +73,21 @@ private struct UFitDialogPresentation<Panel: View>: ViewModifier {
         }
     }
 }
+private struct UFitItemFullScreenPresentation<Item: Identifiable, Panel: View>: ViewModifier {
+    @Binding var item: Item?
+    let onDismiss: (() -> Void)?
+    let panel: (Item) -> Panel
+    @Environment(\.dynamicTypeSize) private var typeSize
+    func body(content: Content) -> some View {
+        content.fullScreenCover(item: $item, onDismiss: onDismiss) { item in
+            panel(item).environment(\.dynamicTypeSize, typeSize).background(Color.ufitCanvas)
+        }
+    }
+}
 extension View {
+    func ufitFullScreen<Item: Identifiable, Content: View>(item: Binding<Item?>, onDismiss: (() -> Void)? = nil, @ViewBuilder content: @escaping (Item) -> Content) -> some View {
+        modifier(UFitItemFullScreenPresentation(item: item, onDismiss: onDismiss, panel: content))
+    }
     func ufitSheet<Content: View>(isPresented: Binding<Bool>, onDismiss: (() -> Void)? = nil, @ViewBuilder content: @escaping () -> Content) -> some View {
         modifier(UFitSheetPresentation(isPresented: isPresented, onDismiss: onDismiss, panel: content))
     }

@@ -24,7 +24,7 @@ struct UFitExperienceChooserContent: View {
             if isLoading { UFitLoading(Copy.loading) }
             if let message {
                 Text(message).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText)
-                UFitButton(Copy.refresh, action: onRefresh).frame(minHeight: Layout.touch)
+                UFitActionButton(title: Copy.refresh, kind: .secondary, action: onRefresh)
             }
             ScrollView {
                 VStack(spacing: .zero) {

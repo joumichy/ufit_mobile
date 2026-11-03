@@ -17,6 +17,7 @@ struct UFitOutfitFormContent: View {
     let onRemovePhoto: (UUID) -> Void
     let onSelectProduct: () -> Void
     var renewPhotoSource: ((UUID) async throws -> String)? = nil
+    var cancelsScheduledPublication = false
     @State private var confirmingDiscard = false
     @State private var editingPhotoID: UUID?
     @State private var showingPreview = false
@@ -27,7 +28,8 @@ struct UFitOutfitFormContent: View {
         static let styles = String(localized: "Styles et occasions (facultatif)"); static let reload = String(localized: "Recharger les styles")
         static let removeUnavailable = String(localized: "Retirer les styles indisponibles")
         static let save = String(localized: "Enregistrer le brouillon"); static let saving = String(localized: "Enregistrement de la tenue")
-        static let changesPublication = String(localized: "Ces modifications remettront la tenue en brouillon. Elle sera masquée jusqu’à sa prochaine validation.")
+        static let cancelsSchedule = String(localized: "Enregistrer ces modifications annulera la programmation. La tenue reviendra dans les brouillons. Vous pourrez la publier directement ou choisir une nouvelle date.")
+        static let changesPublication = String(localized: "Ces modifications remettront la tenue en brouillon. Elle restera privée jusqu’à ce que vous la publiiez à nouveau.")
         static let discardTitle = String(localized: "Abandonner les modifications ?"); static let discard = String(localized: "Abandonner"); static let keep = String(localized: "Continuer la saisie")
         static let preview = String(localized: "Aperçu client")
     }
@@ -38,7 +40,7 @@ struct UFitOutfitFormContent: View {
     var body: some View {
         VStack(spacing: .zero) {
             DetailHeader(title: isNew ? Copy.new : Copy.edit, onBack: { if hasChanges { confirmingDiscard = true } else { onBack() } }) {
-                UFitButton(Copy.preview) { showingPreview = true }.ufitButtonStyle(.text)
+                UFitButton(Copy.preview) { showingPreview = true }.ufitButtonStyle(.secondary, compact: true)
             }.disabled(isBusy)
             ScrollView {
                 VStack(alignment: .leading, spacing: Layout.page) {
@@ -63,12 +65,13 @@ struct UFitOutfitFormContent: View {
                                     }
                                 }
                             }
-                            if !draft.tagIDs.isSubset(of: Set(tags.map(\.id))) { UFitButton(Copy.removeUnavailable) { draft.tagIDs.formIntersection(tags.map(\.id)) }.frame(minHeight: Layout.touch) }
-                            UFitButton(Copy.reload, action: onReloadTags).frame(minHeight: Layout.touch)
+                            if !draft.tagIDs.isSubset(of: Set(tags.map(\.id))) { UFitActionButton(title: Copy.removeUnavailable, kind: .secondary) { draft.tagIDs.formIntersection(tags.map(\.id)) } }
+                            UFitActionButton(title: Copy.reload, kind: .secondary, action: onReloadTags)
                         }.padding(.top, Layout.gap)
                     }.frame(minHeight: Layout.touch)
                     if let error = errors[.tags] { UFitFieldError(message: error) }
-                    if changesPublishedOutfit { Text(Copy.changesPublication).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
+                    if cancelsScheduledPublication { Text(Copy.cancelsSchedule).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
+                    else if changesPublishedOutfit { Text(Copy.changesPublication).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
                 }.padding(Layout.page).disabled(isBusy)
             }.scrollDismissesKeyboard(.interactively)
         }.safeAreaInset(edge: .bottom, spacing: .zero) {

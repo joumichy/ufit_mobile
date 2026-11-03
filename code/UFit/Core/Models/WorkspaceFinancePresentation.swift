@@ -2,7 +2,7 @@ import Foundation
 
 enum UFitWorkspaceFinanceKind { case creator, brand }
 struct UFitWorkspaceActivityFigure: Identifiable {
-    enum Key: String { case outfits, published, draft, review, rejected, archived, products, active, paid, preparing, shipped, delivered, cancelled, refunded, lowStock }
+    enum Key: String { case outfits, published, draft, scheduled, archived, products, active, paid, preparing, shipped, delivered, cancelled, refunded, lowStock }
     let id: Key
     let label: String
     let value: Int

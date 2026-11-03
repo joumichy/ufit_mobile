@@ -33,26 +33,16 @@ struct UFitAdminHomeContent: View {
                     if isLoading { UFitLoading(Copy.loading) }
                     if let message {
                         Text(message).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText)
-                        UFitButton(Copy.retry, action: onRefresh).frame(minHeight: Layout.touch)
+                        UFitActionButton(title: Copy.retry, kind: .secondary, action: onRefresh)
                     }
                     if let onRefundRecoveries, let refundRecoveryCount, refundRecoveryCount > .zero {
                         UFitExperienceActionRow(title: UFitRefundRecoveryCopy.action, count: refundRecoveryCount, systemImage: UFitRefundRecoveryCopy.icon, action: onRefundRecoveries)
                         Divider()
                     }
                     if let activity {
-                        if activity.applications > .zero || activity.products > .zero || activity.outfits > .zero {
+                        if activity.applications > .zero {
                             UFitEditorialHeading(title: AdminDesignCopy.selection, editorial: false)
-                            VStack(spacing: .zero) {
-                                if activity.applications > .zero {
-                                    UFitExperienceActionRow(title: Copy.applications, count: activity.applications, systemImage: Icon.applications, action: onApplications)
-                                    Divider()
-                                }
-                                if activity.products > .zero {
-                                    UFitExperienceActionRow(title: Copy.products, count: activity.products, systemImage: Icon.products, action: onProducts)
-                                    Divider()
-                                }
-                                if activity.outfits > .zero { UFitExperienceActionRow(title: Copy.outfits, count: activity.outfits, systemImage: Icon.outfits, action: onOutfits) }
-                            }
+                            UFitExperienceActionRow(title: Copy.applications, count: activity.applications, systemImage: Icon.applications, action: onApplications)
                         } else if refundRecoveryCount == nil || refundRecoveryCount == .zero { UFitEmptyState(title: AdminDesignCopy.empty, symbol: Icon.complete) }
                     }
                     UFitEditorialHeading(title: AdminDesignCopy.operations, editorial: false)
@@ -64,6 +54,10 @@ struct UFitAdminHomeContent: View {
                         UFitExperienceActionRow(title: UFitEditorialAdminCopy.title, systemImage: UFitEditorialAdminCopy.icon, action: onEditorial)
                         Divider()
                     }
+                    UFitExperienceActionRow(title: Copy.products, systemImage: Icon.products, action: onProducts)
+                    Divider()
+                    UFitExperienceActionRow(title: Copy.outfits, systemImage: Icon.outfits, action: onOutfits)
+                    Divider()
                     UFitExperienceActionRow(title: Copy.returns, systemImage: Icon.returns, action: onReturns)
                     Divider()
                     if let onCommissionLedger {
@@ -85,7 +79,7 @@ private enum GradeIcon { static let grades = "tag" }
 private enum UserIcon { static let accounts = "person.2" }
 
 private enum AdminDesignCopy {
-    static let selection = String(localized: "Dossiers à examiner")
-    static let empty = String(localized: "Aucune modération en attente")
+    static let selection = String(localized: "Candidatures à examiner")
+    static let empty = String(localized: "Aucune candidature en attente")
     static let operations = String(localized: "Opérations")
 }

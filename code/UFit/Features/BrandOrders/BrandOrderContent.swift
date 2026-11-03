@@ -50,7 +50,7 @@ struct UFitBrandOrderContent: View {
                     } else if isLoading { UFitLoading(Copy.loading).frame(maxWidth: .infinity) }
                     else {
                         UFitEmptyState(title: Copy.unavailable, symbol: Icon.unavailable)
-                        UFitButton(Copy.retry, action: onRefresh).frame(minHeight: Layout.touch)
+                        UFitActionButton(title: Copy.retry, kind: .secondary, action: onRefresh)
                     }
                 }.padding(Layout.page).frame(maxWidth: .infinity, alignment: .leading)
             }

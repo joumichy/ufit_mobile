@@ -45,7 +45,7 @@ struct UFitShipmentFormContent: View {
                 .safeAreaInset(edge: .bottom, spacing: .zero) {
                     VStack(alignment: .leading, spacing: Layout.small) {
                         if let message { Text(message).font(UFitTypography.callout) }
-                        if canRefresh { UFitButton(Copy.refresh) { requestLeaving(.refresh) }.frame(minHeight: Layout.touch).disabled(isSaving) }
+                        if canRefresh { UFitActionButton(title: Copy.refresh, kind: .secondary) { requestLeaving(.refresh) }.disabled(isSaving) }
                         if isSaving { UFitLoading(Copy.saving).frame(maxWidth: .infinity, minHeight: Layout.touch) }
                         else {
                             UFitButton(action: onSave) { Text(action.saveLabel).frame(maxWidth: .infinity) }.ufitButtonStyle(.primary)

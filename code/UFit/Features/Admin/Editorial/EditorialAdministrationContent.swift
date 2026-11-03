@@ -90,7 +90,7 @@ struct UFitEditorialAdminDetailContent: View {
                     if detail.items.isEmpty { UFitEmptyState(title: Copy.noReferences, symbol: Copy.icon) }
                     ForEach(detail.items) { item in UFitEditorialReferenceRow(reference: item.reference); Divider() }
                     if detail.collection.status != .archived {
-                        UFitButton(Copy.archive) { archiving = true }.disabled(!store.allowsMutation)
+                        UFitActionButton(title: Copy.archive, kind: .secondary, role: .destructive, disabled: !store.allowsMutation) { archiving = true }
                     }
                 }.padding(UFitSpace.page)
             }

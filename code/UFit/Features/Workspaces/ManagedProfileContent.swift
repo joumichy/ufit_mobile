@@ -35,7 +35,9 @@ struct UFitManagedProfileContent: View {
     private enum Layout {
         static let page: CGFloat = UFitSpace.xl; static let gap: CGFloat = UFitSpace.md; static let small: CGFloat = UFitSpace.xs; static let touch: CGFloat = UFitControlSize.touch
         static let title: CGFloat = UFitTypography.Size.editorial; static let field: CGFloat = UFitControlSize.input; static let editor: CGFloat = 130; static let radius: CGFloat = UFitRadius.field
+        static let socialChoiceWidth: CGFloat = 128
     }
+    private enum Icon { static let remove = "xmark" }
     var body: some View {
         VStack(spacing: .zero) {
             DetailHeader(title: Copy.title, onBack: { if hasChanges { confirmingDiscard = true } else { onBack() } }) {
@@ -54,7 +56,8 @@ struct UFitManagedProfileContent: View {
                     VStack(alignment: .leading, spacing: Layout.small) {
                         if draft.status.canChangeVisibility {
                             Text(Copy.visibility).font(UFitTypography.subheadline.weight(.medium))
-                            UFitSelection(Copy.visibility, selection: $draft.status, options: [UFitProfileStatus.active, .paused].map { .init(value: $0, title: $0.label) }).frame(minHeight: Layout.touch)
+                            UFitInlineChoice(title: Copy.visibility, selection: $draft.status,
+                                options: [UFitProfileStatus.active, .paused].map { .init(value: $0, title: $0.label) })
                         } else { UFitLabeledValue(Copy.visibility, value: draft.status.label) }
                     }
                     if isCreator { socialFields }
@@ -75,17 +78,25 @@ struct UFitManagedProfileContent: View {
                     HStack {
                         Text(social.platform.label).font(UFitTypography.headline)
                         Spacer()
-                        UFitButton(Copy.remove) { draft.socials.removeAll { $0.platform == social.platform } }
-                            .frame(minHeight: Layout.touch).accessibilityLabel(Copy.remove + Copy.separator + social.platform.label)
+                        UFitButton(role: .destructive, action: { draft.socials.removeAll { $0.platform == social.platform } }) {
+                            UFitIcon(systemName: Icon.remove).font(UFitTypography.caption)
+                        }.ufitButtonStyle(.secondary, compact: true)
+                            .accessibilityLabel(Copy.remove + Copy.separator + social.platform.label)
                     }
                     field(Copy.handle, text: $social.handle, error: errors[.handle(social.platform)], isIdentifier: true)
                     field(Copy.url, text: $social.url, error: errors[.socialURL(social.platform)], isURL: true)
                 }.padding(Layout.gap).overlay { RoundedRectangle(cornerRadius: Layout.radius).stroke(Color.ufitBorder) }
             }
             if !draft.availablePlatforms.isEmpty {
-                UFitActionMenu(Copy.add) {
-                    ForEach(draft.availablePlatforms) { platform in UFitButton(platform.label) { draft.socials.append(UFitSocialDraft(platform: platform)) } }
-                }.frame(minHeight: Layout.touch)
+                VStack(alignment: .leading, spacing: UFitSpace.sm) {
+                    Text(Copy.add).font(UFitTypography.subheadline.weight(.medium))
+                    LazyVGrid(columns: [.init(.adaptive(minimum: Layout.socialChoiceWidth), spacing: UFitSpace.xs)], spacing: UFitSpace.xs) {
+                        ForEach(draft.availablePlatforms) { platform in
+                            UFitButton(platform.label) { draft.socials.append(UFitSocialDraft(platform: platform)) }
+                                .ufitButtonStyle(.secondary, compact: true).frame(maxWidth: .infinity)
+                        }
+                    }
+                }
             }
         }
     }

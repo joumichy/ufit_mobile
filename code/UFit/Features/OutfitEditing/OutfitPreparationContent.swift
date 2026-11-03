@@ -12,7 +12,7 @@ struct UFitOutfitPreparationContent: View {
             DetailHeader(title: Copy.title, onBack: onBack)
             if isLoading { UFitLoading(Copy.loading) }
             if let message { Text(message).font(UFitTypography.callout).padding(.horizontal, Layout.page) }
-            if !isLoading { UFitButton(Copy.retry, action: onRetry).frame(minHeight: Layout.touch) }
+            if !isLoading { UFitActionButton(title: Copy.retry, kind: .secondary, action: onRetry) }
             Spacer()
         }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.ufitCanvas)
     }

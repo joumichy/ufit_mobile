@@ -7,6 +7,9 @@ final class UFitManagedOutfitsStore {
     let title: String
     let subtitle: String?
     let access: UFitOutfitAccess
+    var showingCalendar = false
+    var calendarMonth = Date()
+    var calendarSelectedDay = Date()
     private(set) var outfits: [UFitManagedOutfit] = []
     private(set) var selectedStatus: UFitOutfitStatus?
     private(set) var hasLoaded = false
@@ -23,7 +26,7 @@ final class UFitManagedOutfitsStore {
     @ObservationIgnored private let userID: String?
     init(scope: UFitOutfitScope?, title: String, subtitle: String?, access: UFitOutfitAccess, client: UFitAPIClient, session: UFitSessionStore, initialStatus: UFitOutfitStatus? = nil) {
         self.scope = scope; self.title = title; self.subtitle = subtitle; self.access = access; self.client = client; self.session = session
-        userID = session.user?.id; selectedStatus = access == .moderator ? .underReview : initialStatus
+        userID = session.user?.id; selectedStatus = access == .administrator ? .published : initialStatus
     }
     var rows: [UFitManagedOutfitRow] { outfits.map { $0.row() } }
     var isCurrentAccount: Bool { userID != nil && session.user?.id == userID }
@@ -100,13 +103,13 @@ final class UFitManagedOutfitStore {
         guard fresh.revision == revision, let renewed = fresh.images.first(where: { $0.id == imageID && $0.url == image.url }) else { throw UFitOutfitContractError.document }
         return renewed.displayUrl
     }
-    func mutate(_ revision: UFitOutfitRevision, action: UFitOutfitAction, decision: UFitOutfitStatus? = nil, reason: String? = nil) async {
+    func mutate(_ revision: UFitOutfitRevision, action: UFitOutfitAction) async {
         guard !isLoading, !isMutating, collection.isCurrentAccount else { return }
         guard revision == document.revision else { message = Copy.stale; return }
         isMutating = true; message = nil
         defer { isMutating = false }
         do {
-            let result = try await collection.client.mutateOutfit(revision, action: action, decision: decision, reason: reason)
+            let result = try await collection.client.mutateOutfit(revision, action: action)
             if collection.isCurrentAccount { try receive(result) }
         } catch { if collection.isCurrentAccount { message = error.localizedDescription } }
     }

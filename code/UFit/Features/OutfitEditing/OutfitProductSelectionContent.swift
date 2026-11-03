@@ -28,10 +28,10 @@ struct UFitOutfitProductSelectionContent: View {
                 VStack(alignment: .leading, spacing: Layout.page) {
                     UFitTextField(label: Copy.search, text: $search)
                         .submitLabel(.search).onSubmit { Task { await onSearch() } }
-                    UFitButton(Copy.searchAction) { Task { await onSearch() } }.frame(minHeight: Layout.touch).disabled(isLoading)
+                    UFitActionButton(title: Copy.searchAction, kind: .secondary) { Task { await onSearch() } }.disabled(isLoading)
                     if let message {
                         Text(message).font(UFitTypography.callout)
-                        UFitButton(Copy.retry) { Task { await onSearch() } }.frame(minHeight: Layout.touch)
+                        UFitActionButton(title: Copy.retry, kind: .secondary) { Task { await onSearch() } }
                     }
                     if isLoading { UFitLoading(Copy.loading).frame(maxWidth: .infinity) }
                     if hasLoaded && products.isEmpty && !isLoading { Text(Copy.empty).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
@@ -57,7 +57,7 @@ struct UFitOutfitProductSelectionContent: View {
                     }
                     if hasMore {
                         if isLoadingMore { UFitLoading().frame(maxWidth: .infinity, minHeight: Layout.touch) }
-                        else { UFitButton(Copy.more) { Task { await onMore() } }.frame(maxWidth: .infinity, minHeight: Layout.touch) }
+                        else { UFitActionButton(title: Copy.more, kind: .secondary) { Task { await onMore() } } }
                     }
                 }.padding(Layout.page)
             }.scrollDismissesKeyboard(.interactively)

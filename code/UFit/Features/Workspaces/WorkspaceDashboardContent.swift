@@ -54,7 +54,7 @@ struct UFitWorkspaceDashboardContent: View {
                 VStack(alignment: .leading, spacing: Layout.page) {
                     if let message {
                         Text(message).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText).accessibilityAddTraits(.updatesFrequently)
-                        UFitButton(Copy.retry, action: onRefresh).frame(minHeight: Layout.touch)
+                        UFitActionButton(title: Copy.retry, kind: .secondary, action: onRefresh)
                     }
                     if let document {
                         VStack(alignment: .leading, spacing: Layout.small) {

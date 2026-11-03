@@ -99,8 +99,8 @@ struct UFitCreatorDashboardDTO: Decodable {
         let id: String; let userId: String; let displayName: String; let slug: String; let status: UFitProfileStatus; let grade: Grade
     }
     struct Outfits: Decodable {
-        let total: Int; let draft: Int; let underReview: Int; let published: Int; let rejected: Int
-        var counts: [Int] { [draft, underReview, published, rejected] }
+        let total: Int; let draft: Int; let scheduled: Int; let published: Int; let archived: Int
+        var counts: [Int] { [draft, scheduled, published, archived] }
     }
     struct Performance: Decodable {
         let outfits: Outfits
@@ -121,8 +121,8 @@ struct UFitCreatorDashboardDTO: Decodable {
 struct UFitBrandDashboardDTO: Decodable {
     struct Profile: Decodable { let id: String; let brandName: String; let slug: String; let status: UFitProfileStatus; let memberRole: UFitBrandMemberRole }
     struct Products: Decodable {
-        let total: Int; let draft: Int; let underReview: Int; let active: Int; let rejected: Int; let archived: Int
-        var counts: [Int] { [draft, underReview, active, rejected, archived] }
+        let total: Int; let draft: Int; let active: Int; let archived: Int
+        var counts: [Int] { [draft, active, archived] }
     }
     struct Orders: Decodable {
         let paid: Int; let preparing: Int; let shipped: Int; let delivered: Int; let cancelled: Int; let refunded: Int

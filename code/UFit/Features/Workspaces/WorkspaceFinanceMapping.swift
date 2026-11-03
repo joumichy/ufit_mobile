@@ -2,8 +2,8 @@ import Foundation
 
 private enum WorkspaceFinanceCopy {
     static let outfits = String(localized: "Tenues"); static let published = String(localized: "Publiées")
-    static let draft = String(localized: "Brouillons"); static let review = String(localized: "En validation")
-    static let rejected = String(localized: "À corriger"); static let preparing = String(localized: "En préparation"); static let shipped = String(localized: "Expédiées")
+    static let draft = String(localized: "Brouillons"); static let scheduled = String(localized: "Programmées")
+    static let preparing = String(localized: "En préparation"); static let shipped = String(localized: "Expédiées")
     static let products = String(localized: "Produits"); static let active = String(localized: "En vente")
     static let paid = String(localized: "À préparer"); static let lowStock = String(localized: "Variantes à stock faible")
 }
@@ -17,15 +17,13 @@ extension UFitWorkspaceDashboardDocument {
                     .init(id: .outfits, label: WorkspaceFinanceCopy.outfits, value: activity.total),
                     .init(id: .published, label: WorkspaceFinanceCopy.published, value: activity.published),
                     .init(id: .draft, label: WorkspaceFinanceCopy.draft, value: activity.draft),
-                    .init(id: .review, label: WorkspaceFinanceCopy.review, value: activity.underReview),
-                    .init(id: .rejected, label: WorkspaceFinanceCopy.rejected, value: activity.rejected)],
+                    .init(id: .scheduled, label: WorkspaceFinanceCopy.scheduled, value: activity.scheduled)],
                 sales: value.performance.sales.currencies.map(\.presentation), commissions: value.performance.commissions.map(\.presentation))
         case .brand(let value):
             return .init(name: value.profile.brandName, kind: .brand, status: value.profile.status.label, grade: nil, activity: [
                 .init(id: .products, label: WorkspaceFinanceCopy.products, value: value.performance.products.total),
                 .init(id: .active, label: WorkspaceFinanceCopy.active, value: value.performance.products.active),
-                .init(id: .review, label: WorkspaceFinanceCopy.review, value: value.performance.products.underReview),
-                .init(id: .rejected, label: WorkspaceFinanceCopy.rejected, value: value.performance.products.rejected),
+                .init(id: .draft, label: WorkspaceFinanceCopy.draft, value: value.performance.products.draft),
                 .init(id: .paid, label: WorkspaceFinanceCopy.paid, value: value.performance.orders.paid),
                 .init(id: .preparing, label: WorkspaceFinanceCopy.preparing, value: value.performance.orders.preparing),
                 .init(id: .shipped, label: WorkspaceFinanceCopy.shipped, value: value.performance.orders.shipped),

@@ -8,7 +8,7 @@ enum UFitCatalogHTTP {
     static let separator = "/"; static let pageLimit = 20
     static let stock = "stock"
 }
-enum UFitCatalogAction: String { case submit, archive, restore, review }
+enum UFitCatalogAction: String { case publish, withdraw, archive, restore }
 enum UFitCatalogContractError: LocalizedError {
     case document, page, currencies, draft, stale
     var errorDescription: String? {
@@ -26,7 +26,7 @@ struct UFitManagedProduct: Decodable, Identifiable {
     struct Product: Decodable {
         let id: String; let brandId: String; let version: Int; let name: String; let description: String; let category: String
         let genderTarget: UFitGenderTarget?; let status: UFitCatalogStatus; let basePrice: Int; let currency: String
-        let material: String?; let careInstructions: String?; let rejectionReason: String?
+        let material: String?; let careInstructions: String?
     }
     struct Variant: Decodable {
         let id: String; let productId: String; let size: String?; let color: String?; let sku: String
@@ -118,10 +118,10 @@ extension UFitAPIClient {
             path: editingID.map { UFitCatalogHTTP.base + $0 } ?? UFitCatalogHTTP.collection, body: request, requiresAuth: true)
         try result.validate(id: editingID, brand: brandID); return result
     }
-    func mutateCatalogProduct(_ revision: UFitCatalogRevision, action: UFitCatalogAction, decision: UFitCatalogStatus? = nil, reason: String? = nil) async throws -> UFitManagedProduct {
-        struct Body: Encodable { let expectedVersion: Int; let decision: UFitCatalogStatus?; let rejectionReason: String? }
+    func mutateCatalogProduct(_ revision: UFitCatalogRevision, action: UFitCatalogAction) async throws -> UFitManagedProduct {
+        struct Body: Encodable { let expectedVersion: Int }
         let result: UFitManagedProduct = try await send(UFitCatalogHTTP.patch, path: UFitCatalogHTTP.base + revision.id + UFitCatalogHTTP.separator + action.rawValue,
-            body: Body(expectedVersion: revision.version, decision: decision, rejectionReason: reason), requiresAuth: true)
+            body: Body(expectedVersion: revision.version), requiresAuth: true)
         try result.validate(id: revision.id); return result
     }
     func updateCatalogStock(_ revision: UFitCatalogRevision, variantID: String, expectedQuantity: Int, quantity: Int) async throws -> UFitManagedProduct {

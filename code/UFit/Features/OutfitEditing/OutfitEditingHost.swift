@@ -2,31 +2,50 @@ import SwiftUI
 import PhotosUI
 
 struct UFitManagedOutfitsHost: View {
-    let store: UFitManagedOutfitsStore
+    @Bindable var store: UFitManagedOutfitsStore
     let onBack: () -> Void
     let onOpen: (UFitManagedOutfitStore) -> Void
     let onCreate: (UFitManagedOutfitsStore) -> Void
+    @State private var calendar: UFitPublicationCalendarStore?
     var body: some View {
-        UFitManagedOutfitsContent(title: store.title, subtitle: store.subtitle, access: store.access, rows: store.rows,
-            selectedStatus: store.selectedStatus, hasLoaded: store.hasLoaded, isLoading: store.isLoading,
-            isLoadingMore: store.isLoadingMore, hasMore: store.nextCursor != nil, busyIDs: store.busyIDs, message: store.message,
-            onBack: onBack, onSelectStatus: { status in Task { await store.filter(status) } }, onRefresh: { await store.load() },
-            onMore: { await store.more() }, onOpen: { id in Task { if let outfit = await store.open(id) { onOpen(outfit) } } }, onCreate: { onCreate(store) })
-            .task { await store.load() }.onDisappear { store.cancelOpening() }
+        Group {
+            if store.showingCalendar, store.scope != nil {
+                if let calendar {
+                    UFitPublicationCalendarHost(store: calendar, onBack: { store.showingCalendar = false }, onOpen: onOpen)
+                        .environment(\.ufitPrimarySection, false)
+                } else {
+                    UFitLoading().frame(maxWidth: .infinity, maxHeight: .infinity)
+                        .task { calendar = .init(collection: store) }
+                }
+            } else {
+                UFitManagedOutfitsContent(title: store.title, subtitle: store.subtitle, access: store.access, rows: store.rows,
+                    selectedStatus: store.selectedStatus, hasLoaded: store.hasLoaded, isLoading: store.isLoading,
+                    isLoadingMore: store.isLoadingMore, hasMore: store.nextCursor != nil, busyIDs: store.busyIDs, message: store.message,
+                    onBack: onBack, onSelectStatus: { status in Task { await store.filter(status) } }, onRefresh: { await store.load() },
+                    onMore: { await store.more() }, onOpen: { id in Task { if let outfit = await store.open(id) { onOpen(outfit) } } }, onCreate: { onCreate(store) }, onCalendar: store.scope == nil ? nil : showCalendar)
+                    .task { await store.load() }.onDisappear { store.cancelOpening() }
+            }
+        }
+    }
+    private func showCalendar() {
+        if calendar == nil { calendar = .init(collection: store) }
+        store.showingCalendar = true
     }
 }
 struct UFitManagedOutfitHost: View {
     let store: UFitManagedOutfitStore
     let onBack: () -> Void
     let onEdit: (UFitManagedOutfitStore) -> Void
+    @State private var publication: UFitOutfitPublicationStore?
     var body: some View {
         UFitManagedOutfitContent(outfit: store.document.presentation(), access: store.collection.access, isLoading: store.isLoading,
             isMutating: store.isMutating, message: store.message, onBack: onBack, onRefresh: { Task { await store.load() } }, onEdit: { onEdit(store) },
-            onSubmit: { revision in Task { await store.mutate(revision, action: .submit) } },
-            onApprove: { revision in Task { await store.mutate(revision, action: .review, decision: .published) } },
-            onReject: { revision, reason in Task { await store.mutate(revision, action: .review, decision: .rejected, reason: reason) } },
+            onPublish: { revision in Task { await store.mutate(revision, action: .publish) } },
+            onWithdraw: { revision in Task { await store.mutate(revision, action: .withdraw) } },
             onArchive: { revision in Task { await store.mutate(revision, action: .archive) } },
-            onRestore: { revision in Task { await store.mutate(revision, action: .restore) } }, renewPhotoSource: store.renewPhotoSource)
+            onRestore: { revision in Task { await store.mutate(revision, action: .restore) } }, renewPhotoSource: store.renewPhotoSource,
+            onPublication: { publication = .init(outfit: store) })
+            .ufitFullScreen(item: $publication) { value in UFitOutfitPublicationHost(store: value, onClose: { publication = nil }) }
     }
 }
 struct UFitOutfitFormHost: View {
@@ -47,7 +66,8 @@ struct UFitOutfitFormHost: View {
                     hasChanges: store.hasChanges, isBusy: store.isBusy, errors: store.errors, message: store.message, onBack: onBack,
                     onSave: { Task { if let outfit = await store.save() { onSaved(outfit) } } }, onReloadTags: { Task { await store.prepare() } },
                     onAddPhotos: { selectedPhotos = []; showingPhotos = true }, onRetryPhoto: store.retryPhoto, onRemovePhoto: store.removePhoto,
-                    onSelectProduct: { productSelection = UFitOutfitProductSelectionStore(form: store) }, renewPhotoSource: store.renewPhotoSource)
+                    onSelectProduct: { productSelection = UFitOutfitProductSelectionStore(form: store) }, renewPhotoSource: store.renewPhotoSource,
+                    cancelsScheduledPublication: store.original?.scheduledFor != nil)
             } else {
                 UFitOutfitPreparationContent(isLoading: store.isLoading, message: store.message, onBack: onBack, onRetry: { Task { await store.prepare() } })
             }

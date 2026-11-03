@@ -9,6 +9,7 @@ struct UFitPinnedPhotoContent: View {
     let onPin: (String) -> Void
     var onPlace: ((Int, Int) -> Void)? = nil
     var renewSource: (() async throws -> String)? = nil
+    var onImageSize: ((CGSize) -> Void)? = nil
     @State private var image: UIImage?
     @State private var failed = false
     @State private var reload = UUID()
@@ -67,9 +68,9 @@ struct UFitPinnedPhotoContent: View {
     }
     @MainActor private func load() async {
         image = nil; failed = false
-        if let previewData, let value = UIImage(data: previewData) { image = value; return }
+        if let previewData, let value = UIImage(data: previewData) { receiveImage(value); return }
         guard let source else { failed = true; return }
-        if let value = UIImage(named: source) { image = value; return }
+        if let value = UIImage(named: source) { receiveImage(value); return }
         do {
             let loaded: UIImage
             do { loaded = try await download(source) }
@@ -80,8 +81,12 @@ struct UFitPinnedPhotoContent: View {
                 loaded = try await download(renewed)
             }
             guard !Task.isCancelled else { return }
-            image = loaded
+            receiveImage(loaded)
         } catch { if !Task.isCancelled { failed = true } }
+    }
+    @MainActor private func receiveImage(_ value: UIImage) {
+        image = value
+        onImageSize?(value.size)
     }
     private func download(_ source: String) async throws -> UIImage {
         guard let url = URL(string: source) else { throw UFitPhotoImageError.invalid }

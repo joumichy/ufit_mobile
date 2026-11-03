@@ -63,7 +63,7 @@ struct UFitApplicationsContent: View {
                 }
                 if application.metadata.status == .accepted {
                     UFitButton(Copy.payments, action: onPayments).frame(minHeight: Layout.touch)
-                    if kind == .brand && canApply { UFitButton(Copy.anotherBrand) { onApply(kind) }.frame(minHeight: Layout.touch) }
+                    if kind == .brand && canApply { UFitActionButton(title: Copy.anotherBrand, kind: .secondary) { onApply(kind) } }
                 }
             } else if canApply {
                 Text(kind == .creator ? Copy.newCreator : Copy.newBrand).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText)

@@ -39,18 +39,18 @@ struct UFitCatalogPhotosContent: View {
                     case .uploading: UFitLoading(Copy.sendingPhoto)
                     case .failed(let error):
                         UFitFieldError(message: error)
-                        if photo.canRetryUpload { UFitButton(Copy.retryPhoto) { onRetry(photo.id) }.frame(minHeight: Layout.touch) }
+                        if photo.canRetryUpload { UFitButton(Copy.retryPhoto) { onRetry(photo.id) }.ufitButtonStyle(.secondary, compact: true) }
                     }
                     HStack {
                         UFitButton { photos.swapAt(index, index - Position.step) } label: { UFitIcon(systemName: Icon.up).frame(minWidth: Layout.touch, minHeight: Layout.touch) }.accessibilityLabel(Copy.moveUp).disabled(index == Position.first)
                         UFitButton { photos.swapAt(index, index + Position.step) } label: { UFitIcon(systemName: Icon.down).frame(minWidth: Layout.touch, minHeight: Layout.touch) }.accessibilityLabel(Copy.moveDown).disabled(index == photos.count - Position.step)
                         Spacer()
-                        UFitButton(Copy.remove) { onRemove(photo.id) }.frame(minHeight: Layout.touch)
+                        UFitButton(Copy.remove, role: .destructive) { onRemove(photo.id) }.ufitButtonStyle(.secondary, compact: true)
                     }
                     Divider()
                 }
             }
-            if photos.count < UFitCatalogInput.photosMax { UFitButton(Copy.addPhoto, action: onAdd).frame(minHeight: Layout.touch) }
+            if photos.count < UFitCatalogInput.photosMax { UFitActionButton(title: Copy.addPhoto, kind: .secondary, action: onAdd) }
             if let error { UFitFieldError(message: error) }
         }
     }

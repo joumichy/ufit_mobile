@@ -79,7 +79,7 @@ struct UFitReturnCreationContent: View {
                             Text(Copy.reviewNote).font(UFitTypography.callout)
                         }
                     } else if isLoading { UFitLoading(Copy.loading).frame(maxWidth: .infinity) }
-                    else { Text(Copy.unavailable); UFitButton(Copy.refresh, action: onRefresh).frame(minHeight: Layout.touch) }
+                    else { Text(Copy.unavailable); UFitActionButton(title: Copy.refresh, kind: .secondary, action: onRefresh) }
                 }.padding(Layout.page).frame(maxWidth: .infinity, alignment: .leading)
             }.scrollDismissesKeyboard(.interactively)
                 .onChange(of: preview != nil) { _, ready in if ready { reader.scrollTo(Anchor.amounts, anchor: .top) } }
@@ -87,12 +87,12 @@ struct UFitReturnCreationContent: View {
                     VStack(alignment: .leading, spacing: Layout.small) {
                         if let message {
                             Text(message).font(UFitTypography.callout)
-                            if !isUnresolved { UFitButton(Copy.refresh, action: onRefresh).frame(minHeight: Layout.touch).disabled(isLoading || isSaving) }
+                            if !isUnresolved { UFitActionButton(title: Copy.refresh, kind: .secondary, action: onRefresh).disabled(isLoading || isSaving) }
                         }
                         if isUnresolved { Text(Copy.unresolved).font(UFitTypography.callout) }
                         if isSaving || isLoading { UFitLoading(isSaving ? Copy.saving : Copy.loading).frame(maxWidth: .infinity, minHeight: Layout.touch) }
                         else if options?.canRequest == true || isUnresolved {
-                            if preview != nil && !isUnresolved { UFitButton(Copy.edit, action: onEdit).frame(minHeight: Layout.touch) }
+                            if preview != nil && !isUnresolved { UFitActionButton(title: Copy.edit, kind: .secondary, action: onEdit) }
                             UFitButton(action: preview == nil && !isUnresolved ? onPreview : onSubmit) { Text(preview == nil && !isUnresolved ? Copy.preview : Copy.submit).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true).padding(.horizontal, Layout.gap).frame(maxWidth: .infinity) }.ufitButtonStyle(.primary)
                         }
                     }.padding(Layout.gap).background(Color.ufitCanvas).overlay(alignment: .top) { Divider() }

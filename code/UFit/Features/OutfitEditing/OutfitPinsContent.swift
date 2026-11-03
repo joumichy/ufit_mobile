@@ -41,7 +41,7 @@ struct UFitOutfitPinsContent: View {
                         Text(pieces.first(where: { $0.id == selectedID })?.title ?? String()).font(UFitTypography.headline)
                         coordinate(Copy.horizontal, value: pin.x, keyPath: \.x)
                         coordinate(Copy.vertical, value: pin.y, keyPath: \.y)
-                        UFitButton(Copy.remove, role: .destructive) { photo.pins.removeAll { $0.pieceID == selectedID } }.frame(minHeight: Layout.touch)
+                        UFitActionButton(title: Copy.remove, kind: .secondary, role: .destructive) { photo.pins.removeAll { $0.pieceID == selectedID } }
                     }
                     ForEach(photo.pins.filter { $0.pieceID != selectedID }) { pin in
                         if let piece = pieces.first(where: { $0.id == pin.pieceID }) {

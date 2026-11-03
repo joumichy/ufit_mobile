@@ -6,7 +6,7 @@ extension UFitManagedOutfit {
     }
     func presentation() -> UFitManagedOutfitPresentation {
         .init(id: id, version: version, title: title, description: description, author: owner?.name, status: status, ownerStatus: owner?.status,
-            rejectionReason: rejectionReason, price: UFitMoney.ranges(prices), photos: images.sorted { $0.position < $1.position }.map { image in
+            price: UFitMoney.ranges(prices), photos: images.sorted { $0.position < $1.position }.map { image in
                 .init(id: image.id, source: image.displayUrl, pins: pins.filter { $0.imageId == image.id }.compactMap { pin in
                     guard let item = items.first(where: { $0.id == pin.itemId }) else { return nil }
                     return .init(id: item.id, label: item.label, symbol: item.itemType.symbol, x: pin.x, y: pin.y)
@@ -16,7 +16,8 @@ extension UFitManagedOutfit {
                 .init(id: item.id, title: item.label, type: item.itemType, image: item.product?.imageUrl,
                     price: item.product.map { UFitMoney.format($0.price, currency: $0.currency) }, isRequired: item.isRequired,
                     isShoppable: item.isShoppable, isAvailable: !item.isShoppable || item.product != nil, note: item.stylingNote)
-            }, tags: tags, gender: genderTarget, submissionIssue: submissionIssue)
+            }, tags: tags, gender: genderTarget, publicationIssue: publicationIssue,
+            scheduledFor: scheduledFor.flatMap(UFitPublicationDate.parse), publicationTimeZone: publicationTimeZone)
     }
     func draft() -> UFitOutfitDraft {
         var value = UFitOutfitDraft()
@@ -40,7 +41,7 @@ extension UFitManagedOutfit {
         }
         return value
     }
-    private var submissionIssue: String? {
+    private var publicationIssue: String? {
         if owner?.status != .active || author == nil { return Copy.profile }
         if UFitOutfitInput.trimmed(description).isEmpty { return Copy.description }
         if images.isEmpty { return Copy.photo }
@@ -49,10 +50,10 @@ extension UFitManagedOutfit {
         return nil
     }
     private enum Copy {
-        static let profile = String(localized: "Activez le profil avant l’envoi à validation.")
-        static let description = String(localized: "Décrivez la tenue avant l’envoi à validation.")
-        static let photo = String(localized: "Ajoutez une photo avant l’envoi à validation.")
-        static let piece = String(localized: "Ajoutez une pièce avant l’envoi à validation.")
-        static let unavailable = String(localized: "Remplacez les produits indisponibles avant l’envoi à validation.")
+        static let profile = String(localized: "Activez le profil avant de publier.")
+        static let description = String(localized: "Décrivez la tenue avant de publier.")
+        static let photo = String(localized: "Ajoutez une photo avant de publier.")
+        static let piece = String(localized: "Ajoutez une pièce avant de publier.")
+        static let unavailable = String(localized: "Remplacez les produits indisponibles avant de publier.")
     }
 }

@@ -74,7 +74,7 @@ struct UFitPublicProfileContent: View {
                             }
                         }
                         if isLoadingMore { UFitLoading().frame(maxWidth: .infinity) }
-                        else if hasMore { UFitButton(Copy.more, action: onMore).frame(maxWidth: .infinity, minHeight: Layout.touch) }
+                        else if hasMore { UFitActionButton(title: Copy.more, kind: .secondary, action: onMore) }
                     } else if isLoading { UFitLoading(Copy.loading).frame(maxWidth: .infinity) }
                     else { UFitButton { Task { await onRefresh() } } label: { Text(Copy.retry).frame(maxWidth: .infinity) }.ufitButtonStyle(.primary) }
                 }.padding(Layout.page).padding(.bottom, UFitSpace.xl)
@@ -107,7 +107,7 @@ struct UFitPublicProfileContent: View {
                 HStack { Spacer(); if isFollowingBusy { UFitLoading(Copy.following).tint(.white) } else { Text(following ? Copy.unfollow : Copy.follow) }; Spacer() }
             }.ufitButtonStyle(.primary).disabled(isFollowingBusy)
         case .failed(let message):
-            VStack(alignment: .leading, spacing: Layout.small) { Text(message).font(UFitTypography.caption); UFitButton(Copy.followRetry, action: onRetryFollow).frame(minHeight: Layout.touch) }
+            VStack(alignment: .leading, spacing: Layout.small) { Text(message).font(UFitTypography.caption); UFitActionButton(title: Copy.followRetry, kind: .secondary, action: onRetryFollow) }
         }
     }
 }

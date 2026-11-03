@@ -13,7 +13,7 @@ struct UFitCatalogPreparationContent: View {
             VStack(alignment: .leading, spacing: Layout.gap) {
                 if isLoading { UFitLoading(Copy.loading) }
                 if let message { Text(message).font(UFitTypography.callout) }
-                if !isLoading { UFitButton(Copy.retry, action: onRetry).frame(minHeight: Layout.touch) }
+                if !isLoading { UFitActionButton(title: Copy.retry, kind: .secondary, action: onRetry) }
             }.padding(Layout.page).frame(maxWidth: .infinity, alignment: .leading)
             Spacer()
         }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.ufitCanvas)

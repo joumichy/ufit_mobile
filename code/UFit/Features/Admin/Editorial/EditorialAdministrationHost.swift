@@ -49,7 +49,7 @@ struct UFitEditorialAdminFeedback: View {
                         if let draft = pending.draft { Text(draft.title).font(UFitTypography.headline) }
                         UFitActionButton(title: store.canRetry ? UFitEditorialAdminCopy.retrySend : UFitEditorialAdminCopy.verify,
                             action: { Task { if store.canRetry { await store.retry() } else { await store.recover() } } })
-                        if store.canRetry { UFitButton(UFitEditorialAdminCopy.verify) { Task { await store.recover() } } }
+                        if store.canRetry { UFitActionButton(title: UFitEditorialAdminCopy.verify, kind: .secondary) { Task { await store.recover() } } }
                     }
                 } else if !store.storageReady {
                     UFitActionButton(title: UFitFeedbackCopy.retry, kind: .secondary) { Task { await store.activate() } }

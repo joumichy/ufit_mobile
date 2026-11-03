@@ -1,20 +1,21 @@
 import Foundation
 
 enum UFitOutfitStatus: String, Codable, CaseIterable, Identifiable {
-    case draft, submitted, underReview = "under_review", published, rejected, archived
+    case draft, scheduled, published, archived
     var id: String { rawValue }
-    var canEdit: Bool { self == .draft || self == .rejected || self == .published }
-    var canSubmit: Bool { self == .draft || self == .rejected }
+    var canEdit: Bool { self == .draft || self == .published || self == .scheduled }
+    var canPublish: Bool { self == .draft || self == .scheduled }
     var label: String {
-        switch self { case .draft: Copy.draft; case .submitted, .underReview: Copy.review; case .published: Copy.published; case .rejected: Copy.rejected; case .archived: Copy.archived }
+        switch self { case .draft: Copy.draft; case .scheduled: Copy.scheduled; case .published: Copy.published; case .archived: Copy.archived }
     }
     private enum Copy {
-        static let draft = String(localized: "Brouillon"); static let review = String(localized: "En examen")
-        static let published = String(localized: "Publiée"); static let rejected = String(localized: "À corriger"); static let archived = String(localized: "Archivée")
+        static let draft = String(localized: "Brouillon")
+        static let scheduled = String(localized: "Programmée")
+        static let published = String(localized: "Publiée"); static let archived = String(localized: "Archivée")
     }
 }
 enum UFitOutfitVisibility: String, Decodable { case `public`, `private`, featured }
-enum UFitOutfitAccess { case author, moderator }
+enum UFitOutfitAccess { case author, administrator }
 struct UFitOutfitScope: Codable, Hashable {
     let profileID: String
     let kind: OutfitAuthor.Kind
@@ -57,8 +58,10 @@ struct UFitOutfitPiecePresentation: Identifiable {
 struct UFitOutfitPhotoPresentation: Identifiable { let id: String; let source: String; var pins: [UFitPhotoPinPresentation] = [] }
 struct UFitManagedOutfitPresentation: Identifiable {
     let id: String; let version: Int; let title: String; let description: String; let author: String?
-    let status: UFitOutfitStatus; let ownerStatus: UFitProfileStatus?; let rejectionReason: String?; let price: String
+    let status: UFitOutfitStatus; let ownerStatus: UFitProfileStatus?; let price: String
     let photos: [UFitOutfitPhotoPresentation]; let pieces: [UFitOutfitPiecePresentation]; let tags: [UFitOutfitTag]
-    let gender: UFitGenderTarget?; let submissionIssue: String?
+    let gender: UFitGenderTarget?; let publicationIssue: String?
+    var scheduledFor: Date? = nil
+    var publicationTimeZone: String? = nil
     var revision: UFitOutfitRevision { .init(id: id, version: version) }
 }

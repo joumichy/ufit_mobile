@@ -62,10 +62,10 @@ struct UFitAccountView: View {
                     VStack(alignment: .leading, spacing: Layout.spacing) {
                         UFitTextField(label: Copy.name, text: $editedName, contentType: .name)
                         UFitActionButton(title: Copy.save, isBusy: isBusy, disabled: editedName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || editedName == name, action: { onSaveName(editedName) })
-                        UFitButton(Copy.cancel) { editing = false }.disabled(isBusy)
+                        UFitActionButton(title: Copy.cancel, kind: .secondary, disabled: isBusy) { editing = false }
                     }
                 } else {
-                    UFitButton { editedName = name; editing = true } label: { Label(Copy.edit, systemImage: Copy.editIcon) }
+                    UFitActionButton(title: Copy.edit, kind: .secondary, disabled: isBusy) { editedName = name; editing = true }
                 }
                 if let message { Text(message).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
                 Divider()
@@ -74,10 +74,10 @@ struct UFitAccountView: View {
                 if let onNotifications { UFitButton(action: onNotifications) { Label(UFitNotificationPreferencesCopy.title, systemImage: Copy.notificationsIcon) }.frame(minHeight: Layout.touch) }
                 if let onStyles { UFitButton(action: onStyles) { Label(UFitStylePreferencesCopy.title, systemImage: UFitStylePreferencesCopy.icon) }.frame(minHeight: Layout.touch) }
                 if let onChooseExperience { UFitButton(action: onChooseExperience) { Label(Copy.choose, systemImage: Copy.chooseIcon) }.frame(minHeight: Layout.touch) }
-                UFitButton(action: onSignOut) { Label(Copy.signOut, systemImage: Copy.exitIcon) }.disabled(isBusy)
+                UFitActionButton(title: Copy.signOut, kind: .secondary, disabled: isBusy, action: onSignOut)
                 if let onDeleteAccount {
                     Divider()
-                    UFitButton(UFitAccountDeletionCopy.title, role: .destructive, action: onDeleteAccount).disabled(isBusy)
+                    UFitActionButton(title: UFitAccountDeletionCopy.title, kind: .secondary, role: .destructive, disabled: isBusy, action: onDeleteAccount)
                 }
             }
             .padding(Layout.spacing)

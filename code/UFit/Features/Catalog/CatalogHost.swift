@@ -26,9 +26,8 @@ struct UFitCatalogProductHost: View {
         UFitCatalogProductContent(product: store.document.presentation(), access: store.catalog.access, isLoading: store.isLoading,
             isMutatingProduct: store.isMutating, message: store.message, onBack: onBack, onRefresh: { Task { await store.load() } },
             onEdit: { onEdit(store) }, onStock: { onStock(store, $0) },
-            onSubmit: { revision in Task { await store.mutate(revision, action: .submit) } },
-            onApprove: { revision in Task { await store.mutate(revision, action: .review, decision: .active) } },
-            onReject: { revision, reason in Task { await store.mutate(revision, action: .review, decision: .rejected, reason: reason) } },
+            onPublish: { revision in Task { await store.mutate(revision, action: .publish) } },
+            onWithdraw: { revision in Task { await store.mutate(revision, action: .withdraw) } },
             onArchive: { revision in Task { await store.mutate(revision, action: .archive) } },
             onRestore: { revision in Task { await store.mutate(revision, action: .restore) } })
     }

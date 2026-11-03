@@ -58,7 +58,7 @@ struct UFitReturnActionContent: View {
                                     } else { Text(Copy.choose).foregroundStyle(Color.ufitSecondaryText) }
                                 }
                                 if draft.restockQuantities[item.id] == nil {
-                                    UFitButton(Copy.noRestock) { draft.restockQuantities[item.id] = .zero }.frame(minHeight: Layout.touch)
+                                    UFitButton(Copy.noRestock) { draft.restockQuantities[item.id] = .zero }.ufitButtonStyle(.secondary, compact: true)
                                 }
                                 UFitQuantityControl(value: stock(item), in: .zero...item.quantity, step: Layout.quantityStep) {
                                     Text(String(localized: "Quantité revendable de \(item.name)"))
@@ -73,7 +73,7 @@ struct UFitReturnActionContent: View {
                 .safeAreaInset(edge: .bottom, spacing: .zero) {
                     VStack(alignment: .leading, spacing: Layout.small) {
                         if let message { Text(message).font(UFitTypography.callout) }
-                        if canRefresh { UFitButton(Copy.refresh) { requestLeaving(.refresh) }.frame(minHeight: Layout.touch).disabled(isSaving) }
+                        if canRefresh { UFitActionButton(title: Copy.refresh, kind: .secondary) { requestLeaving(.refresh) }.disabled(isSaving) }
                         if isSaving { UFitLoading(Copy.saving).frame(maxWidth: .infinity, minHeight: Layout.touch) }
                         else { UFitButton(action: onSave) { Text(action.saveLabel).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true).padding(.horizontal, Layout.gap).frame(maxWidth: .infinity) }.ufitButtonStyle(.primary).disabled(saveDisabled).opacity(saveDisabled ? Layout.disabledOpacity : Layout.enabledOpacity) }
                     }.padding(Layout.gap).background(Color.ufitCanvas).overlay(alignment: .top) { Divider() }

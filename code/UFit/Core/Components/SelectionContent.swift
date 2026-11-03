@@ -89,15 +89,20 @@ struct UFitChoiceBar<Value: Hashable>: View {
     @Binding var selection: Value
     let options: [UFitSelectionOption<Value>]
     var body: some View {
-        ScrollView(.horizontal) {
-            HStack(spacing: UFitSpace.xs) {
-                ForEach(options) { option in
-                    UFitButton { selection = option.value } label: { Text(option.title).font(UFitTypography.subheadline.weight(.medium)).fixedSize(horizontal: true, vertical: false) }
-                        .ufitButtonStyle(option.value == selection ? .primary : .secondary, compact: true).disabled(!option.enabled)
-                        .accessibilityAddTraits(option.value == selection ? .isSelected : [])
-                        .accessibilityLabel(title + Copy.separator + option.title)
+        ScrollViewReader { proxy in
+            ScrollView(.horizontal) {
+                HStack(spacing: UFitSpace.xs) {
+                    ForEach(options) { option in
+                        UFitButton { selection = option.value } label: { Text(option.title).font(UFitTypography.subheadline.weight(.medium)).fixedSize(horizontal: true, vertical: false) }
+                            .ufitButtonStyle(option.value == selection ? .primary : .secondary, compact: true).disabled(!option.enabled)
+                            .accessibilityAddTraits(option.value == selection ? .isSelected : [])
+                            .accessibilityLabel(title + Copy.separator + option.title)
+                            .id(option.id)
+                    }
                 }
-            }
-        }.scrollIndicators(.hidden)
+            }.scrollIndicators(.hidden)
+                .onChange(of: selection) { _, value in proxy.scrollTo(value, anchor: .center) }
+                .onAppear { proxy.scrollTo(selection, anchor: .center) }
+        }
     }
 }

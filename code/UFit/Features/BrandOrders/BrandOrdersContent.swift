@@ -47,10 +47,10 @@ struct UFitBrandOrdersContent: View {
                     }
                     if let message {
                         Text(message).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText)
-                        UFitButton(Copy.retry, action: onRetry).frame(minHeight: Layout.touch)
+                        UFitActionButton(title: Copy.retry, kind: .secondary, action: onRetry)
                     }
                     if isLoading || (!hasLoaded && message == nil) { UFitLoading(Copy.loading).frame(maxWidth: .infinity) }
-                    else if hasMore { UFitButton(Copy.more, action: onMore).frame(minHeight: Layout.touch) }
+                    else if hasMore { UFitActionButton(title: Copy.more, kind: .secondary, action: onMore) }
                 }.padding(Layout.page).padding(.bottom, UFitSpace.xl).frame(maxWidth: .infinity, alignment: .leading)
             }.ufitRefreshable { onRefresh() }
         }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.ufitCanvas)

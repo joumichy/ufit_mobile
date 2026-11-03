@@ -42,7 +42,7 @@ struct UFitExperienceChoice: Identifiable, Equatable {
     var canSelect: Bool { status == nil || status == .active || status == .paused }
 }
 struct UFitAdminActivity: Equatable {
-    let applications: Int; let products: Int; let outfits: Int
+    let applications: Int
 }
 enum UFitProfessionalProfileAction: String, Identifiable {
     case edit, publicProfile, sales, commercePolicy, payments, personalAccount

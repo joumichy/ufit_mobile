@@ -78,7 +78,7 @@ struct UFitEditorialEditorContent: View {
             if current.collection.status != .archived {
                 UFitActionButton(title: Copy.mine, kind: .secondary) { store.useComparison(keepDraft: true) }
             }
-            UFitButton(Copy.useCurrent) { store.useComparison(keepDraft: false) }
+            UFitActionButton(title: Copy.useCurrent, kind: .secondary) { store.useComparison(keepDraft: false) }
         }
     }
 }

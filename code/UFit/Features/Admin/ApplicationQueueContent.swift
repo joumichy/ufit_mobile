@@ -54,7 +54,7 @@ struct UFitApplicationQueueContent: View {
                             Divider()
                         }
                     }
-                    if hasMore { UFitButton(Copy.more, action: onMore).frame(minHeight: Layout.touch).disabled(isLoading) }
+                    if hasMore { UFitActionButton(title: Copy.more, kind: .secondary, action: onMore).disabled(isLoading) }
                 }.padding(Layout.spacing).padding(.bottom, UFitSpace.xl).frame(maxWidth: .infinity, alignment: .leading)
             }
         }.foregroundStyle(Color.ufitInk).background(Color.ufitCanvas)

@@ -32,13 +32,14 @@ extension UFitButton where Label == Text {
 struct UFitActionButton: View {
     let title: String
     var kind: UFitButtonKind = .primary
+    var role: ButtonRole? = nil
     var isBusy = false
     var disabled = false
     let action: () -> Void
     var body: some View {
-        UFitButton(action: action) {
+        UFitButton(role: role, action: action) {
             HStack(spacing: UFitSpace.xs) {
-                if isBusy { UFitLoading().foregroundStyle(kind == .primary || kind == .destructive ? Color.ufitCanvas : Color.ufitInk).accessibilityHidden(true) }
+                if isBusy { UFitLoading().foregroundStyle(kind == .primary || kind == .destructive ? Color.ufitCanvas : role == .destructive ? Color.ufitDanger : Color.ufitInk).accessibilityHidden(true) }
                 Text(title).multilineTextAlignment(.center).fixedSize(horizontal: false, vertical: true)
             }.frame(maxWidth: .infinity)
         }.ufitButtonStyle(kind).environment(\.ufitButtonIsBusy, isBusy).disabled(disabled || isBusy)

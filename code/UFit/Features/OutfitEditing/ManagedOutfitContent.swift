@@ -9,31 +9,28 @@ struct UFitManagedOutfitContent: View {
     let onBack: () -> Void
     let onRefresh: () -> Void
     let onEdit: () -> Void
-    let onSubmit: (UFitOutfitRevision) -> Void
-    let onApprove: (UFitOutfitRevision) -> Void
-    let onReject: (UFitOutfitRevision, String) -> Void
+    let onPublish: (UFitOutfitRevision) -> Void
+    let onWithdraw: (UFitOutfitRevision) -> Void
     let onArchive: (UFitOutfitRevision) -> Void
     let onRestore: (UFitOutfitRevision) -> Void
     var renewPhotoSource: ((String) async throws -> String)? = nil
+    var onPublication: (() -> Void)? = nil
     @State private var confirmingPublication = false
     @State private var confirmingArchive = false
-    @State private var showingRejection = false
     @State private var decisionRevision: UFitOutfitRevision?
-    @State private var rejection = String()
-    @State private var rejectionError: String?
     private enum Copy {
-        static let refresh = String(localized: "Actualiser la tenue"); static let pieces = String(localized: "Les pièces")
-        static let noPhotos = String(localized: "Aucune photo"); static let noPieces = String(localized: "Aucune pièce")
-        static let description = String(localized: "Description"); static let inspiration = String(localized: "Inspiration · non vendue sur Ufit")
-        static let unavailable = String(localized: "Produit indisponible"); static let required = String(localized: "Pièce essentielle")
-        static let edit = String(localized: "Modifier la tenue"); static let submit = String(localized: "Envoyer à validation")
-        static let publish = String(localized: "Publier cette tenue"); static let reject = String(localized: "Demander une correction")
-        static let restore = String(localized: "Restaurer le brouillon"); static let archive = String(localized: "Archiver la tenue")
-        static let archiveTitle = String(localized: "Masquer et archiver cette tenue ?"); static let publishTitle = String(localized: "Rendre cette tenue publique ?")
-        static let cancel = String(localized: "Annuler"); static let reason = String(localized: "Motif de la correction")
-        static let reasonRequired = String(localized: "Ajoutez un motif de 1 à 2 000 caractères.")
-        static let rejected = String(localized: "Correction demandée"); static let saving = String(localized: "Mise à jour de la tenue")
-        static let photo = String(localized: "Photo de la tenue"); static let separator = " · "
+        static let refresh = String(localized: "Actualiser la tenue"), pieces = String(localized: "Les pièces")
+        static let noPhotos = String(localized: "Aucune photo"), noPieces = String(localized: "Aucune pièce")
+        static let inspiration = String(localized: "Inspiration · non vendue sur Ufit")
+        static let unavailable = String(localized: "Produit indisponible"), required = String(localized: "Pièce essentielle")
+        static let edit = String(localized: "Modifier la tenue"), publish = String(localized: "Publier la tenue")
+        static let publishNow = String(localized: "Publier maintenant"), withdraw = String(localized: "Retirer de la publication")
+        static let schedule = String(localized: "Programmer la publication"), reschedule = String(localized: "Modifier la programmation")
+        static let restore = String(localized: "Restaurer le brouillon"), archive = String(localized: "Archiver la tenue")
+        static let archiveTitle = String(localized: "Masquer et archiver cette tenue ?")
+        static let publishTitle = String(localized: "Publier cette tenue maintenant ?")
+        static let cancel = String(localized: "Annuler"), saving = String(localized: "Mise à jour de la tenue")
+        static let separator = " · "
     }
     private enum Layout {
         static let page: CGFloat = UFitSpace.xl; static let gap: CGFloat = UFitSpace.md; static let small: CGFloat = UFitSpace.xs; static let touch: CGFloat = UFitControlSize.touch
@@ -60,7 +57,8 @@ struct UFitManagedOutfitContent: View {
                     } else {
                         UFitOutfitGalleryContent(photos: outfit.photos.enumerated().map { index, photo in
                             .init(url: photo.source, position: index, id: photo.id)
-                        }, contentMode: .fit, imageHeight: Layout.hero, renewPhotoSource: renewPhotoSource)
+                        }, contentMode: .fit, imageHeight: Layout.hero, surface: .canvas,
+                            adaptsToImage: true, renewPhotoSource: renewPhotoSource)
                     }
                     if !outfit.description.isEmpty { Text(outfit.description).font(UFitTypography.body) }
                     if let gender = outfit.gender { Text(gender.label).font(UFitTypography.subheadline).foregroundStyle(Color.ufitSecondaryText) }
@@ -86,8 +84,11 @@ struct UFitManagedOutfitContent: View {
                             }
                         }
                     }
-                    if let reason = outfit.rejectionReason {
-                        VStack(alignment: .leading, spacing: Layout.small) { Text(Copy.rejected).font(UFitTypography.headline); Text(reason).font(UFitTypography.callout) }
+                    if let date = outfit.scheduledFor, let zoneID = outfit.publicationTimeZone, let zone = TimeZone(identifier: zoneID) {
+                        VStack(alignment: .leading, spacing: Layout.small) {
+                            Text(UFitPublicationFormatting.text(date, template: .time, zone: zone)).font(UFitTypography.headline)
+                            Text(zoneID).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText)
+                        }
                     }
                     if let message { Text(message).font(UFitTypography.callout) }
                     if isMutating { UFitLoading(Copy.saving).frame(maxWidth: .infinity, minHeight: Layout.touch) }
@@ -96,48 +97,43 @@ struct UFitManagedOutfitContent: View {
             }
         }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.ufitCanvas)
             .ufitConfirmationDialog(Copy.publishTitle, isPresented: $confirmingPublication, titleVisibility: .visible) {
-                UFitButton(Copy.publish) { if let revision = decisionRevision { onApprove(revision) } }
+                UFitButton(Copy.publishNow) { if let revision = decisionRevision { onPublish(revision) } }
                 UFitButton(Copy.cancel, role: .cancel) {}
             }
             .ufitConfirmationDialog(Copy.archiveTitle, isPresented: $confirmingArchive, titleVisibility: .visible) {
                 UFitButton(Copy.archive, role: .destructive) { if let revision = decisionRevision { onArchive(revision) } }
                 UFitButton(Copy.cancel, role: .cancel) {}
             }
-            .ufitSheet(isPresented: $showingRejection) { rejectionSheet }
     }
     @ViewBuilder private var actions: some View {
-        VStack(alignment: .leading, spacing: Layout.gap) {
+        VStack(spacing: Layout.gap) {
             if outfit.status == .archived {
-                UFitButton { onRestore(outfit.revision) } label: { Text(Copy.restore).frame(maxWidth: .infinity) }.ufitButtonStyle(.primary)
+                UFitActionButton(title: Copy.restore, isBusy: isMutating, disabled: isLoading) { onRestore(outfit.revision) }
             } else {
                 if access == .author {
-                    if outfit.status.canSubmit {
-                        if let issue = outfit.submissionIssue { Text(issue).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
-                        UFitButton { onSubmit(outfit.revision) } label: { Text(Copy.submit).frame(maxWidth: .infinity) }.ufitButtonStyle(.primary).disabled(outfit.submissionIssue != nil)
-                        UFitButton(Copy.edit, action: onEdit).frame(minHeight: Layout.touch)
-                    } else if outfit.status.canEdit {
-                        UFitButton(action: onEdit) { Text(Copy.edit).frame(maxWidth: .infinity) }.ufitButtonStyle(.primary)
+                    if let issue = outfit.publicationIssue { UFitNotice(message: issue, kind: .information) }
+                    if outfit.status == .draft {
+                        UFitActionButton(title: Copy.publish, isBusy: isMutating, disabled: isLoading || outfit.publicationIssue != nil) { onPublish(outfit.revision) }
                     }
-                } else if outfit.status == .underReview {
-                    if let issue = outfit.submissionIssue { Text(issue).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
-                    UFitButton { decisionRevision = outfit.revision; confirmingPublication = true } label: { Text(Copy.publish).frame(maxWidth: .infinity) }.ufitButtonStyle(.primary).disabled(outfit.submissionIssue != nil)
-                    UFitButton(Copy.reject) { decisionRevision = outfit.revision; rejection = String(); rejectionError = nil; showingRejection = true }.frame(minHeight: Layout.touch)
+                    if outfit.status != .published, let onPublication {
+                        UFitActionButton(title: outfit.status == .scheduled ? Copy.reschedule : Copy.schedule,
+                            kind: outfit.status == .scheduled ? .primary : .secondary,
+                            disabled: isLoading || isMutating || (outfit.publicationIssue != nil && outfit.scheduledFor == nil), action: onPublication)
+                    }
+                    if outfit.status == .scheduled {
+                        UFitActionButton(title: Copy.publishNow, kind: .secondary, disabled: locked || outfit.publicationIssue != nil) {
+                            decisionRevision = outfit.revision; confirmingPublication = true
+                        }
+                    }
+                    if outfit.status.canEdit { UFitActionButton(title: Copy.edit, kind: .secondary, disabled: locked, action: onEdit) }
+                    if outfit.status == .published {
+                        UFitActionButton(title: Copy.withdraw, kind: .secondary, role: .destructive, disabled: locked) { onWithdraw(outfit.revision) }
+                    }
                 }
-                UFitButton(Copy.archive) { decisionRevision = outfit.revision; confirmingArchive = true }.frame(minHeight: Layout.touch)
+                UFitActionButton(title: Copy.archive, kind: .secondary, role: .destructive, disabled: locked) {
+                    decisionRevision = outfit.revision; confirmingArchive = true
+                }.padding(.top, UFitSpace.xs)
             }
         }
-    }
-    private var rejectionSheet: some View {
-        VStack(spacing: .zero) {
-            UFitSheetHeader(title: Copy.reject, onClose: { showingRejection = false })
-            VStack(alignment: .leading, spacing: Layout.gap) {
-                UFitMultilineField(label: Copy.reason, text: $rejection, error: rejectionError)
-                UFitButton {
-                    guard UFitOutfitInput.textValid(rejection, minimum: UFitOutfitInput.labelMin, maximum: UFitOutfitInput.noteMax) else { rejectionError = Copy.reasonRequired; return }
-                    if let revision = decisionRevision { onReject(revision, UFitOutfitInput.trimmed(rejection)); showingRejection = false }
-                } label: { Text(Copy.reject).frame(maxWidth: .infinity) }.ufitButtonStyle(.primary)
-                Spacer()
-            }.padding(Layout.page)
-        }.tint(Color.ufitInk)
     }
 }

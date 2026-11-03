@@ -24,7 +24,7 @@ struct UFitCreatorStudioContent: View {
                 VStack(alignment: .leading, spacing: ProfessionalLayout.page) {
                     if workspace.status != .active { UFitNotice(message: workspace.status.label) }
                     if let document {
-                        let work = document.activity.filter { ($0.id == .rejected || $0.id == .draft) && $0.value > .zero }
+                        let work = document.activity.filter { $0.id == .draft && $0.value > .zero }
                             .sorted { ProfessionalQueueOrder.priority($0.id) < ProfessionalQueueOrder.priority($1.id) }
                         if !work.isEmpty {
                             UFitEditorialHeading(title: StudioCopy.resume, editorial: false)
@@ -37,8 +37,8 @@ struct UFitCreatorStudioContent: View {
                         }
                         UFitActionButton(title: Copy.create, kind: work.isEmpty ? .primary : .secondary,
                             disabled: workspace.status == .suspended, action: onCreate)
-                        if let review = document.activity.first(where: { $0.id == .review }), review.value > .zero {
-                            UFitExperienceActionRow(title: review.label, count: review.value) { onOutfits(.underReview) }
+                        if let scheduled = document.activity.first(where: { $0.id == .scheduled }), scheduled.value > .zero {
+                            UFitExperienceActionRow(title: scheduled.label, count: scheduled.value) { onOutfits(.scheduled) }
                         }
                         let collection = document.activity.filter { $0.id == .outfits || $0.id == .published }
                         if collection.contains(where: { $0.value > .zero }) {
@@ -61,7 +61,7 @@ struct UFitCreatorStudioContent: View {
         }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.ufitCanvas)
     }
     private func outfitFilter(_ key: UFitWorkspaceActivityFigure.Key) -> UFitOutfitStatus? {
-        switch key { case .draft: .draft; case .review: .underReview; case .rejected: .rejected; default: nil }
+        switch key { case .draft: .draft; case .scheduled: .scheduled; default: nil }
     }
 }
 
@@ -95,7 +95,7 @@ struct UFitBrandActivityContent: View {
                     if let document {
                         let fulfilment = document.activity.filter { $0.id == .paid || $0.id == .preparing || $0.id == .shipped }
                         let hasOrders = fulfilment.contains { $0.value > .zero }
-                        let corrections = document.activity.filter { ($0.id == .rejected || $0.id == .review) && $0.value > .zero }.sorted { ProfessionalQueueOrder.priority($0.id) < ProfessionalQueueOrder.priority($1.id) }
+                        let drafts = document.activity.filter { $0.id == .draft && $0.value > .zero }
                         if hasOrders {
                             VStack(alignment: .leading, spacing: UFitSpace.lg) {
                                 UFitEditorialHeading(title: BrandCopy.fulfilment, editorial: false)
@@ -104,17 +104,13 @@ struct UFitBrandActivityContent: View {
                             }.padding(UFitSpace.lg).background(Color.ufitSecondary, in: RoundedRectangle(cornerRadius: UFitRadius.card))
                         }
                         UFitEditorialHeading(title: Copy.catalog, editorial: false)
-                        if let products = document.activity.first(where: { $0.id == .products }), products.value == .zero && corrections.isEmpty {
+                        if let products = document.activity.first(where: { $0.id == .products }), products.value == .zero && drafts.isEmpty {
                             UFitActionButton(title: Copy.add, kind: hasOrders ? .secondary : .primary,
                                 disabled: workspace.status == .suspended, action: onAddProduct)
                         } else {
-                            let correction = corrections.first(where: { $0.id == .rejected })
-                            if !hasOrders, let correction {
-                                UFitActionButton(title: BrandCopy.corrections(correction.value)) { onCatalog(.rejected) }
-                                UFitExperienceActionRow(title: BrandCopy.openCatalog) { onCatalog(nil) }
-                            } else { UFitActionButton(title: BrandCopy.openCatalog, kind: hasOrders ? .secondary : .primary) { onCatalog(nil) } }
-                            ForEach(corrections.filter { hasOrders || $0.id != .rejected }) { row in
-                                UFitExperienceActionRow(title: row.label, count: row.value) { onCatalog(row.id == .review ? .underReview : .rejected) }
+                            UFitActionButton(title: BrandCopy.openCatalog, kind: hasOrders ? .secondary : .primary) { onCatalog(nil) }
+                            ForEach(drafts) { row in
+                                UFitExperienceActionRow(title: row.label, count: row.value) { onCatalog(.draft) }
                                 Divider()
                             }
                             if let stock = document.activity.first(where: { $0.id == .lowStock }), stock.value > .zero {
@@ -166,13 +162,10 @@ private enum BrandCopy {
     static let fulfilment = String(localized: "Commandes à suivre")
     static let service = String(localized: "Service")
     static let openCatalog = String(localized: "Ouvrir le catalogue")
-    static func corrections(_ count: Int) -> String {
-        count == 1 ? String(localized: "Voir l’article à corriger") : String(localized: "Voir les \(count) articles à corriger")
-    }
     static let manageOrders = String(localized: "Gérer les commandes")
     static let returns = String(localized: "Demandes et suivi des remboursements")
 }
 
 private enum ProfessionalQueueOrder {
-    static func priority(_ key: UFitWorkspaceActivityFigure.Key) -> Int { switch key { case .rejected: 0; case .draft: 1; default: 2 } }
+    static func priority(_ key: UFitWorkspaceActivityFigure.Key) -> Int { switch key { case .draft: 0; case .scheduled: 1; default: 2 } }
 }

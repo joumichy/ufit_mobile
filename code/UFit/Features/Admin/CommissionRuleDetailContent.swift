@@ -20,7 +20,7 @@ struct UFitCommissionRuleDetailContent: View {
             }
             ScrollView {
                 VStack(alignment: .leading, spacing: Layout.page) {
-                    if let message { Text(message).font(UFitTypography.callout); UFitButton(UFitCommissionAdminCopy.retry, action: onRefresh).frame(minHeight: Layout.touch).disabled(isLoading) }
+                    if let message { Text(message).font(UFitTypography.callout); UFitActionButton(title: UFitCommissionAdminCopy.retry, kind: .secondary, action: onRefresh).disabled(isLoading) }
                     if let document {
                         VStack(alignment: .leading, spacing: Layout.small) {
                             Text(document.rule.brand).font(UFitTypography.title2)
@@ -52,7 +52,7 @@ struct UFitCommissionRuleDetailContent: View {
                             }.frame(maxWidth: .infinity, alignment: .leading)
                             Divider()
                         }
-                        if hasMore { UFitButton(UFitCommissionAdminCopy.more, action: onMore).frame(minHeight: Layout.touch).disabled(isLoading) }
+                        if hasMore { UFitActionButton(title: UFitCommissionAdminCopy.more, kind: .secondary, action: onMore).disabled(isLoading) }
                     }
                     if isLoading { UFitLoading(UFitCommissionAdminCopy.loading).frame(maxWidth: .infinity) }
                 }.padding(Layout.page).frame(maxWidth: .infinity, alignment: .leading)

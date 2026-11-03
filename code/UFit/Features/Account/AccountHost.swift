@@ -46,10 +46,10 @@ struct UFitAccountHost: View {
                     UFitEmptyState(title: Copy.unavailable, message: accountFailureMessage(message),
                         symbol: Copy.icon, actionTitle: Copy.retry,
                         action: { Task { await session.reloadProfile() } })
-                    UFitButton(Copy.signOut) { Task {
+                    UFitActionButton(title: Copy.signOut, kind: .secondary, disabled: session.isBusy) { Task {
                         await session.signOut()
                         if !session.isSignedIn { onSignedOut() }
-                    } }.ufitButtonStyle(.text).disabled(session.isBusy)
+                    } }
                 }.padding(.horizontal, UFitSpace.page)
             } else { UFitLoading() }
         }

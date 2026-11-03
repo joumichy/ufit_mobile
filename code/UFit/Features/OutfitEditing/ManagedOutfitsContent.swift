@@ -18,10 +18,12 @@ struct UFitManagedOutfitsContent: View {
     let onMore: () async -> Void
     let onOpen: (String) -> Void
     let onCreate: () -> Void
+    var onCalendar: (() -> Void)? = nil
     private enum Copy {
+        static let calendar = String(localized: "Calendrier de publication")
         static let refresh = String(localized: "Actualiser"); static let create = String(localized: "Nouvelle tenue")
         static let clearFilter = String(localized: "Voir toutes les tenues")
-        static let filter = String(localized: "Statut"); static let all = String(localized: "Toutes les tenues")
+        static let filter = String(localized: "Statut"); static let all = String(localized: "Toutes")
         static let loading = String(localized: "Chargement des tenues")
         static let empty = String(localized: "Aucune tenue pour ce filtre.")
         static let emptyBrand = String(localized: "Aucune tenue pour le moment")
@@ -31,7 +33,7 @@ struct UFitManagedOutfitsContent: View {
         static let page: CGFloat = UFitSpace.xl; static let gap: CGFloat = UFitSpace.md; static let small: CGFloat = UFitSpace.xs; static let title: CGFloat = UFitTypography.Size.editorial
         static let touch: CGFloat = UFitControlSize.touch; static let bottom: CGFloat = 110; static let imageWidth: CGFloat = 88; static let imageHeight: CGFloat = 112; static let radius: CGFloat = UFitRadius.field
     }
-    private enum Icon { static let refresh = "arrow.clockwise"; static let create = "plus"; static let photo = "photo"; static let chevron = "chevron.right" }
+    private enum Icon { static let calendar = "calendar"; static let refresh = "arrow.clockwise"; static let create = "plus"; static let photo = "photo"; static let chevron = "chevron.right" }
     var body: some View {
         VStack(spacing: .zero) {
             DetailHeader(onBack: onBack) {
@@ -47,17 +49,23 @@ struct UFitManagedOutfitsContent: View {
                         Text(title).ufitFont(size: Layout.title, design: .serif).accessibilityAddTraits(.isHeader)
                         if let subtitle { Text(subtitle).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
                     }
-                    UFitSelection(Copy.filter, selection: Binding(get: { selectedStatus }, set: onSelectStatus), options: [.init(value: nil, title: Copy.all)] + UFitOutfitStatus.allCases.map { .init(value: Optional($0), title: $0.label) }).frame(minHeight: Layout.touch)
+                    if access == .author, let onCalendar {
+                        UFitButton(action: onCalendar) {
+                            HStack { UFitIcon(systemName: Icon.calendar); Text(Copy.calendar); Spacer(); UFitIcon(systemName: Icon.chevron) }
+                                .frame(minHeight: Layout.touch)
+                        }.ufitButtonStyle(.text)
+                    }
+                    UFitChoiceBar(title: Copy.filter, selection: Binding(get: { selectedStatus }, set: onSelectStatus), options: [.init(value: nil, title: Copy.all)] + UFitOutfitStatus.allCases.map { .init(value: Optional($0), title: $0.label) }).frame(minHeight: Layout.touch)
                     if let message {
                         VStack(alignment: .leading, spacing: Layout.small) {
                             Text(message).font(UFitTypography.callout)
-                            UFitButton(Copy.retry) { Task { await onRefresh() } }.frame(minHeight: Layout.touch)
+                            UFitActionButton(title: Copy.retry, kind: .secondary) { Task { await onRefresh() } }
                         }
                     }
                     if !hasLoaded && message == nil { UFitLoading(Copy.loading).frame(maxWidth: .infinity).padding(.vertical, Layout.page) }
                     if hasLoaded && rows.isEmpty && message == nil && !isLoading {
                         Text(access == .author && selectedStatus == nil ? Copy.emptyBrand : Copy.empty).font(UFitTypography.title2)
-                        if selectedStatus != nil { UFitButton(Copy.clearFilter) { onSelectStatus(nil) }.frame(minHeight: Layout.touch) }
+                        if selectedStatus != nil { UFitActionButton(title: Copy.clearFilter, kind: .secondary) { onSelectStatus(nil) } }
                         else if access == .author { UFitButton(action: onCreate) { Text(Copy.create).frame(maxWidth: .infinity) }.ufitButtonStyle(.primary) }
                     }
                     LazyVStack(spacing: Layout.page) {
@@ -69,7 +77,7 @@ struct UFitManagedOutfitsContent: View {
                                     VStack(alignment: .leading, spacing: Layout.small) {
                                         Text(row.status.label).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText)
                                         Text(row.title).font(UFitTypography.headline).multilineTextAlignment(.leading)
-                                        if access == .moderator, let author = row.author { Text(author).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText) }
+                                        if access == .administrator, let author = row.author { Text(author).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText) }
                                         Text(row.price).font(UFitTypography.subheadline)
                                     }
                                     Spacer()
@@ -80,7 +88,7 @@ struct UFitManagedOutfitsContent: View {
                     }
                     if hasMore {
                         if isLoadingMore { UFitLoading().frame(maxWidth: .infinity, minHeight: Layout.touch) }
-                        else { UFitButton(Copy.more) { Task { await onMore() } }.frame(maxWidth: .infinity, minHeight: Layout.touch) }
+                        else { UFitActionButton(title: Copy.more, kind: .secondary) { Task { await onMore() } } }
                     }
                 }.padding(Layout.page).padding(.bottom, UFitSpace.xl).frame(maxWidth: .infinity, alignment: .leading)
             }.ufitRefreshable { await onRefresh() }

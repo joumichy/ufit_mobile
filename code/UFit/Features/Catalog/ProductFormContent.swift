@@ -25,7 +25,7 @@ struct UFitCatalogProductFormContent: View {
         static let saving = String(localized: "Enregistrement du produit"); static let name = String(localized: "Nom du produit"); static let description = String(localized: "Description")
         static let category = String(localized: "Catégorie"); static let gender = String(localized: "Public (facultatif)"); static let unspecified = String(localized: "Non précisé")
         static let price = String(localized: "Prix du produit"); static let currency = String(localized: "Devise"); static let reloadCurrencies = String(localized: "Recharger les devises")
-        static let changesPublication = String(localized: "Enregistrer ces modifications remettra le produit en brouillon. Une nouvelle validation sera nécessaire.")
+        static let changesPublication = String(localized: "Enregistrer ces modifications remettra le produit en brouillon. Vous pourrez ensuite le publier directement.")
         static let variants = String(localized: "Variantes"); static let addVariant = String(localized: "Ajouter une variante"); static let editVariant = String(localized: "Modifier la variante")
         static let remove = String(localized: "Retirer"); static let emptyVariants = String(localized: "Aucune variante"); static let stock = String(localized: "Stock"); static let details = String(localized: "Détails facultatifs")
         static let material = String(localized: "Matière"); static let care = String(localized: "Entretien")
@@ -53,7 +53,7 @@ struct UFitCatalogProductFormContent: View {
                     VStack(alignment: .leading, spacing: Layout.small) {
                         UFitButton { showingCurrencies = true } label: { HStack { Text(Copy.currency); Spacer(); Text(draft.currency); UFitIcon(systemName: Icon.currency) }.frame(minHeight: Layout.touch) }.disabled(currencies.isEmpty)
                         errorText(errors[.currency])
-                        if currencies.isEmpty { UFitButton(Copy.reloadCurrencies, action: onReloadCurrencies).frame(minHeight: Layout.touch) }
+                        if currencies.isEmpty { UFitActionButton(title: Copy.reloadCurrencies, kind: .secondary, action: onReloadCurrencies) }
                         UFitTextField(label: Copy.price, text: $draft.price, error: errors[.price], keyboard: .decimalPad, isIdentifier: true)
                     }
                     variants
@@ -91,13 +91,13 @@ struct UFitCatalogProductFormContent: View {
                     Text(variant.status.label).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText)
                     UFitLabeledValue(Copy.stock, value: variant.stock).font(UFitTypography.callout)
                     HStack {
-                        UFitButton(Copy.editVariant) { openVariant(variant) }.frame(minHeight: Layout.touch).disabled(selectedCurrency == nil)
-                        if variant.serverID == nil { Spacer(); UFitButton(Copy.remove) { draft.variants.removeAll { $0.id == variant.id } }.frame(minHeight: Layout.touch) }
+                        UFitButton(Copy.editVariant) { openVariant(variant) }.ufitButtonStyle(.secondary, compact: true).disabled(selectedCurrency == nil)
+                        if variant.serverID == nil { Spacer(); UFitButton(Copy.remove, role: .destructive) { draft.variants.removeAll { $0.id == variant.id } }.ufitButtonStyle(.secondary, compact: true) }
                     }
                     Divider()
                 }
             }
-            if draft.variants.count < UFitCatalogInput.variantsMax { UFitButton(Copy.addVariant) { openVariant(UFitCatalogVariantDraft()) }.frame(minHeight: Layout.touch).disabled(selectedCurrency == nil) }
+            if draft.variants.count < UFitCatalogInput.variantsMax { UFitActionButton(title: Copy.addVariant, kind: .secondary) { openVariant(UFitCatalogVariantDraft()) }.disabled(selectedCurrency == nil) }
             errorText(errors[.variants])
         }
     }

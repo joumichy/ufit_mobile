@@ -34,7 +34,7 @@ struct UFitCommissionRulesContent: View {
                         .accessibilityValue(brand?.title ?? UFitCommissionAdminCopy.allBrands)
                     if let message {
                         Text(message).font(UFitTypography.callout)
-                        UFitButton(UFitCommissionAdminCopy.retry, action: onRefresh).frame(minHeight: Layout.touch).disabled(isLoading)
+                        UFitActionButton(title: UFitCommissionAdminCopy.retry, kind: .secondary, action: onRefresh).disabled(isLoading)
                     }
                     if rows.isEmpty {
                         if isLoading || (!hasLoaded && message == nil) { UFitLoading(UFitCommissionAdminCopy.loading).frame(maxWidth: .infinity) }
@@ -63,7 +63,7 @@ struct UFitCommissionRulesContent: View {
                             }
                         }
                         if isLoading { UFitLoading().frame(maxWidth: .infinity) }
-                        if hasMore { UFitButton(UFitCommissionAdminCopy.more, action: onMore).frame(minHeight: Layout.touch).disabled(isLoading) }
+                        if hasMore { UFitActionButton(title: UFitCommissionAdminCopy.more, kind: .secondary, action: onMore).disabled(isLoading) }
                     }
                 }.padding(Layout.page).frame(maxWidth: .infinity, alignment: .leading)
             }

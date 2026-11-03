@@ -32,8 +32,8 @@ struct UFitOutfitPiecesContent: View {
                 Divider()
             }
             if pieces.count < UFitOutfitInput.itemsMax {
-                UFitButton(Copy.product, action: onSelectProduct).frame(minHeight: Layout.touch)
-                UFitButton(Copy.inspiration) { pieces.append(UFitOutfitPieceDraft()) }.frame(minHeight: Layout.touch)
+                UFitActionButton(title: Copy.product, kind: .secondary, action: onSelectProduct)
+                UFitActionButton(title: Copy.inspiration, kind: .secondary) { pieces.append(UFitOutfitPieceDraft()) }
             }
             if let error { UFitFieldError(message: error) }
         }
@@ -89,13 +89,13 @@ struct UFitOutfitPiecesContent: View {
                         UFitToggle(Copy.required, isOn: $piece.isRequired).frame(minHeight: Layout.touch)
                         UFitDisclosure(Copy.note) { UFitTextField(label: Copy.note, text: $piece.note).padding(.top, Layout.small) }.frame(minHeight: Layout.touch)
                         if piece.isProduct {
-                            UFitButton(Copy.replace) { piece.externalLabel = piece.title; piece.product = nil }.font(UFitTypography.callout).frame(minHeight: Layout.touch)
+                            UFitActionButton(title: Copy.replace, kind: .secondary) { piece.externalLabel = piece.title; piece.product = nil }
                         }
                         HStack {
                             UFitButton(action: onBefore) { UFitIcon(systemName: Icon.up).frame(minWidth: Layout.touch, minHeight: Layout.touch) }.accessibilityLabel(Copy.up).disabled(!canMoveBefore)
                             UFitButton(action: onAfter) { UFitIcon(systemName: Icon.down).frame(minWidth: Layout.touch, minHeight: Layout.touch) }.accessibilityLabel(Copy.down).disabled(!canMoveAfter)
                             Spacer()
-                            UFitButton(Copy.remove, action: onRemove).frame(minHeight: Layout.touch)
+                            UFitButton(Copy.remove, role: .destructive, action: onRemove).ufitButtonStyle(.secondary, compact: true)
                         }
                     }.padding(.top, Layout.small)
                 }

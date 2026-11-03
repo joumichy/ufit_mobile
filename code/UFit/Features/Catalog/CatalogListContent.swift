@@ -21,7 +21,7 @@ struct UFitCatalogListContent: View {
     private enum Copy {
         static let refresh = String(localized: "Actualiser"); static let create = String(localized: "Nouveau produit")
         static let clearFilter = String(localized: "Voir tous les produits")
-        static let filter = String(localized: "Statut"); static let all = String(localized: "Tous les produits")
+        static let filter = String(localized: "Statut"); static let all = String(localized: "Tous")
         static let loading = String(localized: "Chargement du catalogue")
         static let empty = String(localized: "Aucun produit pour ce filtre.")
         static let emptyBrand = String(localized: "Votre catalogue est vide")
@@ -47,17 +47,17 @@ struct UFitCatalogListContent: View {
                         Text(title).ufitFont(size: Layout.title, design: .serif).accessibilityAddTraits(.isHeader)
                         if let subtitle { Text(subtitle).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
                     }
-                    UFitSelection(Copy.filter, selection: Binding(get: { selectedStatus }, set: onSelectStatus), options: [.init(value: nil, title: Copy.all)] + UFitCatalogStatus.allCases.map { .init(value: Optional($0), title: $0.label) }).frame(minHeight: Layout.touch)
+                    UFitChoiceBar(title: Copy.filter, selection: Binding(get: { selectedStatus }, set: onSelectStatus), options: [.init(value: nil, title: Copy.all)] + UFitCatalogStatus.allCases.map { .init(value: Optional($0), title: $0.label) }).frame(minHeight: Layout.touch)
                     if let message {
                         VStack(alignment: .leading, spacing: Layout.small) {
                             Text(message).font(UFitTypography.callout)
-                            UFitButton(Copy.retry) { Task { await onRefresh() } }.frame(minHeight: Layout.touch)
+                            UFitActionButton(title: Copy.retry, kind: .secondary) { Task { await onRefresh() } }
                         }
                     }
                     if !hasLoaded && message == nil { UFitLoading(Copy.loading).frame(maxWidth: .infinity).padding(.vertical, Layout.page) }
                     if hasLoaded && rows.isEmpty && message == nil && !isLoading {
                         Text(access == .member && selectedStatus == nil ? Copy.emptyBrand : Copy.empty).font(UFitTypography.title2)
-                        if selectedStatus != nil { UFitButton(Copy.clearFilter) { onSelectStatus(nil) }.frame(minHeight: Layout.touch) }
+                        if selectedStatus != nil { UFitActionButton(title: Copy.clearFilter, kind: .secondary) { onSelectStatus(nil) } }
                         else if access == .member { UFitButton(action: onCreate) { Text(Copy.create).frame(maxWidth: .infinity) }.ufitButtonStyle(.primary) }
                     }
                     LazyVStack(spacing: Layout.page) {
@@ -79,7 +79,7 @@ struct UFitCatalogListContent: View {
                     }
                     if hasMore {
                         if isLoadingMore { UFitLoading().frame(maxWidth: .infinity, minHeight: Layout.touch) }
-                        else { UFitButton(Copy.more) { Task { await onMore() } }.frame(maxWidth: .infinity, minHeight: Layout.touch) }
+                        else { UFitActionButton(title: Copy.more, kind: .secondary) { Task { await onMore() } } }
                     }
                 }.padding(Layout.page).padding(.bottom, UFitSpace.xl).frame(maxWidth: .infinity, alignment: .leading)
             }.ufitRefreshable { await onRefresh() }

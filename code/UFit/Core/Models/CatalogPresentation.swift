@@ -1,19 +1,19 @@
 import Foundation
 
 enum UFitCatalogStatus: String, Codable, CaseIterable, Identifiable {
-    case draft, underReview = "under_review", active, rejected, archived
+    case draft, active, archived
     var id: String { rawValue }
-    var canEdit: Bool { self == .draft || self == .rejected || self == .active }
-    var canSubmit: Bool { self == .draft || self == .rejected }
+    var canEdit: Bool { self == .draft || self == .active }
+    var canPublish: Bool { self == .draft }
     var label: String {
-        switch self { case .draft: Copy.draft; case .underReview: Copy.review; case .active: Copy.active; case .rejected: Copy.rejected; case .archived: Copy.archived }
+        switch self { case .draft: Copy.draft; case .active: Copy.active; case .archived: Copy.archived }
     }
     private enum Copy {
-        static let draft = String(localized: "Brouillon"); static let review = String(localized: "En examen")
-        static let active = String(localized: "Validé"); static let rejected = String(localized: "À corriger"); static let archived = String(localized: "Archivé")
+        static let draft = String(localized: "Brouillon")
+        static let active = String(localized: "Publié"); static let archived = String(localized: "Archivé")
     }
 }
-enum UFitCatalogAccess { case member, moderator }
+enum UFitCatalogAccess { case member, administrator }
 enum UFitCatalogVariantStatus: String, Codable, CaseIterable, Identifiable {
     case active, outOfStock = "out_of_stock", archived
     var id: String { rawValue }
@@ -53,9 +53,8 @@ struct UFitCatalogProductPresentation: Identifiable {
     let price: String
     let material: String?
     let careInstructions: String?
-    let rejectionReason: String?
     let images: [UFitCatalogImage]
     let variants: [UFitCatalogVariant]
-    let submissionIssue: String?
+    let publicationIssue: String?
     var revision: UFitCatalogRevision { UFitCatalogRevision(id: id, version: version) }
 }

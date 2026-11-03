@@ -48,7 +48,7 @@ struct UFitOrdersContent: View {
                                 Divider()
                             }
                             if isLoading { UFitLoading(Copy.loading).frame(maxWidth: .infinity) }
-                            else if hasMore { UFitButton(Copy.more, action: onMore).frame(minHeight: Layout.touch) }
+                            else if hasMore { UFitActionButton(title: Copy.more, kind: .secondary, action: onMore) }
                         }
                     }.padding(Layout.spacing).frame(minHeight: viewport.size.height, alignment: orders.isEmpty ? .center : .topLeading)
                 }.ufitRefreshable { await onRefresh() }

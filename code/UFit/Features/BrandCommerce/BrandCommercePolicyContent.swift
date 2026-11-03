@@ -72,12 +72,13 @@ struct UFitBrandCommercePolicyContent: View {
                                     }.frame(minHeight: Layout.touch).contentShape(Rectangle())
                                 }.ufitButtonStyle(.text)
                                 if errors[.destinations] != nil && !rateErrors(rate).isEmpty { Text(Copy.issue).font(UFitTypography.caption) }
-                                UFitButton(Copy.remove) { draft.rates.removeAll { $0.id == rate.id } }.font(UFitTypography.callout).frame(minHeight: Layout.touch)
+                                UFitButton(Copy.remove, role: .destructive) { draft.rates.removeAll { $0.id == rate.id } }
+                                    .ufitButtonStyle(.secondary, compact: true)
                                 Divider()
                             }
                         }
                         if let error = errors[.destinations] { UFitFieldError(message: error) }
-                        UFitButton(Copy.add) { editingRate = UFitBrandShippingRateDraft() }.frame(minHeight: Layout.touch)
+                        UFitActionButton(title: Copy.add, kind: .secondary, action: { editingRate = UFitBrandShippingRateDraft() })
                     }
                 }.padding(Layout.page).frame(maxWidth: .infinity, alignment: .leading).disabled(locked)
             }.scrollDismissesKeyboard(.interactively)
@@ -121,12 +122,27 @@ struct UFitPolicyBooleanField: View {
     let label: String
     @Binding var value: Bool?
     let error: String?
-    private enum Copy { static let choose = String(localized: "Choisir"); static let yes = String(localized: "Oui"); static let no = String(localized: "Non") }
+    private enum Copy {
+        static let choose = String(localized: "Choisir")
+        static let yes = String(localized: "Oui")
+        static let no = String(localized: "Non")
+        static let clear = String(localized: "Effacer ce choix")
+        static let separator = " · "
+    }
+    private enum Icon { static let clear = "xmark.circle" }
     private enum Layout { static let gap: CGFloat = UFitSpace.xs; static let touch: CGFloat = UFitControlSize.touch }
     var body: some View {
         VStack(alignment: .leading, spacing: Layout.gap) {
-            Text(label).font(UFitTypography.subheadline.weight(.medium))
-            UFitSelection(label, selection: $value, options: [.init(value: nil, title: Copy.choose), .init(value: true, title: Copy.yes), .init(value: false, title: Copy.no)]).frame(minHeight: Layout.touch).accessibilityLabel(label)
+            HStack(spacing: UFitSpace.sm) {
+                Text(label).font(UFitTypography.subheadline.weight(.medium))
+                Spacer(minLength: UFitSpace.xs)
+                if value != nil {
+                    UFitButton { value = nil } label: { UFitIcon(systemName: Icon.clear).font(UFitTypography.callout) }
+                        .ufitButtonStyle(.text).accessibilityLabel(Copy.clear + Copy.separator + label)
+                }
+            }
+            UFitInlineChoice(title: label, selection: $value,
+                options: [.init(value: Optional(true), title: Copy.yes), .init(value: Optional(false), title: Copy.no)])
                 .accessibilityValue(value.map { $0 ? Copy.yes : Copy.no } ?? Copy.choose)
             if let error { UFitFieldError(message: error) }
         }
@@ -145,7 +161,7 @@ struct UFitBrandCommercePreparationContent: View {
             DetailHeader(title: Copy.title, onBack: onBack)
             if isLoading { UFitLoading(Copy.loading) }
             if let message { Text(message).font(UFitTypography.callout).padding(.horizontal, Layout.page) }
-            if !isLoading { UFitButton(Copy.retry, action: onRetry).frame(minHeight: Layout.touch) }
+            if !isLoading { UFitActionButton(title: Copy.retry, kind: .secondary, action: onRetry) }
             Spacer()
         }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.ufitCanvas)
     }

@@ -40,7 +40,7 @@ struct UFitApplicationFormContent: View {
                 VStack(alignment: .leading) {
                     if countries.isEmpty {
                         if isLoadingCountries { Text(Copy.loadingCountries).frame(minHeight: Layout.touch) }
-                        else if let onRetryCountries { UFitButton(Copy.retry, action: onRetryCountries).frame(minHeight: Layout.touch) }
+                        else if let onRetryCountries { UFitActionButton(title: Copy.retry, kind: .secondary, action: onRetryCountries) }
                     } else {
                         UFitSelection(field.label(for: kind), selection: binding(field), options: countries.map { .init(value: $0.id, title: $0.name) }).tint(Color.ufitInk).frame(minHeight: Layout.touch)
                     }

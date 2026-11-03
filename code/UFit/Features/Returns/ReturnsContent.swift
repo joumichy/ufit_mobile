@@ -55,9 +55,9 @@ struct UFitReturnsContent: View {
                         }.ufitButtonStyle(.text)
                         Divider()
                     }
-                    if let message { Text(message).font(UFitTypography.callout); UFitButton(Copy.retry, action: onRefresh).frame(minHeight: Layout.touch) }
+                    if let message { Text(message).font(UFitTypography.callout); UFitActionButton(title: Copy.retry, kind: .secondary, action: onRefresh) }
                     if isLoading || (!hasLoaded && message == nil) { UFitLoading(Copy.loading).frame(maxWidth: .infinity) }
-                    else if hasMore { UFitButton(Copy.more, action: onMore).frame(minHeight: Layout.touch) }
+                    else if hasMore { UFitActionButton(title: Copy.more, kind: .secondary, action: onMore) }
                 }.padding(Layout.page).frame(maxWidth: .infinity, alignment: .leading)
             }.ufitRefreshable { onRefresh() }
         }.safeAreaInset(edge: .bottom, spacing: .zero) {

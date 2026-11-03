@@ -26,8 +26,8 @@ extension UFitManagedProduct {
     func presentation() -> UFitCatalogProductPresentation {
         .init(id: id, version: product.version, brandName: brand.brandName, brandStatus: brand.status, name: product.name, description: product.description, category: product.category, status: product.status,
             price: UFitMoney.format(product.basePrice, currency: product.currency), material: product.material, careInstructions: product.careInstructions,
-            rejectionReason: product.rejectionReason, images: images.map { .init(id: $0.id, source: $0.displayUrl, kindLabel: $0.kind.label) },
-            variants: variants.map { variantPresentation($0) }, submissionIssue: submissionIssue)
+            images: images.map { .init(id: $0.id, source: $0.displayUrl, kindLabel: $0.kind.label) },
+            variants: variants.map { variantPresentation($0) }, publicationIssue: publicationIssue)
     }
     func variantPresentation(_ variant: Variant) -> UFitCatalogVariant {
         let parts = [variant.size, variant.color].compactMap { $0 }.filter { !$0.isEmpty }
@@ -47,14 +47,16 @@ extension UFitManagedProduct {
         value.photos = images.map { .init(id: UUID(), serverID: $0.id, source: $0.displayUrl, url: $0.url, kind: $0.kind, transfer: .ready) }
         return value
     }
-    private var submissionIssue: String? {
+    private var publicationIssue: String? {
+        if brand.status != .active { return Copy.profileRequired }
         if images.isEmpty { return Copy.photoRequired }
         if !variants.contains(where: { $0.status == .active }) { return Copy.variantRequired }
         return nil
     }
     private enum Copy {
         static let variantSeparator = " · "
-        static let photoRequired = String(localized: "Ajoutez une photo avant l’envoi à validation.")
-        static let variantRequired = String(localized: "Ajoutez ou activez une variante avant l’envoi à validation.")
+        static let profileRequired = String(localized: "Le profil de la marque doit être actif pour publier.")
+        static let photoRequired = String(localized: "Ajoutez une photo avant de publier.")
+        static let variantRequired = String(localized: "Ajoutez ou activez une variante avant de publier.")
     }
 }

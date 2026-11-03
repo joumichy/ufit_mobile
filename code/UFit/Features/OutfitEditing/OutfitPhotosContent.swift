@@ -35,19 +35,19 @@ struct UFitOutfitPhotosContent: View {
                         case .uploading: UFitLoading(Copy.sending)
                         case .failed(let message):
                             Text(message).font(UFitTypography.caption)
-                            if photo.canRetryUpload { UFitButton(Copy.retry) { onRetry(photo.id) }.frame(minHeight: Layout.touch) }
+                            if photo.canRetryUpload { UFitButton(Copy.retry) { onRetry(photo.id) }.ufitButtonStyle(.secondary, compact: true) }
                         }
                         HStack {
                             UFitButton { move(photo.id, step: -UFitOutfitInput.positionStep) } label: { UFitIcon(systemName: Icon.up).frame(minWidth: Layout.touch, minHeight: Layout.touch) }.accessibilityLabel(Copy.up).disabled(index == .zero)
                             UFitButton { move(photo.id, step: UFitOutfitInput.positionStep) } label: { UFitIcon(systemName: Icon.down).frame(minWidth: Layout.touch, minHeight: Layout.touch) }.accessibilityLabel(Copy.down).disabled(index == photos.count - UFitOutfitInput.positionStep)
                         }
-                        if photo.transfer == .ready, let onPins { UFitButton(Copy.pins) { onPins(photo.id) }.frame(minHeight: Layout.touch) }
-                        UFitButton(Copy.remove) { onRemove(photo.id) }.frame(minHeight: Layout.touch)
+                        if photo.transfer == .ready, let onPins { UFitButton(Copy.pins) { onPins(photo.id) }.ufitButtonStyle(.secondary, compact: true) }
+                        UFitButton(Copy.remove, role: .destructive) { onRemove(photo.id) }.ufitButtonStyle(.secondary, compact: true)
                     }
                 }
                 Divider()
             }
-            if photos.count < UFitOutfitInput.photosMax { UFitButton(Copy.add, action: onAdd).frame(minHeight: Layout.touch) }
+            if photos.count < UFitOutfitInput.photosMax { UFitActionButton(title: Copy.add, kind: .secondary, action: onAdd) }
             if let error { UFitFieldError(message: error) }
         }
     }

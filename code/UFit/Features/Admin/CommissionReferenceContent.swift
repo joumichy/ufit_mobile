@@ -26,16 +26,16 @@ struct UFitCommissionReferenceContent: View {
             HStack(spacing: Layout.gap) {
                 UFitSearchField(query: $search, prompt: UFitCommissionAdminCopy.search)
                     .submitLabel(.search).onSubmit(onSearch).frame(minHeight: Layout.touch)
-                UFitButton(UFitCommissionAdminCopy.search, action: onSearch).frame(minHeight: Layout.touch).disabled(isLoading)
+                UFitButton(UFitCommissionAdminCopy.search, action: onSearch).ufitButtonStyle(.secondary, compact: true).disabled(isLoading)
             }.padding(.horizontal, Layout.page)
             ScrollView {
                 VStack(alignment: .leading, spacing: Layout.gap) {
                     if let noneTitle { option(nil, title: noneTitle, detail: nil) }
-                    if let message { Text(message).font(UFitTypography.callout); UFitButton(UFitCommissionAdminCopy.retry, action: onSearch).frame(minHeight: Layout.touch).disabled(isLoading) }
+                    if let message { Text(message).font(UFitTypography.callout); UFitActionButton(title: UFitCommissionAdminCopy.retry, kind: .secondary, action: onSearch).disabled(isLoading) }
                     ForEach(rows) { row in option(row, title: row.title, detail: row.detail) }
                     if isLoading || (!hasLoaded && message == nil) { UFitLoading(UFitCommissionAdminCopy.searching).frame(maxWidth: .infinity) }
                     else if hasLoaded && rows.isEmpty && message == nil { Text(UFitCommissionAdminCopy.optionEmpty).foregroundStyle(Color.ufitSecondaryText) }
-                    if hasMore { UFitButton(UFitCommissionAdminCopy.more, action: onMore).frame(minHeight: Layout.touch).disabled(isLoading) }
+                    if hasMore { UFitActionButton(title: UFitCommissionAdminCopy.more, kind: .secondary, action: onMore).disabled(isLoading) }
                 }.padding(Layout.page).frame(maxWidth: .infinity, alignment: .leading)
             }.scrollDismissesKeyboard(.interactively)
         }.padding(.top, Layout.gap).ufitButtonStyle(.text).foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.ufitCanvas)

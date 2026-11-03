@@ -23,7 +23,7 @@ final class UFitCatalogStore {
     @ObservationIgnored private let ownerUserID: String?
     init(brandID: String?, title: String, subtitle: String, access: UFitCatalogAccess, client: UFitAPIClient, session: UFitSessionStore, initialStatus: UFitCatalogStatus? = nil) {
         self.brandID = brandID; self.title = title; self.subtitle = subtitle; self.access = access; self.client = client; self.session = session
-        ownerUserID = session.user?.id; selectedStatus = access == .moderator ? .underReview : initialStatus
+        ownerUserID = session.user?.id; selectedStatus = access == .administrator ? .active : initialStatus
     }
     var rows: [UFitCatalogRow] { products.map { $0.row() } }
     var isCurrentAccount: Bool { ownerUserID != nil && session.user?.id == ownerUserID }
@@ -94,13 +94,13 @@ final class UFitCatalogProductStore {
             if catalog.isCurrentAccount { try receive(result) }
         } catch { if catalog.isCurrentAccount { message = error.localizedDescription } }
     }
-    func mutate(_ revision: UFitCatalogRevision, action: UFitCatalogAction, decision: UFitCatalogStatus? = nil, reason: String? = nil) async {
+    func mutate(_ revision: UFitCatalogRevision, action: UFitCatalogAction) async {
         guard !isLoading, !isMutating, catalog.isCurrentAccount else { return }
         guard revision == document.revision else { message = UFitCatalogContractError.stale.localizedDescription; return }
         isMutating = true; message = nil
         defer { isMutating = false }
         do {
-            let result = try await catalog.client.mutateCatalogProduct(revision, action: action, decision: decision, reason: reason)
+            let result = try await catalog.client.mutateCatalogProduct(revision, action: action)
             if catalog.isCurrentAccount { try receive(result) }
         } catch { if catalog.isCurrentAccount { message = error.localizedDescription } }
     }

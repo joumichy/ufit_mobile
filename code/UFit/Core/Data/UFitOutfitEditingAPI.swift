@@ -8,7 +8,7 @@ enum UFitOutfitEditingHTTP {
     static let pageLimit = 20
     static func ownerQuery(_ scope: UFitOutfitScope) -> URLQueryItem { .init(name: scope.kind == .creator ? creator : brand, value: scope.profileID) }
 }
-enum UFitOutfitAction: String { case submit, archive, restore, review }
+enum UFitOutfitAction: String { case publish, withdraw, archive, restore }
 enum UFitOutfitContractError: LocalizedError {
     case document, page, metadata, draft
     var errorDescription: String? {
@@ -39,16 +39,19 @@ struct UFitManagedOutfit: Decodable, Identifiable {
     @UFitRequiredNullable var author: OutfitAuthor?
     @UFitRequiredNullable var owner: Owner?
     @UFitRequiredNullable var genderTarget: UFitGenderTarget?
-    @UFitRequiredNullable var rejectionReason: String?
-    @UFitRequiredNullable var reviewedAt: String?
     @UFitRequiredNullable var publishedAt: String?
+    @UFitRequiredNullable var scheduledFor: String?
+    @UFitRequiredNullable var publicationTimeZone: String?
     let createdAt: String; let updatedAt: String
     var revision: UFitOutfitRevision { .init(id: id, version: version) }
     var scope: UFitOutfitScope? { owner.map { .init(profileID: $0.id, kind: $0.kind) } }
     func validate(id expectedID: String? = nil, scope expectedScope: UFitOutfitScope? = nil) throws {
         func uuid(_ value: String) -> Bool { UUID(uuidString: value) != nil }
         func unique<T: Hashable>(_ values: [T]) -> Bool { Set(values).count == values.count }
-        guard uuid(id), version >= UFitOutfitInput.versionInitial, expectedID == nil || expectedID == id,
+        guard (scheduledFor == nil) == (publicationTimeZone == nil),
+              scheduledFor == nil || (UFitPublicationDate.parse(scheduledFor!) != nil && TimeZone(identifier: publicationTimeZone!) != nil),
+              status != .scheduled || (scheduledFor != nil && visibility == .private && publishedAt == nil),
+              uuid(id), version >= UFitOutfitInput.versionInitial, expectedID == nil || expectedID == id,
               expectedScope == nil || expectedScope == scope, !(creatorId != nil && brandId != nil),
               creatorId == nil || uuid(creatorId!), brandId == nil || uuid(brandId!),
               owner == nil ? (creatorId == nil && brandId == nil) : (owner!.id == (owner!.kind == .creator ? creatorId : brandId)),
@@ -110,10 +113,10 @@ extension UFitAPIClient {
             path: editingID.map { UFitOutfitEditingHTTP.base + $0 } ?? UFitOutfitEditingHTTP.collection, body: request, requiresAuth: true)
         try result.validate(id: editingID, scope: scope); return result
     }
-    func mutateOutfit(_ revision: UFitOutfitRevision, action: UFitOutfitAction, decision: UFitOutfitStatus? = nil, reason: String? = nil) async throws -> UFitManagedOutfit {
-        struct Body: Encodable { let expectedVersion: Int; let decision: UFitOutfitStatus?; let rejectionReason: String? }
+    func mutateOutfit(_ revision: UFitOutfitRevision, action: UFitOutfitAction) async throws -> UFitManagedOutfit {
+        struct Body: Encodable { let expectedVersion: Int }
         let result: UFitManagedOutfit = try await send(UFitOutfitEditingHTTP.patch, path: UFitOutfitEditingHTTP.base + revision.id + UFitOutfitEditingHTTP.separator + action.rawValue,
-            body: Body(expectedVersion: revision.version, decision: decision, rejectionReason: reason), requiresAuth: true)
+            body: Body(expectedVersion: revision.version), requiresAuth: true)
         try result.validate(id: revision.id); return result
     }
 }

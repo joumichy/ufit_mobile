@@ -20,9 +20,9 @@ struct UFitProfileImageHost: View {
                     else if store.document != nil {
                         if store.document?.image == nil { Text(UFitProfileImageCopy.empty).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText) }
                         UFitButton(store.pending == nil ? UFitProfileImageCopy.edit : UFitProfileImageCopy.verify) { editing = true }
-                            .ufitButtonStyle(.text).disabled(!store.hasAccess)
+                            .ufitButtonStyle(.secondary, compact: true).disabled(!store.hasAccess)
                     } else {
-                        UFitButton(UFitProfileImageCopy.retry) { Task { await store.refresh() } }.ufitButtonStyle(.text)
+                        UFitButton(UFitProfileImageCopy.retry) { Task { await store.refresh() } }.ufitButtonStyle(.secondary, compact: true)
                     }
                 }.frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -73,13 +73,13 @@ private struct UFitProfileImageEditor: View {
                         UFitActionButton(title: store.previewData == nil && store.document?.image == nil ? UFitProfileImageCopy.choose : UFitProfileImageCopy.replace,
                             kind: .secondary, disabled: !store.canChoose) { selection = []; picking = true }
                         if store.document?.image != nil || store.previewData != nil {
-                            UFitButton(UFitProfileImageCopy.remove, role: .destructive) { store.remove() }.disabled(!store.canChoose || store.wantsRemoval)
+                            UFitActionButton(title: UFitProfileImageCopy.remove, kind: .secondary, role: .destructive, disabled: !store.canChoose || store.wantsRemoval) { store.remove() }
                         }
                     }
                     if store.pending != nil && store.mayRetryCommand && !store.received {
-                        UFitButton(UFitProfileImageCopy.verify) { Task { await store.refresh() } }.disabled(store.isBusy || store.isLoading)
+                        UFitActionButton(title: UFitProfileImageCopy.verify, kind: .secondary, disabled: store.isBusy || store.isLoading) { Task { await store.refresh() } }
                     } else if store.pending == nil && (store.message != nil || store.hasConflict) {
-                        UFitButton(UFitProfileImageCopy.refresh) { Task { await store.refresh() } }.disabled(store.isBusy || store.isLoading)
+                        UFitActionButton(title: UFitProfileImageCopy.refresh, kind: .secondary, disabled: store.isBusy || store.isLoading) { Task { await store.refresh() } }
                     }
                 }.padding(Layout.gap).frame(maxWidth: .infinity, alignment: .leading)
             }

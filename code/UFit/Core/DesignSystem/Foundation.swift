@@ -28,6 +28,8 @@ enum UFitControlSize {
     static let compactIcon: CGFloat = 16
 }
 enum UFitMotion {
+    static let visibleOpacity = 1.0
+    static let restingScale: CGFloat = 1
     static let feedback = 0.16
     static let transition = 0.28
     static let spinner = 0.9

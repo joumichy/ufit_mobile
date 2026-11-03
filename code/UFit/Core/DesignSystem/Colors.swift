@@ -6,6 +6,7 @@ extension Color {
     static let ufitSecondaryText = Color(red: 75 / 255, green: 85 / 255, blue: 99 / 255)
     static let ufitSecondary = Color(red: 243 / 255, green: 244 / 255, blue: 246 / 255)
     static let ufitBorder = Color(red: 209 / 255, green: 213 / 255, blue: 219 / 255)
+    static let ufitActionBorder = ufitMuted
     static let ufitCanvas = Color.white
     static let ufitBackground = ufitSecondary
     static let ufitDanger = Color(red: 153 / 255, green: 27 / 255, blue: 27 / 255)

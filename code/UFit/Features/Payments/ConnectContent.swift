@@ -113,11 +113,10 @@ struct UFitConnectContent: View {
             capability(Copy.payouts, status.payoutsEnabled)
             if status.canConfigure {
                 if status.stage != .ready {
-                    UFitButton(action: onConfigure) { Text(Copy.start).frame(maxWidth: .infinity) }
-                        .ufitButtonStyle(.primary).disabled(isBusy || (status.country == nil && country.isEmpty))
+                    UFitActionButton(title: Copy.start, isBusy: isBusy, disabled: status.country == nil && country.isEmpty, action: onConfigure)
                 }
                 if status.stage == .ready || status.stage == .restricted {
-                    UFitButton(Copy.dashboard, action: onDashboard).frame(minHeight: Layout.touch).disabled(isBusy)
+                    UFitActionButton(title: Copy.dashboard, kind: .secondary, isBusy: isBusy, action: onDashboard)
                 }
             } else { Text(Copy.owner).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
         }

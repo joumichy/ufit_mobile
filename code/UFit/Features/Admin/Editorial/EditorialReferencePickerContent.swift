@@ -12,7 +12,7 @@ struct UFitEditorialReferencePickerContent: View {
                 UFitChoiceBar(title: Copy.kind, selection: Binding(get: { store.kind }, set: { value in Task { await store.filter(value) } }), options: [
                     .init(value: .outfit, title: Copy.outfits), .init(value: .product, title: Copy.products)])
                 UFitSearchField(query: $store.search, prompt: Copy.search).onSubmit { Task { await store.load() } }
-                UFitButton(Copy.searchAction) { Task { await store.load() } }
+                UFitActionButton(title: Copy.searchAction, kind: .secondary, disabled: store.isLoading) { Task { await store.load() } }
             }.padding(.horizontal, UFitSpace.page)
             if let message = store.message, !store.moreFailed {
                 VStack(spacing: UFitSpace.sm) {

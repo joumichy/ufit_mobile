@@ -114,7 +114,6 @@ struct MarketplaceRootView: View {
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 Task {
-                    if session.isSignedIn { await session.reloadProfile() }
                     await session.deviceNotifications.refresh()
                     if session.user != nil { await experience.load() }
                 }
@@ -319,9 +318,9 @@ private extension MarketplaceRootView {
         case .adminHome: activeRoute = .administratorHome
         case .adminApplications: activeRoute = .adminApplications
         case .adminProducts:
-            activeRoute = .catalog(UFitCatalogStore(brandID: nil, title: CatalogCopy.moderation, subtitle: CatalogCopy.allBrands, access: .moderator, client: session.api, session: session))
+            activeRoute = .catalog(UFitCatalogStore(brandID: nil, title: CatalogCopy.moderation, subtitle: CatalogCopy.allBrands, access: .administrator, client: session.api, session: session))
         case .adminOutfits:
-            activeRoute = .managedOutfits(UFitManagedOutfitsStore(scope: nil, title: OutfitCopy.moderation, subtitle: OutfitCopy.allAuthors, access: .moderator, client: session.api, session: session))
+            activeRoute = .managedOutfits(UFitManagedOutfitsStore(scope: nil, title: OutfitCopy.moderation, subtitle: OutfitCopy.allAuthors, access: .administrator, client: session.api, session: session))
         }
     }
 
@@ -464,7 +463,7 @@ private extension MarketplaceRootView {
         }
     }
     private enum OutfitCopy {
-        static let title = String(localized: "Mes tenues"); static let moderation = String(localized: "Modération des tenues")
+        static let title = String(localized: "Mes tenues"); static let moderation = String(localized: "Supervision des publications")
         static let allAuthors = String(localized: "Créateurs et marques")
     }
 
@@ -501,7 +500,7 @@ private extension MarketplaceRootView {
         }
     }
     private enum CatalogCopy {
-        static let title = String(localized: "Catalogue"); static let moderation = String(localized: "Modération produits"); static let allBrands = String(localized: "Toutes les marques")
+        static let title = String(localized: "Catalogue"); static let moderation = String(localized: "Supervision du catalogue"); static let allBrands = String(localized: "Toutes les marques")
     }
 
     func showApplications() {

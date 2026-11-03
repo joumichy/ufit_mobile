@@ -112,13 +112,13 @@ struct UFitAuthenticationView: View {
                     UFitButton(Copy.forgotten) { mode = .recovery; password = String() }.disabled(isBusy)
                 }
                 if mode.awaitsEmail {
-                    UFitButton(UFitAuthenticationCopy.changeEmail) { mode = mode == .confirmEmail ? .signIn : .recovery }.disabled(isBusy)
-                    if mode == .recoverySent { UFitButton(Copy.existing) { mode = .signIn }.disabled(isBusy) }
+                    UFitActionButton(title: UFitAuthenticationCopy.changeEmail, kind: .secondary, disabled: isBusy) { mode = mode == .confirmEmail ? .signIn : .recovery }
+                    if mode == .recoverySent { UFitActionButton(title: Copy.existing, kind: .secondary, disabled: isBusy) { mode = .signIn } }
                 } else if mode != .newPassword {
-                    UFitButton(mode == .signIn ? Copy.create : Copy.existing) {
+                    UFitActionButton(title: mode == .signIn ? Copy.create : Copy.existing, kind: .secondary, disabled: isBusy) {
                         mode = mode == .signIn ? .signUp : .signIn
                         password = String()
-                    }.disabled(isBusy)
+                    }
                 }
                 UFitButton(mode == .newPassword ? UFitAuthenticationCopy.cancelRecovery : Copy.browse, action: onBrowse)
                     .foregroundStyle(Color.ufitSecondaryText).disabled(isBusy)
