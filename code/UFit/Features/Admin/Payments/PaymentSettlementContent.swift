@@ -5,6 +5,7 @@ struct UFitPaymentSettlementContent: View {
     let isLoading: Bool; let isSending: Bool; let message: String?; let needsStatusRefresh: Bool
     let onBack: () -> Void; let onRefresh: () -> Void; let onSynchronize: () -> Void
     var onAllocation: (() -> Void)? = nil
+    var onDisbursements: (() -> Void)? = nil
     private typealias Copy = UFitPaymentSettlementCopy
     var body: some View {
         VStack(spacing: .zero) {
@@ -23,6 +24,10 @@ struct UFitPaymentSettlementContent: View {
                         } else { settlement(document) }
                         if let onAllocation {
                             UFitExperienceActionRow(title: UFitPaymentAllocationCopy.title, systemImage: UFitPaymentAllocationCopy.icon, action: onAllocation)
+                                .disabled(isLoading || isSending || needsStatusRefresh)
+                        }
+                        if document.receipt != nil, let onDisbursements {
+                            UFitExperienceActionRow(title: UFitPaymentDisbursementCopy.title, systemImage: UFitPaymentDisbursementCopy.icon, action: onDisbursements)
                                 .disabled(isLoading || isSending || needsStatusRefresh)
                         }
                         references(document)

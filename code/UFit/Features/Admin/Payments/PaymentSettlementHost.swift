@@ -4,11 +4,12 @@ struct UFitPaymentSettlementHost: View {
     let store: UFitPaymentSettlementStore
     let onBack: () -> Void
     var onAllocation: (() -> Void)? = nil
+    var onDisbursements: (() -> Void)? = nil
     @Environment(\.scenePhase) private var scenePhase
     var body: some View {
         UFitPaymentSettlementContent(document: store.document, isLoading: store.isLoading, isSending: store.isSending,
             message: store.message, needsStatusRefresh: store.needsStatusRefresh, onBack: onBack,
-            onRefresh: { Task { await store.refresh() } }, onSynchronize: { Task { await store.synchronize() } }, onAllocation: onAllocation)
+            onRefresh: { Task { await store.refresh() } }, onSynchronize: { Task { await store.synchronize() } }, onAllocation: onAllocation, onDisbursements: onDisbursements)
             .task { await store.load() }
             .task(id: store.shouldPoll) {
                 while store.shouldPoll && !Task.isCancelled {

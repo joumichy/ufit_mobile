@@ -3,7 +3,7 @@ import Observation
 
 @MainActor @Observable
 final class UFitAdminOrdersFlowStore {
-    enum Route { case list, detail(UFitAdminOrderDetailStore), returns(UFitAdminOrderReturnsStore), returnDetail(UFitReturnDetailStore), settlement(UFitPaymentSettlementStore), allocation(UFitPaymentAllocationStore) }
+    enum Route { case list, detail(UFitAdminOrderDetailStore), returns(UFitAdminOrderReturnsStore), returnDetail(UFitReturnDetailStore), settlement(UFitPaymentSettlementStore), allocation(UFitPaymentAllocationStore), disbursements(UFitPaymentDisbursementStore) }
     let list: UFitAdminOrdersStore
     private(set) var route = Route.list
     @ObservationIgnored private var history = [Route]()
@@ -17,6 +17,7 @@ final class UFitAdminOrdersFlowStore {
         case .returns(let store): store.cancelLoading()
         case .settlement(let store): store.cancelLoading()
         case .allocation(let store): store.cancelLoading()
+        case .disbursements(let store): store.cancelLoading()
         case .returnDetail: break
         }
         route = previous
@@ -37,10 +38,22 @@ final class UFitAdminOrdersFlowStore {
         route = .settlement(.init(paymentID: paymentID, orderID: document.order.id, brandID: document.brand.id, collection: list))
     }
     func showAllocation() {
+        let reference: UFitPaymentSettlementDocument; let brandID: String
+        switch route {
+        case .settlement(let store):
+            guard !store.isLoading, !store.isSending, !store.needsStatusRefresh, let document = store.document else { return }
+            reference = document; brandID = store.brandID
+        case .disbursements(let store):
+            guard !store.isSending else { return }; reference = store.reference; brandID = store.brandID
+        default: return
+        }
+        guard list.canRead else { return }; history.append(route)
+        route = .allocation(.init(reference: reference, brandID: brandID, collection: list))
+    }
+    func showDisbursements() {
         guard case .settlement(let store) = route, list.canRead, !store.isLoading, !store.isSending,
-              !store.needsStatusRefresh, let document = store.document else { return }
-        history.append(route)
-        route = .allocation(.init(reference: document, brandID: store.brandID, collection: list))
+              !store.needsStatusRefresh, let document = store.document, document.receipt != nil else { return }
+        history.append(route); route = .disbursements(.init(reference: document, brandID: store.brandID, collection: list))
     }
     func openReturn(_ id: String) {
         guard case .returns(let store) = route, list.canRead, store.rows.contains(where: { $0.id == id }) else { return }
@@ -65,8 +78,9 @@ struct UFitAdminOrdersFlowHost: View {
                 switch store.route {
                 case .list: UFitAdminOrdersContent(store: store.list, onBack: back, onOpen: store.open)
                 case .detail(let detail): UFitAdminOrderDetailContent(store: detail, onBack: back, onReturns: store.showReturns, onSettlement: store.showSettlement).id(detail.id)
-                case .settlement(let settlement): UFitPaymentSettlementHost(store: settlement, onBack: back, onAllocation: store.showAllocation).id(settlement.paymentID)
+                case .settlement(let settlement): UFitPaymentSettlementHost(store: settlement, onBack: back, onAllocation: store.showAllocation, onDisbursements: store.showDisbursements).id(settlement.paymentID)
                 case .allocation(let allocation): UFitPaymentAllocationHost(store: allocation, onBack: back).id(allocation.reference.payment.id)
+                case .disbursements(let disbursements): UFitPaymentDisbursementHost(store: disbursements, onBack: back, onAllocation: store.showAllocation).id(disbursements.reference.payment.id)
                 case .returns(let returns): UFitAdminOrderReturnsContent(store: returns, onBack: back, onOpen: store.openReturn)
                 case .returnDetail(let detail):
                     UFitReturnDetailHost(store: detail, onBack: back)
