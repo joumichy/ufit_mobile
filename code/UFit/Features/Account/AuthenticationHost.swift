@@ -12,6 +12,10 @@ struct UFitAuthenticationHost: View {
     @State private var password = String()
     @State private var appleNonce: String?
     @State private var appleError: String?
+    private var authenticationReady: Bool {
+        session.user != nil && !session.isBusy && !session.needsNewPassword
+            && !session.isHandlingAuthenticationCallback && session.authenticationFailure == nil
+    }
 
     var body: some View {
         UFitAuthenticationView(mode: $mode, name: $name, email: $email, password: $password,
@@ -23,10 +27,7 @@ struct UFitAuthenticationHost: View {
                 if needed { mode = .newPassword }
                 else if mode == .newPassword { mode = .recovery }
             }
-            .onChange(of: session.user?.id) { _, userID in
-                if userID != nil { finishAuthenticationIfReady() }
-            }
-            .onChange(of: session.isHandlingAuthenticationCallback) { _, handling in if !handling { finishAuthenticationIfReady() } }
+            .onChange(of: authenticationReady) { _, ready in if ready { onBrowse() } }
             .onChange(of: mode) { _, _ in appleError = nil; appleNonce = nil; session.message = nil; password = String() }
             .onAppear { if session.needsNewPassword { mode = .newPassword } }
             .onDisappear { if session.authenticationFailure != nil { session.message = nil } }
@@ -54,11 +55,6 @@ struct UFitAuthenticationHost: View {
         }
     }
 
-    private func finishAuthenticationIfReady() {
-        guard session.user != nil, !session.needsNewPassword, !session.isHandlingAuthenticationCallback,
-              session.authenticationFailure == nil else { return }
-        onBrowse()
-    }
     private func leave() {
         guard !session.isBusy else { return }
         if session.needsNewPassword { Task { await session.cancelPasswordRecovery(); onBrowse() } }

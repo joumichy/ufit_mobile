@@ -112,11 +112,16 @@ final class UFitSessionStore {
                 if event == .passwordRecovery { self.needsNewPassword = true }
                 let identity = UFitAuthSessionIdentity(session)
                 if identity != self.observedAuthIdentity {
-                    self.profileRequest = UUID(); self.user = nil; self.profileIdentity = nil
+                    // A callback may already be loading or have published this session's profile.
+                    // Its identity guard rejects the old session without cancelling the new request.
+                    if self.profileIdentity != identity { self.user = nil; self.profileIdentity = nil }
                     self.observedAuthIdentity = identity
                 }
                 self.isSignedIn = session != nil && identity?.subject != self.deletedAuthSubject
-                if session == nil { self.deviceNotifications.prepareForAuthentication(); self.user = nil; self.profileIdentity = nil }
+                if session == nil {
+                    self.profileRequest = UUID(); self.isLoadingProfile = false
+                    self.deviceNotifications.prepareForAuthentication(); self.user = nil; self.profileIdentity = nil
+                }
                 else if !self.isHandlingAuthenticationCallback && (self.user == nil || event == .userUpdated) { await self.reloadProfile() }
                 self.isRestoring = false
                 self.deviceNotifications.contextChanged()
