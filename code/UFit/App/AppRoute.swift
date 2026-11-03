@@ -11,6 +11,7 @@ enum AppRoute {
     case refundRecoveries(UFitRefundRecoveryFlowStore)
     case commissionLedger(UFitCommissionLedgerFlowStore)
     case adminOrders(UFitAdminOrdersFlowStore)
+    case paymentDistribution(UFitDistributionFlowStore)
     case workspaceDashboard(UFitWorkspaceDashboardStore)
     case workspaceCommissions(UFitWorkspaceCommissionsStore)
     case managedProfile(UFitManagedProfileStore)

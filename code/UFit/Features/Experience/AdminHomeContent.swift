@@ -18,6 +18,7 @@ struct UFitAdminHomeContent: View {
     var refundRecoveryCount: Int? = nil
     var onCommissionLedger: (() -> Void)? = nil
     var onOrders: (() -> Void)? = nil
+    var onDistribution: (() -> Void)? = nil
     private enum Copy {
         static let title = String(localized: "À traiter"); static let context = String(localized: "Administration")
         static let applications = String(localized: "Candidatures"); static let products = String(localized: "Produits"); static let outfits = String(localized: "Tenues")
@@ -71,6 +72,10 @@ struct UFitAdminHomeContent: View {
                     }
                     UFitExperienceActionRow(title: UFitCommissionAdminCopy.rules, systemImage: CommissionIcon.rates, action: onCommissions)
                     Divider()
+                    if let onDistribution {
+                        UFitExperienceActionRow(title: UFitDistributionCopy.title, systemImage: UFitDistributionCopy.icon, action: onDistribution)
+                        Divider()
+                    }
                     UFitExperienceActionRow(title: UFitUserAdministrationCopy.title, systemImage: UserIcon.accounts, action: onUsers)
                     Divider()
                     UFitExperienceActionRow(title: UFitCreatorGradeAdminCopy.title, systemImage: GradeIcon.grades, action: onGrades)

@@ -175,7 +175,9 @@ struct MarketplaceRootView: View {
             } else { experienceChooser }
         case .administratorHome:
             UFitAdminActivityHost(store: adminActivity, onChooseExperience: showExperiencePicker, onApplications: showAdminApplications,
-                onProducts: showAdminProducts, onOutfits: showAdminOutfits, onReturns: showAdminReturns, onCommissions: showCommissionRules, onUsers: showUserAdministration, onGrades: showCreatorGradeAdministration, onEditorial: showEditorialAdministration, onRefundRecoveries: showRefundRecoveries, onCommissionLedger: showCommissionLedger, onOrders: showAdminOrders)
+                onProducts: showAdminProducts, onOutfits: showAdminOutfits, onReturns: showAdminReturns, onCommissions: showCommissionRules, onUsers: showUserAdministration, onGrades: showCreatorGradeAdministration, onEditorial: showEditorialAdministration, onRefundRecoveries: showRefundRecoveries, onCommissionLedger: showCommissionLedger, onOrders: showAdminOrders, onDistribution: showPaymentDistribution)
+        case .paymentDistribution(let flow):
+            UFitDistributionFlowHost(store: flow, onClose: goBack)
         case .adminOrders(let flow):
             UFitAdminOrdersFlowHost(store: flow, onClose: goBack)
         case .commissionLedger(let flow):
@@ -537,6 +539,10 @@ private extension MarketplaceRootView {
     func showAdminOrders() {
         guard experience.kind == .administrator, session.user?.canAdminister == true else { return }
         routeHistory.append(activeRoute); activeRoute = .adminOrders(UFitAdminOrdersFlowStore(session: session))
+    }
+    func showPaymentDistribution() {
+        guard experience.kind == .administrator, session.user?.canAdminister == true else { return }
+        routeHistory.append(activeRoute); activeRoute = .paymentDistribution(UFitDistributionFlowStore(session: session))
     }
     func showCommissionRules() {
         guard experience.kind == .administrator, session.user?.canAdminister == true else { return }
