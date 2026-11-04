@@ -45,6 +45,6 @@ struct UFitAdminActivity: Equatable {
     let applications: Int
 }
 enum UFitProfessionalProfileAction: String, Identifiable {
-    case edit, publicProfile, sales, commercePolicy, payments, personalAccount
+    case edit, publicProfile, sales, integrations, commercePolicy, payments, personalAccount
     var id: String { rawValue }
 }

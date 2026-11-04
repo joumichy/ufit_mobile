@@ -15,6 +15,7 @@ enum AppRoute {
     case workspaceDashboard(UFitWorkspaceDashboardStore)
     case workspaceCommissions(UFitWorkspaceCommissionsStore)
     case workspaceTransfers(UFitWorkspaceTransfersStore)
+    case brandIntegrations(UFitBrandOutfitIntegrationsStore)
     case managedProfile(UFitManagedProfileStore)
     case managedOutfits(UFitManagedOutfitsStore)
     case managedOutfit(UFitManagedOutfitStore)

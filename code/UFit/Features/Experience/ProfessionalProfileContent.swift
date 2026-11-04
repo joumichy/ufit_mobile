@@ -10,12 +10,14 @@ struct UFitProfessionalProfileContent: View {
         static let creatorTitle = String(localized: "Mon profil créateur"); static let brandTitle = String(localized: "Ma marque")
         static let edit = String(localized: "Modifier le profil"); static let preview = String(localized: "Voir la page publique")
         static let sales = String(localized: "Ventes et encaissements"); static let policy = String(localized: "Conditions de vente")
+        static let integrations = String(localized: "Tenues avec vos pièces")
         static let creatorPayments = String(localized: "Compte de versement"); static let brandPayments = String(localized: "Paiements et versements")
         static let account = String(localized: "Mon compte personnel")
     }
     private enum Icon {
         static let edit = "pencil"; static let preview = "arrow.up.right.square"; static let sales = "chart.line.uptrend.xyaxis"
         static let policy = "doc.text"; static let payments = "creditcard"; static let account = "person.crop.circle"
+        static let integrations = "square.stack"
     }
     private enum Layout { static let page: CGFloat = UFitSpace.xl; static let gap: CGFloat = UFitSpace.md; static let bottom: CGFloat = 110 }
     var body: some View {
@@ -40,6 +42,8 @@ struct UFitProfessionalProfileContent: View {
                             UFitExperienceActionRow(title: Copy.policy, systemImage: Icon.policy) { onAction(.commercePolicy) }
                             Divider()
                             UFitExperienceActionRow(title: Copy.sales, systemImage: Icon.sales) { onAction(.sales) }
+                            Divider()
+                            UFitExperienceActionRow(title: Copy.integrations, systemImage: Icon.integrations) { onAction(.integrations) }
                             Divider()
                         }
                         if workspace.status == .active {

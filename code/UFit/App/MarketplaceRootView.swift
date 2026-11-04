@@ -196,6 +196,8 @@ struct MarketplaceRootView: View {
             UFitWorkspaceCommissionsHost(store: commissions, onBack: goBack)
         case .workspaceTransfers(let transfers):
             UFitWorkspaceTransfersHost(store: transfers, onBack: goBack, onAccount: { performProfileAction(.payments, space: transfers.workspace) })
+        case .brandIntegrations(let integrations):
+            UFitBrandOutfitIntegrationsHost(store: integrations, onBack: goBack, onOutfit: showOutfitDetail)
         case .managedOutfits(let outfits):
             UFitManagedOutfitsHost(store: outfits, onBack: goBack, onOpen: showManagedOutfit, onCreate: showOutfitForm)
         case .managedOutfit(let outfit):
@@ -861,6 +863,10 @@ private extension MarketplaceRootView {
             guard space.status == .active else { return }
             showPublicProfile(.init(id: space.profileID, kind: space.isCreator ? .creator : .brand))
         case .sales: showWorkspaceDashboard(space)
+        case .integrations:
+            guard !space.isCreator else { return }
+            routeHistory.append(activeRoute)
+            activeRoute = .brandIntegrations(UFitBrandOutfitIntegrationsStore(workspace: space, session: session))
         case .commercePolicy: showBrandCommercePolicy(space)
         case .payments:
             guard space.status == .active else { return }
