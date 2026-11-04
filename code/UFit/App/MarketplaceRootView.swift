@@ -61,7 +61,7 @@ struct MarketplaceRootView: View {
                 .background(Color.ufitBackground)
             }
         }
-        .preferredColorScheme(.light)
+        .preferredColorScheme(usesImmersiveFeedAppearance ? .dark : .light)
         .task(id: stylePreferences.scope) { await stylePreferences.activate() }
         .safeAreaInset(edge: .top, spacing: .zero) {
             if accountDeletion.hasRequest && !showAccountDeletion {
@@ -137,6 +137,12 @@ struct MarketplaceRootView: View {
         .ufitSheet(isPresented: $showAccountDeletion) {
             UFitAccountDeletionContent(store: accountDeletion, onClose: { showAccountDeletion = false })
         }
+    }
+
+    private var usesImmersiveFeedAppearance: Bool {
+        guard !showOnboarding, !store.outfits.isEmpty, !showAuthentication,
+              !showExperienceChooser, !accountDeletion.hasRequest, case .feed = activeRoute else { return false }
+        return true
     }
 
     @ViewBuilder

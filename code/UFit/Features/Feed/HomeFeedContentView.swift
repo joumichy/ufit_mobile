@@ -24,6 +24,12 @@ struct HomeFeedContentView: View {
         static let retryMore = String(localized: "Réessayer la suite")
         static let loadingMore = String(localized: "Chargement des tenues…")
     }
+    private enum StatusContrast {
+        static let height: CGFloat = 112
+        static let opacity = 0.62
+        static let plateau = 0.65
+        static let end = 1.0
+    }
     var body: some View {
         ScrollView(.vertical) {
             LazyVStack(spacing: .zero) {
@@ -50,6 +56,17 @@ struct HomeFeedContentView: View {
         .scrollPosition(id: $visibleOutfitID)
         .background(Color.ufitInk)
         .ignoresSafeArea(edges: .top)
+        .overlay(alignment: .top) {
+            if !outfits.isEmpty {
+                LinearGradient(stops: [
+                    .init(color: .black.opacity(StatusContrast.opacity), location: .zero),
+                    .init(color: .black.opacity(StatusContrast.opacity), location: StatusContrast.plateau),
+                    .init(color: .clear, location: StatusContrast.end)
+                ], startPoint: .top, endPoint: .bottom)
+                    .frame(height: StatusContrast.height).ignoresSafeArea(edges: .top)
+                    .allowsHitTesting(false).accessibilityHidden(true)
+            }
+        }
         .overlay(alignment: .top) {
             VStack(spacing: UFitSpace.xs) {
                 if !outfits.isEmpty, let loadError {
