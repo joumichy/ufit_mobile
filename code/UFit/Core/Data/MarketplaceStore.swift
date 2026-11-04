@@ -301,12 +301,17 @@ final class MarketplaceStore {
     }
 }
 
-private enum OutfitPresentation {
+enum UFitOutfitPresentation {
     static let editorial = String(localized: "Sélection Ufit")
     static let initials = "UF"
     static let inspiration = String(localized: "Inspiration")
     static let unavailable = String(localized: "Article indisponible")
+    private static let unavailablePrices = String(localized: "Pièces indisponibles à l’achat")
     static let empty = String()
+    static func priceSummary(prices: [UFitProductPriceDTO], items: [UFitOutfitItemDTO]) -> String {
+        if prices.isEmpty && items.contains(where: \.isShoppable) { return unavailablePrices }
+        return UFitMoney.ranges(prices)
+    }
     static func initials(for author: OutfitAuthor?) -> String {
         guard let author else { return initials }
         return author.name.split(whereSeparator: \.isWhitespace).prefix(2).compactMap(\.first).map(String.init).joined()
@@ -316,12 +321,12 @@ private enum OutfitPresentation {
 extension UFitOutfitCardDTO {
     func toOutfit() -> Outfit {
         Outfit(id: id, imageName: coverImageUrl,
-            creator: author?.name ?? OutfitPresentation.editorial,
-            creatorAvatar: OutfitPresentation.initials(for: author), author: author,
-            price: UFitMoney.ranges(prices), title: title, description: OutfitPresentation.empty,
+            creator: author?.name ?? UFitOutfitPresentation.editorial,
+            creatorAvatar: UFitOutfitPresentation.initials(for: author), author: author,
+            price: UFitOutfitPresentation.priceSummary(prices: prices, items: items), title: title, description: UFitOutfitPresentation.empty,
             sourceCreatorId: creatorId, sourceOutfitId: id,
             products: items.sorted { $0.position < $1.position }.map { .init(id: $0.id, systemImage: $0.itemType.symbol, name: $0.label, productID: $0.product?.id, brandID: $0.product?.brandId, image: $0.product?.imageUrl, brandName: $0.product?.brandName,
-                price: $0.product.map { UFitMoney.format($0.price, currency: $0.currency) } ?? ($0.isShoppable ? OutfitPresentation.unavailable : OutfitPresentation.inspiration)) },
+                price: $0.product.map { UFitMoney.format($0.price, currency: $0.currency) } ?? ($0.isShoppable ? UFitOutfitPresentation.unavailable : UFitOutfitPresentation.inspiration)) },
             pieces: [], photos: images.sorted { $0.position < $1.position }, pins: pins)
     }
 }
@@ -332,17 +337,17 @@ extension UFitOutfitDetailDTO {
         let products = sorted.map { item in
             OutfitProduct(id: item.id, systemImage: item.itemType.symbol, name: item.label,
                 productID: item.product?.id, brandID: item.product?.brandId, image: item.product?.imageUrl, brandName: item.product?.brandName,
-                price: item.product.map { UFitMoney.format($0.price, currency: $0.currency) } ?? (item.isShoppable ? OutfitPresentation.unavailable : OutfitPresentation.inspiration))
+                price: item.product.map { UFitMoney.format($0.price, currency: $0.currency) } ?? (item.isShoppable ? UFitOutfitPresentation.unavailable : UFitOutfitPresentation.inspiration))
         }
         let pieces = sorted.map { item in
-            OutfitPiece(id: item.id, name: item.label, brand: OutfitPresentation.empty,
-                price: item.product.map { UFitMoney.format($0.price, currency: $0.currency) } ?? OutfitPresentation.inspiration,
+            OutfitPiece(id: item.id, name: item.label, brand: UFitOutfitPresentation.empty,
+                price: item.product.map { UFitMoney.format($0.price, currency: $0.currency) } ?? (item.isShoppable ? UFitOutfitPresentation.unavailable : UFitOutfitPresentation.inspiration),
                 sizes: [], productID: item.product?.id, isRequired: item.isRequired, isShoppable: item.isShoppable)
         }
         return Outfit(id: id, imageName: coverImageUrl,
-            creator: author?.name ?? OutfitPresentation.editorial,
-            creatorAvatar: OutfitPresentation.initials(for: author), author: author,
-            price: UFitMoney.ranges(prices), title: title, description: description,
+            creator: author?.name ?? UFitOutfitPresentation.editorial,
+            creatorAvatar: UFitOutfitPresentation.initials(for: author), author: author,
+            price: UFitOutfitPresentation.priceSummary(prices: prices, items: items), title: title, description: description,
             sourceCreatorId: creatorId, sourceOutfitId: id, products: products, pieces: pieces, photos: images.sorted { $0.position < $1.position }, pins: pins)
     }
 }

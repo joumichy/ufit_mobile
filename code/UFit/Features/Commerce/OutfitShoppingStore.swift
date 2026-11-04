@@ -39,7 +39,7 @@ final class UFitOutfitShoppingStore {
                     return UFitVariantChoice(id: value.id, label: options.isEmpty ? Copy.standard : options.joined(separator: Defaults.separator), isAvailable: value.stockQuantity > .zero)
                 }, selectedVariantID: selected, quantity: quantities[item.id] ?? Defaults.quantity,
                 maximumQuantity: variant?.stockQuantity ?? Defaults.quantity, isBusy: busyItems.contains(item.id), wasAdded: addedItems.contains(item.id),
-                issue: issues[item.id] ?? (item.isShoppable && product == nil ? Copy.unavailable : nil))
+                issue: issues[item.id])
         }
     }
 

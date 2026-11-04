@@ -21,7 +21,7 @@ struct OutfitDetailView: View {
         UFitOutfitShoppingContent(title: shopping.detail?.title ?? outfit.title,
             photos: presentedPhotos,
             description: shopping.detail?.description ?? outfit.description, author: presentedAuthor,
-            prices: shopping.detail.map { UFitMoney.ranges($0.prices) } ?? outfit.price,
+            prices: shopping.detail.map { UFitOutfitPresentation.priceSummary(prices: $0.prices, items: $0.items) } ?? outfit.price,
             pieces: shopping.pieces, cartCount: cart.count, isLoading: shopping.isLoading,
             message: shopping.message, onBack: onBack, onAuthor: { if let author = presentedAuthor { onAuthor(author) } }, onBrand: onBrand, onCart: onCart,
             onRetry: { Task { await shopping.load(id: outfit.id) } },

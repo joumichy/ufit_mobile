@@ -11,6 +11,7 @@ struct UFitBrandOutfitIntegrationsHost: View {
         static let unavailable = String(localized: "Tenues indisponibles")
         static let access = String(localized: "Accès à la marque indisponible")
         static let retry = String(localized: "Réessayer")
+        static let retryPage = String(localized: "Réessayer cette page")
         static let empty = String(localized: "Aucune tenue pour le moment")
         static let emptyMessage = String(localized: "Les tenues publiées contenant vos produits apparaîtront ici.")
         static let pieces = String(localized: "Vos pièces dans cette tenue")
@@ -22,6 +23,7 @@ struct UFitBrandOutfitIntegrationsHost: View {
     }
     private enum Icon { static let refresh = "arrow.clockwise"; static let failure = "wifi.exclamationmark"; static let access = "lock"; static let empty = "square.stack"; static let next = "arrow.up.right" }
     private enum Layout { static let cover: CGFloat = 260; static let state: CGFloat = 240 }
+    private enum Anchor { static let nextPage = "brand-integrations-next-page" }
     var body: some View {
         VStack(spacing: .zero) {
             DetailHeader(title: Copy.title, onBack: onBack) {
@@ -37,8 +39,9 @@ struct UFitBrandOutfitIntegrationsHost: View {
                     UFitActionButton(title: Copy.retry, kind: .secondary) { Task { await store.retry() } }
                 }.padding(UFitSpace.page)
             }
+            ScrollViewReader { scroll in
             ScrollView {
-                LazyVStack(alignment: .leading, spacing: UFitSpace.xl) {
+                VStack(alignment: .leading, spacing: UFitSpace.xl) {
                     Text(store.workspace.name).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText)
                     if store.entries.isEmpty {
                         if store.operation == .loading {
@@ -52,19 +55,31 @@ struct UFitBrandOutfitIntegrationsHost: View {
                             UFitEmptyState(title: Copy.empty, message: Copy.emptyMessage, symbol: Icon.empty)
                         }
                     }
-                    ForEach(store.entries) { entry in
-                        entryContent(entry)
-                        Divider()
-                    }
-                    if store.failureAtEnd, let message = store.message {
-                        UFitNotice(message: message, kind: .error)
-                        UFitActionButton(title: Copy.retry, kind: .secondary) { Task { await store.retry() } }
-                    } else if store.hasMore {
-                        UFitActionButton(title: Copy.more, kind: .secondary, isBusy: store.operation == .more) {
-                            Task { await store.load(more: true) }
+                    LazyVStack(alignment: .leading, spacing: UFitSpace.xl) {
+                        ForEach(store.entries) { entry in
+                            VStack(alignment: .leading, spacing: UFitSpace.xl) {
+                                entryContent(entry)
+                                Divider()
+                            }.id(entry.id)
                         }
-                    }
-                }.padding(UFitSpace.page)
+                    }.scrollTargetLayout()
+                    VStack(spacing: UFitSpace.md) {
+                        if store.failureAtEnd, let message = store.message {
+                            UFitNotice(message: message, kind: .error)
+                            UFitActionButton(title: store.retriesNextPage ? Copy.retryPage : Copy.refresh, kind: .secondary) {
+                                Task { await store.retry() }
+                            }
+                        } else if store.hasMore {
+                            UFitActionButton(title: Copy.more, kind: .secondary, isBusy: store.operation == .more) {
+                                Task { await store.load(more: true) }
+                            }
+                        }
+                    }.id(Anchor.nextPage)
+                }.padding(.vertical, UFitSpace.page)
+            }.padding(.horizontal, UFitSpace.page).scrollPosition(id: $store.visibleEntryID, anchor: .top)
+                .onChange(of: store.failureAtEnd) { _, failed in
+                    if failed { scroll.scrollTo(Anchor.nextPage, anchor: .bottom) }
+                }
             }
         }.foregroundStyle(Color.ufitInk).background(Color.ufitCanvas)
             .task { if !store.hasLoaded { await store.load() } }.onDisappear { store.cancelLoading() }
