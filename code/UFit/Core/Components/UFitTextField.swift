@@ -10,11 +10,11 @@ struct UFitTextField: View {
     var contentType: UITextContentType? = nil
     var body: some View {
         VStack(alignment: .leading, spacing: UFitSpace.xs) {
-            Text(label).font(UFitTypography.subheadline.weight(.medium))
-            UFitInput(label, text: $text, error: error, isSecure: isSecure)
+            UFitInput(label, text: $text, error: error, isSecure: isSecure,
+                showsLabel: true,
+                allowsKeyboardDismissal: [.phonePad, .numberPad, .decimalPad, .asciiCapableNumberPad].contains(keyboard))
                 .keyboardType(keyboard).textContentType(contentType)
                 .textInputAutocapitalization(isIdentifier ? .never : .sentences).autocorrectionDisabled(isIdentifier)
-            if let error { UFitFieldError(message: error) }
         }
     }
 }
@@ -24,13 +24,38 @@ struct UFitInput: View {
     var error: String?
     var isSecure = false
     var axis: Axis = .horizontal
+    let showsLabel: Bool
+    let allowsKeyboardDismissal: Bool
     @FocusState private var focused: Bool
     @Environment(\.isEnabled) private var enabled
     private enum Layout { static let focusedBorder: CGFloat = 2; static let lines = 4...10 }
-    init(_ label: String, text: Binding<String>, error: String? = nil, isSecure: Bool = false, axis: Axis = .horizontal) {
+    private enum Copy { static let dismissKeyboard = String(localized: "Terminer la saisie") }
+    private enum Icon { static let dismissKeyboard = "keyboard.chevron.compact.down" }
+    init(_ label: String, text: Binding<String>, error: String? = nil, isSecure: Bool = false, axis: Axis = .horizontal,
+         showsLabel: Bool = false, allowsKeyboardDismissal: Bool = false) {
         self.label = label; _text = text; self.error = error; self.isSecure = isSecure; self.axis = axis
+        self.showsLabel = showsLabel
+        self.allowsKeyboardDismissal = allowsKeyboardDismissal
     }
     var body: some View {
+        VStack(alignment: .leading, spacing: UFitSpace.xs) {
+            if showsLabel || focused && allowsKeyboardDismissal {
+                HStack(spacing: UFitSpace.sm) {
+                    if showsLabel { Text(label).font(UFitTypography.subheadline.weight(.medium)) }
+                    Spacer(minLength: .zero)
+                    if focused && allowsKeyboardDismissal {
+                        UFitButton { focused = false } label: {
+                            UFitIcon(systemName: Icon.dismissKeyboard)
+                                .frame(width: UFitControlSize.touch, height: UFitControlSize.touch)
+                        }.ufitButtonStyle(.text).accessibilityLabel(Copy.dismissKeyboard)
+                    }
+                }
+            }
+            if showsLabel, let error { UFitFieldError(message: error) }
+            field
+        }
+    }
+    private var field: some View {
         Group {
             if isSecure { SecureField(label, text: $text) }
             else if axis == .vertical { TextField(label, text: $text, axis: .vertical).lineLimit(Layout.lines) }

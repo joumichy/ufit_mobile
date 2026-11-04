@@ -22,17 +22,17 @@ struct UFitTimeEntry: View {
     }
     var body: some View {
         VStack(spacing: UFitSpace.md) {
-            HStack(alignment: .center, spacing: UFitSpace.sm) {
-                number(.hours, title: Copy.hours, value: $hours, upperBound: UFitPublicationCalendarMath.hourCount)
-                Text(Copy.separator).ufitFont(size: digitSize, weight: .light).padding(.top, UFitSpace.lg).accessibilityHidden(true)
-                number(.minutes, title: Copy.minutes, value: $minutes, upperBound: UFitPublicationCalendarMath.minuteCount)
-            }
             if focused != nil {
                 HStack {
                     Spacer(minLength: UFitSpace.sm)
                     UFitButton(Copy.done) { focused = nil }.ufitButtonStyle(.text)
                         .font(UFitTypography.caption.weight(.semibold))
                 }.frame(minHeight: UFitControlSize.touch)
+            }
+            HStack(alignment: .center, spacing: UFitSpace.sm) {
+                number(.hours, title: Copy.hours, value: $hours, upperBound: UFitPublicationCalendarMath.hourCount)
+                Text(Copy.separator).ufitFont(size: digitSize, weight: .light).padding(.top, UFitSpace.lg).accessibilityHidden(true)
+                number(.minutes, title: Copy.minutes, value: $minutes, upperBound: UFitPublicationCalendarMath.minuteCount)
             }
         }.opacity(isEnabled ? Layout.fullOpacity : UFitMotion.disabledOpacity)
     }
