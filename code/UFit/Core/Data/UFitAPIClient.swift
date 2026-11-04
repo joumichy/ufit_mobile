@@ -417,7 +417,7 @@ struct UFitAddCartItemRequest: Encodable {
     let sourceOutfitId: String?
 }
 
-struct UFitCheckoutRequest: Encodable {
+struct UFitCheckoutRequest: Codable {
     let requestId: String
     let quoteFingerprint: String
     let shippingAddress: UFitShippingAddress

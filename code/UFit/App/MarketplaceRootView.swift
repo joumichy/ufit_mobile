@@ -21,7 +21,7 @@ struct MarketplaceRootView: View {
     @State private var professionalDashboard: UFitWorkspaceDashboardStore?
     @State private var appliedExperience = UFitExperienceSelection.customer
     @State private var showExperienceChooser = false
-    @State private var preserveCustomerContextOnSignIn = false
+    @State private var preserveCustomerContextOnAccountLoad = false
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var routeHistory: [AppRoute] = []
@@ -96,8 +96,8 @@ struct MarketplaceRootView: View {
             adminApplications.reset(); adminActivity.reset(); professionalDashboard = nil; experience.reset(); appliedExperience = .customer
             if previousUserID != nil { returnToFeed() }
             if userID != nil {
-                if preserveCustomerContextOnSignIn { experience.choose(.customer) }
-                preserveCustomerContextOnSignIn = false
+                if preserveCustomerContextOnAccountLoad { experience.choose(.customer) }
+                preserveCustomerContextOnAccountLoad = false
                 Task { await experience.load(); await store.loadSavedOutfits(); await store.loadSavedStates(ids: store.outfits.map(\.id)); await cart.load(); resolveNotification() }
             }
         }
@@ -124,7 +124,7 @@ struct MarketplaceRootView: View {
         }
         .onChange(of: showAuthentication) { _, showing in
             if !showing {
-                if session.user == nil { preserveCustomerContextOnSignIn = false }
+                if session.user == nil { preserveCustomerContextOnAccountLoad = false }
                 if experience.asksForChoice && !notificationOpening.hasPending { showExperienceChooser = true }
                 resolveNotification()
                 if case .publicProfile(let profile) = activeRoute { Task { await profile.loadFollow(refreshProfile: true) } }
@@ -225,7 +225,8 @@ struct MarketplaceRootView: View {
                 onAuthor: { author in showPublicProfile(.init(id: author.id, kind: author.kind)) },
                 onBrand: { id in showPublicProfile(.init(id: id, kind: .brand)) }, onBack: goBack, onCart: showCart, onSignIn: { requestSignIn(keepCustomerContext: true) }, focusedItemID: itemID)
         case .cart:
-            UFitCartHost(store: cart, onBack: goBack, onBrowse: returnToFeed, onCheckout: showCheckout)
+            UFitCartHost(store: cart, session: session, onBack: goBack, onBrowse: returnToFeed,
+                onSignIn: { requestSignIn(keepCustomerContext: true) }, onCheckout: showCheckout)
         case .checkout(let checkout):
             UFitCheckoutHost(store: checkout, onBack: goBack, onFinish: {showPurchasedOrder(checkout)})
         case .saved:
@@ -298,9 +299,7 @@ private extension MarketplaceRootView {
 
     func selectTab(_ tab: AppTab) {
         guard experience.kind.tabs.contains(tab) else { return }
-        if tab == .cart && session.user == nil {
-            requestSignIn(keepCustomerContext: true); return
-        }
+        if tab == .cart && session.user == nil { preserveCustomerContextOnAccountLoad = true }
         cancelCurrentForm(); workspaces.cancelOpening(); routeHistory = []; activeTab = tab
         switch tab {
         case .feed: activeRoute = .feed
@@ -649,9 +648,9 @@ private extension MarketplaceRootView {
     }
 
     func showCheckout() {
-        guard session.user != nil else { requestSignIn(keepCustomerContext: true); return }
+        guard let userID = session.user?.id else { showCart(); return }
         routeHistory.append(activeRoute)
-        activeRoute = .checkout(UFitCheckoutStore(client: session.api, cart: cart, name: session.user?.displayName))
+        activeRoute = .checkout(UFitCheckoutStore(userID: userID, session: session, cart: cart))
     }
 
     func showPayments() {
@@ -677,7 +676,7 @@ private extension MarketplaceRootView {
     }
 
     func showCart() {
-        guard session.user != nil else { requestSignIn(keepCustomerContext: true); return }
+        if session.user == nil { preserveCustomerContextOnAccountLoad = true }
         if experience.kind != .customer {
             experience.choose(.customer); applyExperienceNavigation(); selectTab(.cart)
         } else { routeHistory.append(activeRoute); activeRoute = .cart }
@@ -725,7 +724,7 @@ private extension MarketplaceRootView {
         if session.user == nil && notificationOpening.hasPending { closeNotification() }
     }
     func requestSignIn(keepCustomerContext: Bool) {
-        preserveCustomerContextOnSignIn = keepCustomerContext; showAuthentication = true
+        preserveCustomerContextOnAccountLoad = keepCustomerContext; showAuthentication = true
     }
     func receiveNotificationTap() {
         guard let id = notifications.pendingNotificationID,

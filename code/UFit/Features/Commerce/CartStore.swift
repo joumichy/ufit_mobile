@@ -8,6 +8,7 @@ final class UFitCartStore {
     private(set) var hasLoaded = false
     private(set) var busyItems = Set<String>()
     private(set) var loadError: String?
+    private(set) var checkoutRecovery: UFitCheckoutRecoveryNotice?
     var message: String?
     private var products = [String: UFitPublicProductDTO]()
     @ObservationIgnored private let client: UFitAPIClient
@@ -34,11 +35,12 @@ final class UFitCartStore {
                 isBusy: busyItems.contains(line.id), isAvailable: (variant?.stockQuantity ?? .zero) > .zero)
         }
     }
-    func reset() { cart = nil; products = [:]; busyItems = []; message = nil; loadError = nil; hasLoaded = false }
+    func reset() { cart = nil; products = [:]; busyItems = []; message = nil; loadError = nil; hasLoaded = false; checkoutRecovery = nil }
     func load() async {
         guard !isLoading, let userID = session.user?.id else { return }
         isLoading = true
         defer { isLoading = false }
+        readCheckoutRecovery(userID: userID)
         do {
             let response = try await client.fetchCart()
             guard session.user?.id == userID else { return }
@@ -51,6 +53,7 @@ final class UFitCartStore {
     }
     func receive(_ response: UFitCartDTO) async {
         guard let userID = session.user?.id else { return }
+        readCheckoutRecovery(userID: userID)
         cart = response; hasLoaded = true; loadError = nil; message = nil
         await hydrate(userID: userID)
     }
@@ -61,6 +64,12 @@ final class UFitCartStore {
         }
         guard session.user?.id == userID else { return }
         products = loaded
+    }
+    private func readCheckoutRecovery(userID: String) {
+        do {
+            let record = try UFitCheckoutJournal(userID: userID, endpoint: client.configuration.baseURL).read()
+            checkoutRecovery = record.map { .pending(amount: UFitMoney.format($0.amount, currency: $0.currency)) }
+        } catch { checkoutRecovery = .unavailable }
     }
     func update(id: String, quantity: Int) async {
         guard !busyItems.contains(id), let userID = session.user?.id else { return }

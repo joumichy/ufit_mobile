@@ -15,6 +15,11 @@ struct UFitCheckoutContent: View {
     let onRefresh: () -> Void
     let onFinish: () -> Void
     var payment: UFitCustomerPaymentStatusDTO? = nil
+    var recoveryAmount: String? = nil
+    var canReplay = false
+    var requiresNewReview = false
+    var onReplay: () -> Void = {}
+    var onReload: () -> Void = {}
     private enum Layout { static let spacing: CGFloat = UFitSpace.xl; static let fieldSpacing: CGFloat = UFitSpace.md; static let bottom: CGFloat = 110; static let fieldHeight: CGFloat = UFitControlSize.input }
     var body: some View {
         VStack(spacing: .zero) {
@@ -22,11 +27,21 @@ struct UFitCheckoutContent: View {
                 .disabled(isBusy)
             ScrollView {
                 VStack(alignment: .leading, spacing: Layout.spacing) {
+                    if step == .address && requiresNewReview, let message { UFitNotice(message: message) }
                     if step == .address { addressForm }
                     else if step == .review { review }
+                    else if step == .recovery {
+                        UFitCheckoutRecoveryContent(amount: recoveryAmount, canReplay: canReplay, isBusy: isBusy,
+                            message: message, onVerify: onReload, onReplay: onReplay)
+                    }
                     else { confirmation }
-                    if isBusy { UFitLoading().frame(maxWidth: .infinity) }
-                    if let message { Text(message).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText).accessibilityIdentifier("checkout-message") }
+                    if step != .recovery {
+                        if isBusy { UFitLoading().frame(maxWidth: .infinity) }
+                        if let message, !(step == .address && requiresNewReview) { Text(message).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText).accessibilityIdentifier("checkout-message") }
+                        if step == .address && destinations.isEmpty && message != nil {
+                            UFitActionButton(title: UFitCheckoutRecoveryCopy.deliveryRetry, kind: .secondary, isBusy: isBusy, action: onReload)
+                        }
+                    }
                 }.padding(Layout.spacing).padding(.bottom, UFitSpace.xl)
             }.scrollDismissesKeyboard(.interactively).id(step)
         }.foregroundStyle(Color.ufitInk).background(Color.ufitCanvas)
@@ -101,7 +116,7 @@ struct UFitCheckoutContent: View {
     private var confirmation: some View {
         VStack(alignment: .leading, spacing: Layout.spacing) {
             UFitIcon(systemName: step == .paid ? "checkmark.circle" : "clock").font(UFitTypography.largeTitle)
-            Text(step == .paid ? String(localized: "Votre commande est confirmée") : payment.map { UFitCustomerPaymentCopy.title($0.state) } ?? String(localized: "Confirmation en cours"))
+            Text(step == .paid ? String(localized: "Votre commande est confirmée") : payment.map { UFitCustomerPaymentCopy.title($0.state) } ?? String(localized: "Suivi du paiement"))
                 .font(UFitTypography.title2.weight(.semibold))
             if let orderNumber { Text(orderNumber).font(UFitTypography.headline) }
             Text(step == .paid ? String(localized: "La marque va préparer votre sélection. Vous pourrez suivre son expédition dans vos commandes.") : payment.map { UFitCustomerPaymentCopy.detail($0.state) } ?? String(localized: "Actualisez le statut pour vérifier le paiement de cette commande."))

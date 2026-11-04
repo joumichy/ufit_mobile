@@ -13,6 +13,7 @@ struct UFitCartContent: View {
     let onQuantity: (String, Int) -> Void
     let onRemove: (String) -> Void
     var onCheckout: (() -> Void)?
+    var checkoutRecovery: UFitCheckoutRecoveryNotice? = nil
     private enum Copy {
         static let title = String(localized: "Mon panier")
         static let empty = String(localized: "Votre panier est vide")
@@ -32,6 +33,7 @@ struct UFitCartContent: View {
             GeometryReader { viewport in
                 ScrollView {
                     VStack(alignment: .leading, spacing: Layout.spacing) {
+                        if let checkoutRecovery, let onCheckout { recovery(checkoutRecovery, onOpen: onCheckout) }
                         if lines.isEmpty { initialContent }
                         else {
                             if isLoading { UFitLoading(Copy.loading).frame(maxWidth: .infinity) }
@@ -45,14 +47,14 @@ struct UFitCartContent: View {
                             }
                             if let message { UFitNotice(message: message, kind: .error) }
                         }
-                    }.padding(Layout.spacing).frame(minHeight: viewport.size.height, alignment: lines.isEmpty ? .center : .topLeading)
+                    }.padding(Layout.spacing).frame(minHeight: viewport.size.height, alignment: lines.isEmpty && checkoutRecovery == nil ? .center : .topLeading)
                 }.ufitRefreshable { await onRefresh() }
             }
         }.safeAreaInset(edge: .bottom, spacing: .zero) {
             if !lines.isEmpty {
                 VStack(spacing: UFitSpace.md) {
                     HStack { Text(Copy.subtotal); Spacer(); Text(subtotal).font(UFitTypography.headline) }
-                    if let onCheckout { UFitActionButton(title: Copy.checkout, disabled: lines.contains { $0.isBusy || !$0.isAvailable }, action: onCheckout) }
+                    if let onCheckout, checkoutRecovery == nil { UFitActionButton(title: Copy.checkout, disabled: lines.contains { $0.isBusy || !$0.isAvailable }, action: onCheckout) }
                 }.padding(UFitSpace.page).background(Color.ufitCanvas).overlay(alignment: .top) { Rectangle().fill(Color.ufitBorder).frame(height: UFitSpace.hairline) }
             }
         }.foregroundStyle(Color.ufitInk).background(Color.ufitCanvas)
@@ -64,8 +66,21 @@ struct UFitCartContent: View {
                 actionTitle: Copy.retry, action: refresh)
         } else {
             UFitEmptyState(title: Copy.empty, symbol: Copy.emptyIcon,
-                actionTitle: Copy.browse, actionKind: .primary, action: onBrowse)
+                actionTitle: Copy.browse, actionKind: checkoutRecovery == nil ? .primary : .secondary, action: onBrowse)
         }
+    }
+    private func recovery(_ notice: UFitCheckoutRecoveryNotice, onOpen: @escaping () -> Void) -> some View {
+        VStack(alignment: .leading, spacing: UFitSpace.md) {
+            Text(UFitCheckoutRecoveryCopy.cartTitle).font(UFitTypography.headline)
+            switch notice {
+            case .pending(let amount):
+                Text(UFitCheckoutRecoveryCopy.cartDetail).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText)
+                HStack { Text(UFitCheckoutRecoveryCopy.amount); Spacer(); Text(amount).monospacedDigit() }.font(UFitTypography.subheadline)
+            case .unavailable:
+                Text(UFitCheckoutRecoveryCopy.localRead).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText)
+            }
+            UFitActionButton(title: notice.actionTitle, action: onOpen)
+        }.padding(UFitSpace.lg).background(Color.ufitSecondary, in: RoundedRectangle(cornerRadius: UFitRadius.card))
     }
     private func refresh() { Task { await onRefresh() } }
 

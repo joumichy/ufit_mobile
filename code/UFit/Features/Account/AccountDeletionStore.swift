@@ -40,6 +40,8 @@ final class UFitAccountDeletionStore {
     }
     func reconcileSession() async {
         if let request, request.receipt != nil, let subject = UUID(uuidString: request.authSubject) {
+            do { try UFitCheckoutJournal(userID: request.userID, endpoint: session.api.configuration.baseURL).resolve() }
+            catch { failure = UFitCheckoutRecoveryCopy.localRemoval }
             await session.closeDeletedAccount(subject: subject)
         }
     }
@@ -93,8 +95,12 @@ final class UFitAccountDeletionStore {
         failure = nil; await reconcileSession()
     }
     func finish() -> Bool {
-        guard isCompleted, !isBusy else { return false }
-        do { try vault.clear(); request = nil; failure = nil; return true }
+        guard isCompleted, !isBusy, let current = request else { return false }
+        do { try UFitCheckoutJournal(userID: current.userID, endpoint: session.api.configuration.baseURL).resolve() }
+        catch { failure = UFitCheckoutRecoveryCopy.localRemoval; return false }
+        do {
+            try vault.clear(); request = nil; failure = nil; return true
+        }
         catch { failure = error.localizedDescription; return false }
     }
 }
