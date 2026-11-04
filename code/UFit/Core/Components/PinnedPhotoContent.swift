@@ -46,7 +46,7 @@ struct UFitPinnedPhotoContent: View {
                         let y = rect.minY + CGFloat(pin.y) / CGFloat(UFitOutfitPin.coordinateMax) * rect.height
                         if x >= .zero && x <= geometry.size.width && y >= .zero && y <= geometry.size.height {
                             UFitButton { onPin(pin.id) } label: {
-                                UFitOutfitItemIcon(symbol: pin.symbol).frame(width: Layout.dot, height: Layout.dot)
+                                UFitOutfitItemIcon(type: pin.itemType).frame(width: Layout.dot, height: Layout.dot)
                                     .background(.black.opacity(Layout.shade), in: Circle()).overlay { Circle().stroke(.white, lineWidth: Layout.line) }
                                     .frame(width: Layout.touch, height: Layout.touch)
                             }.ufitButtonStyle(.text).foregroundStyle(.white).shadow(radius: Layout.shadow)

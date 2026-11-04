@@ -21,6 +21,7 @@ struct UFitOutfitCreationJournal {
         static let request = "request"; static let draft = "draft"; static let photos = "photos"; static let pins = "pins"
         static let metadata = "metadata"; static let itemTypes = "itemTypes"
         static let priorTypes: Set<String> = ["top", "bottom", "shoes", "bag", "accessory", "outerwear"]
+        static let priorIconTypes = priorTypes.union(["eyewear", "headwear"])
     }
     private var file: URL {
         get throws {
@@ -34,7 +35,8 @@ struct UFitOutfitCreationJournal {
         let url = try file
         guard FileManager.default.fileExists(atPath: url.path) else { return nil }
         let data = try Data(contentsOf: url)
-        let migrated = try migratePins(data)
+        let pinsMigrated = try migratePins(data)
+        let migrated = try migrateItemTypes(pinsMigrated ?? data) ?? pinsMigrated
         let pending = try JSONDecoder().decode(UFitOutfitPendingCreation.self, from: migrated ?? data)
         try pending.validate(scope: scope)
         if migrated != nil { try record(pending) }
@@ -50,6 +52,16 @@ struct UFitOutfitCreationJournal {
         for index in photos.indices { photos[index][Storage.pins] = [] as [String] }
         draft[Storage.photos] = photos; metadata[Storage.itemTypes] = UFitOutfitItemType.allCases.map(\.rawValue)
         root[Storage.request] = request; root[Storage.draft] = draft; root[Storage.metadata] = metadata
+        return try JSONSerialization.data(withJSONObject: root)
+    }
+    // Upgrade only the known eight-type metadata snapshot; the saved request is unchanged.
+    private func migrateItemTypes(_ data: Data) throws -> Data? {
+        guard var root = try JSONSerialization.jsonObject(with: data) as? [String: Any],
+              var metadata = root[Storage.metadata] as? [String: Any],
+              let types = metadata[Storage.itemTypes] as? [String],
+              types.count == Storage.priorIconTypes.count, Set(types) == Storage.priorIconTypes else { return nil }
+        metadata[Storage.itemTypes] = UFitOutfitItemType.allCases.map(\.rawValue)
+        root[Storage.metadata] = metadata
         return try JSONSerialization.data(withJSONObject: root)
     }
     func record(_ pending: UFitOutfitPendingCreation) throws {

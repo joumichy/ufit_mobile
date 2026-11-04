@@ -34,7 +34,7 @@ struct UFitOutfitAuthoringPreviewContent: View {
     private var products: [OutfitProduct] {
         draft.pieces.map { piece in
             let name = UFitOutfitInput.trimmed(piece.title)
-            return .init(id: piece.id.uuidString, systemImage: piece.type.symbol, name: name.isEmpty ? Copy.unnamed : name,
+            return .init(id: piece.id.uuidString, itemType: piece.type, name: name.isEmpty ? Copy.unnamed : name,
                 productID: piece.product?.id, brandID: nil, image: piece.product?.image,
                 brandName: piece.product?.brandName, price: piece.product?.price)
         }

@@ -21,5 +21,5 @@ struct UFitOutfitDraftPin: Codable, Equatable, Identifiable {
 }
 
 struct UFitPhotoPinPresentation: Identifiable {
-    let id: String; let label: String; let symbol: String; let x: Int; let y: Int
+    let id: String; let label: String; let itemType: UFitOutfitItemType; let x: Int; let y: Int
 }

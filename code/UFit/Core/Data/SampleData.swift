@@ -14,11 +14,11 @@ enum SampleData {
             sourceCreatorId: nil,
             sourceOutfitId: "sample-urban-minimalism",
             products: [
-                OutfitProduct(id: "oversized-shirt", systemImage: "tshirt", name: "Oversized Shirt", productID: nil, brandID: nil),
-                OutfitProduct(id: "wide-pants", systemImage: "figure.walk", name: "Wide Pants", productID: nil, brandID: nil),
-                OutfitProduct(id: "leather-bag", systemImage: "handbag", name: "Leather Bag", productID: nil, brandID: nil),
-                OutfitProduct(id: "sandals", systemImage: "shoeprints.fill", name: "Sandals", productID: nil, brandID: nil),
-                OutfitProduct(id: "sunglasses", systemImage: "sunglasses", name: "Sunglasses", productID: nil, brandID: nil)
+                OutfitProduct(id: "oversized-shirt", itemType: .shirt, name: "Oversized Shirt", productID: nil, brandID: nil),
+                OutfitProduct(id: "wide-pants", itemType: .bottom, name: "Wide Pants", productID: nil, brandID: nil),
+                OutfitProduct(id: "leather-bag", itemType: .bag, name: "Leather Bag", productID: nil, brandID: nil),
+                OutfitProduct(id: "sandals", itemType: .sandals, name: "Sandals", productID: nil, brandID: nil),
+                OutfitProduct(id: "sunglasses", itemType: .eyewear, name: "Sunglasses", productID: nil, brandID: nil)
             ],
             pieces: []
         ),
@@ -34,9 +34,9 @@ enum SampleData {
             sourceCreatorId: nil,
             sourceOutfitId: "sample-cozy-essentials",
             products: [
-                OutfitProduct(id: "sweater", systemImage: "tshirt", name: "Sweater", productID: nil, brandID: nil),
-                OutfitProduct(id: "jeans", systemImage: "figure.walk", name: "Jeans", productID: nil, brandID: nil),
-                OutfitProduct(id: "sneakers", systemImage: "shoeprints.fill", name: "Sneakers", productID: nil, brandID: nil)
+                OutfitProduct(id: "sweater", itemType: .knitwear, name: "Sweater", productID: nil, brandID: nil),
+                OutfitProduct(id: "jeans", itemType: .bottom, name: "Jeans", productID: nil, brandID: nil),
+                OutfitProduct(id: "sneakers", itemType: .sneakers, name: "Sneakers", productID: nil, brandID: nil)
             ],
             pieces: []
         ),
@@ -52,11 +52,11 @@ enum SampleData {
             sourceCreatorId: nil,
             sourceOutfitId: "sample-professional-edit",
             products: [
-                OutfitProduct(id: "blazer", systemImage: "tshirt", name: "Blazer", productID: nil, brandID: nil),
-                OutfitProduct(id: "trousers", systemImage: "figure.walk", name: "Trousers", productID: nil, brandID: nil),
-                OutfitProduct(id: "laptop-bag", systemImage: "briefcase", name: "Laptop Bag", productID: nil, brandID: nil),
-                OutfitProduct(id: "heels", systemImage: "shoeprints.fill", name: "Heels", productID: nil, brandID: nil),
-                OutfitProduct(id: "watch", systemImage: "watch.analog", name: "Watch", productID: nil, brandID: nil)
+                OutfitProduct(id: "blazer", itemType: .outerwear, name: "Blazer", productID: nil, brandID: nil),
+                OutfitProduct(id: "trousers", itemType: .bottom, name: "Trousers", productID: nil, brandID: nil),
+                OutfitProduct(id: "laptop-bag", itemType: .bag, name: "Laptop Bag", productID: nil, brandID: nil),
+                OutfitProduct(id: "heels", itemType: .heels, name: "Heels", productID: nil, brandID: nil),
+                OutfitProduct(id: "watch", itemType: .watch, name: "Watch", productID: nil, brandID: nil)
             ],
             pieces: []
         )

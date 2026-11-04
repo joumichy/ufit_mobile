@@ -4,6 +4,7 @@ struct UFitOutfitPiecesContent: View {
     @Binding var pieces: [UFitOutfitPieceDraft]
     let error: String?
     let onSelectProduct: () -> Void
+    @State private var choosingInspirationType = false
     private enum Copy {
         static let title = String(localized: "Les pièces"); static let product = String(localized: "Ajouter un produit")
         static let inspiration = String(localized: "Ajouter une pièce d’inspiration"); static let empty = String(localized: "Aucune pièce")
@@ -33,9 +34,14 @@ struct UFitOutfitPiecesContent: View {
             }
             if pieces.count < UFitOutfitInput.itemsMax {
                 UFitActionButton(title: Copy.product, kind: .secondary, action: onSelectProduct)
-                UFitActionButton(title: Copy.inspiration, kind: .secondary) { pieces.append(UFitOutfitPieceDraft()) }
+                UFitActionButton(title: Copy.inspiration, kind: .secondary) { choosingInspirationType = true }
             }
             if let error { UFitFieldError(message: error) }
+        }.ufitSheet(isPresented: $choosingInspirationType) {
+            UFitOutfitItemTypePalette(selection: nil, onSelect: { type in
+                if pieces.count < UFitOutfitInput.itemsMax { pieces.append(.init(type: type)) }
+                choosingInspirationType = false
+            }, onClose: { choosingInspirationType = false }).presentationDetents([.large])
         }
     }
     private func binding(for snapshot: UFitOutfitPieceDraft) -> Binding<UFitOutfitPieceDraft> {
@@ -64,7 +70,7 @@ struct UFitOutfitPiecesContent: View {
                 HStack(alignment: .top, spacing: Layout.gap) {
                     Group {
                         if let source = piece.product?.image { FashionImage(source: source) }
-                        else { Rectangle().fill(Color.ufitBackground).overlay { UFitOutfitItemIcon(symbol: piece.type.symbol) } }
+                        else { Rectangle().fill(Color.ufitBackground).overlay { UFitOutfitItemIcon(type: piece.type) } }
                     }.frame(width: Layout.thumbnail, height: Layout.thumbnail).clipShape(RoundedRectangle(cornerRadius: Layout.radius)).accessibilityHidden(true)
                     VStack(alignment: .leading, spacing: Layout.small) {
                         Text(title).font(UFitTypography.headline)
@@ -84,7 +90,7 @@ struct UFitOutfitPiecesContent: View {
                         if !piece.isProduct { UFitTextField(label: Copy.label, text: $piece.externalLabel) }
                         VStack(alignment: .leading, spacing: Layout.small) {
                             Text(Copy.type).font(UFitTypography.subheadline.weight(.medium))
-                            UFitSelection(Copy.type, selection: $piece.type, options: UFitOutfitItemType.allCases.map { .init(value: $0, title: $0.label) }).frame(minHeight: Layout.touch)
+                            UFitOutfitItemTypePicker(selection: $piece.type)
                         }
                         UFitToggle(Copy.required, isOn: $piece.isRequired).frame(minHeight: Layout.touch)
                         UFitDisclosure(Copy.note) { UFitTextField(label: Copy.note, text: $piece.note).padding(.top, Layout.small) }.frame(minHeight: Layout.touch)

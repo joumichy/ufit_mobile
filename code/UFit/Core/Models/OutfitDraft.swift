@@ -16,7 +16,7 @@ struct UFitOutfitPieceDraft: Codable, Equatable, Identifiable {
     var serverID: String?
     var product: UFitOutfitProductChoice?
     var externalLabel = String()
-    var type: UFitOutfitItemType = .top
+    var type: UFitOutfitItemType
     var isRequired = true
     var note = String()
     var isProduct: Bool { product != nil }

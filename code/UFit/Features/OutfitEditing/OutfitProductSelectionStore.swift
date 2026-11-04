@@ -41,9 +41,9 @@ final class UFitOutfitProductSelectionStore: Identifiable {
             products.append(contentsOf: page.items.map { $0.choice() }); nextCursor = page.nextCursor; pageCursors.insert(cursor)
         } catch { if generation == request && form.collection.isCurrentAccount { message = error.localizedDescription } }
     }
-    func select(_ choice: UFitOutfitProductChoice) -> Bool {
+    func select(_ choice: UFitOutfitProductChoice, type: UFitOutfitItemType) -> Bool {
         guard form.collection.isCurrentAccount, !form.isBusy, !selectedIDs.contains(choice.id),
               products.contains(where: { $0.id == choice.id }), form.draft.pieces.count < UFitOutfitInput.itemsMax else { return false }
-        form.draft.pieces.append(.init(product: choice)); return true
+        form.draft.pieces.append(.init(product: choice, type: type)); return true
     }
 }

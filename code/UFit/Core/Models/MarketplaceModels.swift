@@ -27,7 +27,7 @@ struct OutfitAuthor: Decodable {
 
 struct OutfitProduct: Identifiable {
     let id: String
-    let systemImage: String
+    let itemType: UFitOutfitItemType
     let name: String
     let productID: String?
     let brandID: String?

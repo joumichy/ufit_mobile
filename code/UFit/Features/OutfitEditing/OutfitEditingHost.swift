@@ -77,8 +77,8 @@ struct UFitOutfitFormHost: View {
         .onChange(of: selectedPhotos) { _, _ in importSelection() }
         .onChange(of: showingPhotos) { _, _ in importSelection() }
         .ufitSheet(item: $productSelection) { selection in
-            UFitOutfitProductSelectionHost(store: selection, onClose: { productSelection = nil }, onSelect: { choice in
-                if selection.select(choice) { productSelection = nil }
+            UFitOutfitProductSelectionHost(store: selection, onClose: { productSelection = nil }, onSelect: { choice, type in
+                if selection.select(choice, type: type) { productSelection = nil }
             })
         }
         .task { if store.pendingCreation == nil { await store.prepare() } }
@@ -97,7 +97,7 @@ struct UFitOutfitFormHost: View {
 struct UFitOutfitProductSelectionHost: View {
     @Bindable var store: UFitOutfitProductSelectionStore
     let onClose: () -> Void
-    let onSelect: (UFitOutfitProductChoice) -> Void
+    let onSelect: (UFitOutfitProductChoice, UFitOutfitItemType) -> Void
     var body: some View {
         UFitOutfitProductSelectionContent(search: $store.search, products: store.products, selectedIDs: store.selectedIDs,
             isLoading: store.isLoading, hasLoaded: store.hasLoaded, isLoadingMore: store.isLoadingMore,

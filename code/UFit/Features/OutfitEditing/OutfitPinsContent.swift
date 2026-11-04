@@ -21,7 +21,7 @@ struct UFitOutfitPinsContent: View {
     private var annotations: [UFitPhotoPinPresentation] {
         photo.pins.compactMap { pin in
             guard let piece = pieces.first(where: { $0.id == pin.pieceID }) else { return nil }
-            return .init(id: pin.pieceID.uuidString, label: piece.title, symbol: piece.type.symbol, x: pin.x, y: pin.y)
+            return .init(id: pin.pieceID.uuidString, label: piece.title, itemType: piece.type, x: pin.x, y: pin.y)
         }
     }
     var body: some View {
@@ -45,7 +45,7 @@ struct UFitOutfitPinsContent: View {
                     }
                     ForEach(photo.pins.filter { $0.pieceID != selectedID }) { pin in
                         if let piece = pieces.first(where: { $0.id == pin.pieceID }) {
-                            UFitButton { selectedID = pin.pieceID } label: { HStack { UFitOutfitItemIcon(symbol: piece.type.symbol); Text(piece.title) }.frame(minHeight: Layout.touch) }
+                            UFitButton { selectedID = pin.pieceID } label: { HStack { UFitOutfitItemIcon(type: piece.type); Text(piece.title) }.frame(minHeight: Layout.touch) }
                         }
                     }
                 }.padding(Layout.gap)

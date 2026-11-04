@@ -9,7 +9,7 @@ extension UFitManagedOutfit {
             price: UFitMoney.ranges(prices), photos: images.sorted { $0.position < $1.position }.map { image in
                 .init(id: image.id, source: image.displayUrl, pins: pins.filter { $0.imageId == image.id }.compactMap { pin in
                     guard let item = items.first(where: { $0.id == pin.itemId }) else { return nil }
-                    return .init(id: item.id, label: item.label, symbol: item.itemType.symbol, x: pin.x, y: pin.y)
+                    return .init(id: item.id, label: item.label, itemType: item.itemType, x: pin.x, y: pin.y)
                 })
             },
             pieces: items.sorted { $0.position < $1.position }.map { item in
@@ -23,8 +23,8 @@ extension UFitManagedOutfit {
         var value = UFitOutfitDraft()
         value.title = title; value.description = description; value.gender = genderTarget; value.tagIDs = Set(tags.map(\.id))
         value.pieces = items.sorted { $0.position < $1.position }.map { item in
-            var piece = UFitOutfitPieceDraft()
-            piece.serverID = item.id; piece.type = item.itemType; piece.isRequired = item.isRequired; piece.note = item.stylingNote ?? String()
+            var piece = UFitOutfitPieceDraft(type: item.itemType)
+            piece.serverID = item.id; piece.isRequired = item.isRequired; piece.note = item.stylingNote ?? String()
             if let id = item.productId {
                 piece.product = .init(id: id, name: item.label, brandName: item.product?.brandName, image: item.product?.imageUrl,
                     price: item.product.map { UFitMoney.format($0.price, currency: $0.currency) })

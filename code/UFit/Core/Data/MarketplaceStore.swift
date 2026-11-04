@@ -325,7 +325,7 @@ extension UFitOutfitCardDTO {
             creatorAvatar: UFitOutfitPresentation.initials(for: author), author: author,
             price: UFitOutfitPresentation.priceSummary(prices: prices, items: items), title: title, description: UFitOutfitPresentation.empty,
             sourceCreatorId: creatorId, sourceOutfitId: id,
-            products: items.sorted { $0.position < $1.position }.map { .init(id: $0.id, systemImage: $0.itemType.symbol, name: $0.label, productID: $0.product?.id, brandID: $0.product?.brandId, image: $0.product?.imageUrl, brandName: $0.product?.brandName,
+            products: items.sorted { $0.position < $1.position }.map { .init(id: $0.id, itemType: $0.itemType, name: $0.label, productID: $0.product?.id, brandID: $0.product?.brandId, image: $0.product?.imageUrl, brandName: $0.product?.brandName,
                 price: $0.product.map { UFitMoney.format($0.price, currency: $0.currency) } ?? ($0.isShoppable ? UFitOutfitPresentation.unavailable : UFitOutfitPresentation.inspiration)) },
             pieces: [], photos: images.sorted { $0.position < $1.position }, pins: pins)
     }
@@ -335,7 +335,7 @@ extension UFitOutfitDetailDTO {
     func toOutfit() -> Outfit {
         let sorted = items.sorted { $0.position < $1.position }
         let products = sorted.map { item in
-            OutfitProduct(id: item.id, systemImage: item.itemType.symbol, name: item.label,
+            OutfitProduct(id: item.id, itemType: item.itemType, name: item.label,
                 productID: item.product?.id, brandID: item.product?.brandId, image: item.product?.imageUrl, brandName: item.product?.brandName,
                 price: item.product.map { UFitMoney.format($0.price, currency: $0.currency) } ?? (item.isShoppable ? UFitOutfitPresentation.unavailable : UFitOutfitPresentation.inspiration))
         }

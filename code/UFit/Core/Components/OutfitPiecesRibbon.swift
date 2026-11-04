@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The same item order and category symbols are used by the feed and authoring preview.
+/// The same item order and canonical piece types are used by the feed and authoring preview.
 struct UFitOutfitPiecesRibbon: View {
     let items: [OutfitProduct]
     let onSelect: (OutfitProduct) -> Void
@@ -19,7 +19,7 @@ struct UFitOutfitPiecesRibbon: View {
             VStack(spacing: Layout.gap) {
                 ForEach(items) { item in
                     UFitButton { onSelect(item) } label: {
-                        UFitOutfitItemIcon(symbol: item.systemImage)
+                        UFitOutfitItemIcon(type: item.itemType)
                             .frame(width: Layout.item, height: Layout.item)
                             .background(.white.opacity(Layout.backgroundOpacity), in: Circle())
                     }.ufitButtonStyle(.text).accessibilityLabel(item.name)

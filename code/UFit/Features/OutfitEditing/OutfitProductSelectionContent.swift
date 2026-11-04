@@ -12,7 +12,8 @@ struct UFitOutfitProductSelectionContent: View {
     let onClose: () -> Void
     let onSearch: () async -> Void
     let onMore: () async -> Void
-    let onSelect: (UFitOutfitProductChoice) -> Void
+    let onSelect: (UFitOutfitProductChoice, UFitOutfitItemType) -> Void
+    @State private var choosingTypeFor: UFitOutfitProductChoice?
     private enum Copy {
         static let title = String(localized: "Choisir un produit"); static let search = String(localized: "Rechercher un produit")
         static let searchAction = String(localized: "Rechercher"); static let close = String(localized: "Fermer")
@@ -20,8 +21,14 @@ struct UFitOutfitProductSelectionContent: View {
         static let added = String(localized: "Déjà dans la tenue"); static let more = String(localized: "Voir plus de produits"); static let retry = String(localized: "Réessayer")
     }
     private enum Layout { static let page: CGFloat = UFitSpace.xl; static let gap: CGFloat = UFitSpace.md; static let small: CGFloat = UFitSpace.xs; static let touch: CGFloat = UFitControlSize.touch; static let imageWidth: CGFloat = 88; static let imageHeight: CGFloat = 112; static let radius: CGFloat = UFitRadius.field }
-    private enum Icon { static let photo = "tshirt"; static let selected = "checkmark"; static let add = "plus" }
+    private enum Icon { static let photo = "photo"; static let selected = "checkmark"; static let add = "plus" }
     var body: some View {
+        if let product = choosingTypeFor {
+            UFitOutfitItemTypePalette(selection: nil, onSelect: { onSelect(product, $0) },
+                onClose: { choosingTypeFor = nil }, context: product.name)
+        } else { productList }
+    }
+    private var productList: some View {
         VStack(spacing: .zero) {
             UFitSheetHeader(title: Copy.title, onClose: { onClose() })
             ScrollView {
@@ -37,7 +44,7 @@ struct UFitOutfitProductSelectionContent: View {
                     if hasLoaded && products.isEmpty && !isLoading { Text(Copy.empty).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
                     LazyVStack(spacing: Layout.page) {
                         ForEach(products) { product in
-                            UFitButton { onSelect(product) } label: {
+                            UFitButton { choosingTypeFor = product } label: {
                                 HStack(spacing: Layout.gap) {
                                     Group {
                                         if let source = product.image { FashionImage(source: source) }
