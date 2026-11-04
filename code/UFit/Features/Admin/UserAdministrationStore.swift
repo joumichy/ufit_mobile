@@ -68,6 +68,10 @@ final class UFitUserAdministrationStore {
     func recordReadFailure(_ error: Error) {
         if UFitUserAdministrationError.revoked(error) {
             accessRevoked = true; users = []; nextCursor = nil; hasLoaded = false
+            Task {
+                guard ownerID == session.user?.id else { return }
+                await session.reloadProfile()
+            }
         }
         message = UFitUserAdministrationError.message(error)
     }

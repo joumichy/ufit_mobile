@@ -9,6 +9,7 @@ final class UFitAdminActivityStore {
     private(set) var message: String?
     @ObservationIgnored private let session: UFitSessionStore
     @ObservationIgnored private var generation = UUID()
+    private enum HTTP { static let forbidden = 403 }
     init(session: UFitSessionStore) { self.session = session }
     func reset() { cancelLoading(); activity = nil; refundRecoveryCount = nil; message = nil }
     func cancelLoading() { generation = UUID(); isLoading = false }
@@ -23,6 +24,12 @@ final class UFitAdminActivityStore {
             let (value, recoveries) = try await (moderation, refunds)
             guard generation == request, session.user?.id == userID, session.user?.canAdminister == true else { return }
             activity = value; refundRecoveryCount = recoveries.totalCount
-        } catch { if generation == request && session.user?.id == userID { message = error.localizedDescription } }
+        } catch {
+            guard generation == request, session.user?.id == userID else { return }
+            message = error.localizedDescription
+            if case UFitAPIError.requestFailed(let status, _, _) = error, status == HTTP.forbidden {
+                await session.reloadProfile()
+            }
+        }
     }
 }

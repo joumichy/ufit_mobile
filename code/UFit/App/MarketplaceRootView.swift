@@ -105,6 +105,7 @@ struct MarketplaceRootView: View {
             }
         }
         .onChange(of: experience.selected) { _, _ in if !notificationOpening.hasPending { applyExperienceNavigation() } }
+        .onChange(of: session.user?.roles) { _, _ in Task { await experience.load() } }
         .onChange(of: experience.isLoading) { _, loading in
             if !loading && waitsForNotificationExperience {
                 waitsForNotificationExperience = false
