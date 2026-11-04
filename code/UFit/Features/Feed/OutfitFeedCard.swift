@@ -10,6 +10,7 @@ struct OutfitFeedCard: View {
     @Binding var showingPieces: Bool
     @State private var pendingArticleID: String?
     @State private var selectedReference: OutfitProduct?
+    @State private var referenceHeight = Layout.initialReferenceHeight
     @Binding var selectedPhotoID: String?
     @Environment(\.dynamicTypeSize) private var typeSize
 
@@ -37,6 +38,7 @@ struct OutfitFeedCard: View {
         static let ribbonBottom: CGFloat = 190
         static let titleLines = 3
         static let dotsBottom: CGFloat = UFitSpace.xs; static let step = 1
+        static let initialReferenceHeight: CGFloat = 280
     }
 
     var body: some View {
@@ -75,21 +77,22 @@ struct OutfitFeedCard: View {
             }
         }.clipped()
         .ufitSheet(item: $selectedReference, onDismiss: openArticle) { item in
-            VStack(alignment: .leading, spacing: Layout.captionSpacing) {
-                HStack {
-                    Spacer()
-                    UFitButton { selectedReference = nil } label: { UFitIcon(systemName: Copy.closeIcon).frame(width: Layout.avatar, height: Layout.avatar) }
-                        .accessibilityLabel(Copy.close)
-                }
-                ScrollView {
-                    VStack(alignment: .leading, spacing: Layout.captionSpacing) {
-                        UFitOutfitReferenceContent(item: item)
-                        UFitButton { pendingArticleID = item.id; selectedReference = nil } label: { Text(item.productID == nil ? Copy.piece : Copy.article).frame(maxWidth: .infinity) }.ufitButtonStyle(.primary)
+            ScrollView {
+                VStack(alignment: .leading, spacing: Layout.captionSpacing) {
+                    HStack {
+                        Spacer()
+                        UFitButton { selectedReference = nil } label: { UFitIcon(systemName: Copy.closeIcon).frame(width: Layout.avatar, height: Layout.avatar) }
+                            .accessibilityLabel(Copy.close)
                     }
+                    UFitOutfitReferenceContent(item: item)
+                    UFitButton { pendingArticleID = item.id; selectedReference = nil } label: { Text(item.productID == nil ? Copy.piece : Copy.article).frame(maxWidth: .infinity) }.ufitButtonStyle(.primary)
                 }
-
-            }.padding(Layout.horizontal).foregroundStyle(Color.ufitInk).tint(Color.ufitInk)
-                .presentationDetents(typeSize.isAccessibilitySize ? [.large] : [.medium, .large]).presentationDragIndicator(.hidden)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(Layout.horizontal)
+                .onGeometryChange(for: CGFloat.self, of: { $0.size.height.rounded(.up) }) { referenceHeight = $0 }
+            }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk)
+                .scrollBounceBehavior(.basedOnSize)
+                .presentationDetents(typeSize.isAccessibilitySize ? [.large] : [.height(referenceHeight)]).presentationDragIndicator(.hidden)
         }
     }
 
