@@ -3,6 +3,7 @@ import SwiftUI
 struct UFitTimeZoneChoice: View {
     let identifier: String
     let date: Date
+    var showsOffset = true
     let onSelect: (String) -> Void
     @State private var expanded = false
     @State private var query = String()
@@ -38,14 +39,14 @@ struct UFitTimeZoneChoice: View {
                 HStack(spacing: UFitSpace.sm) {
                     VStack(alignment: .leading, spacing: UFitSpace.xxs) {
                         Text(Copy.title).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText)
-                        Text(UFitTimeZoneFormatting.city(identifier) + Copy.separator + UFitTimeZoneFormatting.offset(identifier, at: date))
+                        Text(summary)
                             .font(UFitTypography.callout.weight(.medium)).multilineTextAlignment(.leading)
                     }
                     Spacer(minLength: UFitSpace.xs)
                     UFitIcon(systemName: expanded ? Icon.expanded : Icon.collapsed).font(UFitTypography.caption)
                 }.frame(maxWidth: .infinity, minHeight: UFitControlSize.touch, alignment: .leading)
             }.ufitButtonStyle(.text).accessibilityLabel(Copy.title)
-                .accessibilityValue(UFitTimeZoneFormatting.city(identifier) + Copy.separator + UFitTimeZoneFormatting.offset(identifier, at: date))
+                .accessibilityValue(summary)
             if expanded {
                 UFitSearchField(query: $query, prompt: Copy.search)
                 if matches.isEmpty { Text(Copy.empty).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
@@ -56,6 +57,10 @@ struct UFitTimeZoneChoice: View {
                 UFitButton(Copy.close) { expanded = false; query = String() }.ufitButtonStyle(.text).font(UFitTypography.caption)
             }
         }
+    }
+    private var summary: String {
+        let city = UFitTimeZoneFormatting.city(identifier), offset = UFitTimeZoneFormatting.offset(identifier, at: date)
+        return showsOffset && city != offset ? city + Copy.separator + offset : city
     }
     private func option(_ value: String) -> some View {
         let selected = value == identifier

@@ -18,6 +18,12 @@ struct UFitOutfitPublicationHost: View {
         static let keep = String(localized: "Garder la programmation")
         static let incomplete = String(localized: "Choisissez une date et une heure.")
         static let invalid = String(localized: "Cette heure n’existe pas dans le fuseau choisi.")
+        static let repeated = String(localized: "Cette heure se produit deux fois dans ce fuseau.")
+        static let occurrence = String(localized: "Passage de l’heure")
+        static let firstPassage = String(localized: "Premier passage")
+        static let secondPassage = String(localized: "Second passage")
+        static let choosePassage = String(localized: "Choisissez le premier ou le second passage de cette heure.")
+        static let separator = " · "
         static let discardTitle = String(localized: "Abandonner ces changements ?")
         static let discard = String(localized: "Abandonner")
         static let continueEditing = String(localized: "Continuer la saisie")
@@ -40,7 +46,17 @@ struct UFitOutfitPublicationHost: View {
                     VStack(alignment: .leading, spacing: UFitSpace.xs) {
                         Text(Copy.time).font(UFitTypography.subheadline.weight(.medium))
                         UFitTimeEntry(hours: $store.hourText, minutes: $store.minuteText)
-                        UFitTimeZoneChoice(identifier: store.timeZoneID, date: store.date ?? store.day, onSelect: store.changeZone)
+                        UFitTimeZoneChoice(identifier: store.timeZoneID, date: store.date ?? store.day,
+                            showsOffset: store.date != nil, onSelect: store.changeZone)
+                        if store.isRepeatedTime {
+                            Text(Copy.repeated).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText)
+                            UFitInlineChoice(title: Copy.occurrence,
+                                selection: Binding(get: { store.chosenOccurrence }, set: store.chooseOccurrence),
+                                options: store.occurrences.enumerated().map { index, date in
+                                    .init(value: Optional(date), title: (index == .zero ? Copy.firstPassage : Copy.secondPassage)
+                                        + Copy.separator + UFitTimeZoneFormatting.offset(store.timeZoneID, at: date))
+                                })
+                        }
                     }
                     UFitPublicationMonthGrid(month: store.month, selectedDay: store.day, timeZone: store.zone,
                         isEnabled: !store.isSaving, onMoveMonth: store.moveMonth, onSelectDay: { store.day = $0 })
@@ -84,8 +100,8 @@ struct UFitOutfitPublicationHost: View {
                 Text(UFitPublicationFormatting.text(date, template: .time, zone: store.zone))
                     .font(UFitTypography.subheadline.weight(.semibold)).fixedSize(horizontal: false, vertical: true)
             } else if store.message == nil {
-                Text(store.hasValidTime ? Copy.invalid : Copy.incomplete).font(UFitTypography.callout)
-                    .foregroundStyle(store.hasValidTime ? Color.ufitDanger : Color.ufitSecondaryText)
+                Text(store.isRepeatedTime ? Copy.choosePassage : store.hasValidTime ? Copy.invalid : Copy.incomplete).font(UFitTypography.callout)
+                    .foregroundStyle(store.hasValidTime && !store.isRepeatedTime ? Color.ufitDanger : Color.ufitSecondaryText)
             }
             Text(Copy.privacy).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText)
             if let message = store.message { UFitFieldError(message: message) }
