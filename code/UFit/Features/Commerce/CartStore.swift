@@ -13,6 +13,7 @@ final class UFitCartStore {
     private var products = [String: UFitPublicProductDTO]()
     @ObservationIgnored private let client: UFitAPIClient
     @ObservationIgnored private let session: UFitSessionStore
+    @ObservationIgnored private var generation = UUID()
     private enum Copy {
         static let unavailable = String(localized: "Pièce indisponible")
         static let standard = String(localized: "Standard")
@@ -35,34 +36,39 @@ final class UFitCartStore {
                 isBusy: busyItems.contains(line.id), isAvailable: (variant?.stockQuantity ?? .zero) > .zero)
         }
     }
-    func reset() { cart = nil; products = [:]; busyItems = []; message = nil; loadError = nil; hasLoaded = false; checkoutRecovery = nil }
+    func reset() {
+        generation = UUID(); isLoading = false
+        cart = nil; products = [:]; busyItems = []; message = nil; loadError = nil; hasLoaded = false; checkoutRecovery = nil
+    }
     func load() async {
         guard !isLoading, let userID = session.user?.id else { return }
+        let request = generation
         isLoading = true
-        defer { isLoading = false }
+        defer { if generation == request { isLoading = false } }
         readCheckoutRecovery(userID: userID)
         do {
             let response = try await client.fetchCart()
-            guard session.user?.id == userID else { return }
+            guard generation == request, session.user?.id == userID else { return }
             cart = response.cart
             hasLoaded = true
             loadError = nil
             message = nil
-            await hydrate(userID: userID)
-        } catch { if session.user?.id == userID { loadError = error.localizedDescription } }
+            await hydrate(userID: userID, request: request)
+        } catch { if generation == request, session.user?.id == userID { loadError = error.localizedDescription } }
     }
     func receive(_ response: UFitCartDTO) async {
         guard let userID = session.user?.id else { return }
+        let request = generation
         readCheckoutRecovery(userID: userID)
         cart = response; hasLoaded = true; loadError = nil; message = nil
-        await hydrate(userID: userID)
+        await hydrate(userID: userID, request: request)
     }
-    private func hydrate(userID: String) async {
+    private func hydrate(userID: String, request: UUID) async {
         var loaded = [String: UFitPublicProductDTO]()
         for id in Set(cart?.items.map(\.productId) ?? []) {
             if let product = try? await client.fetchPublicProduct(id: id) { loaded[id] = product }
         }
-        guard session.user?.id == userID else { return }
+        guard generation == request, session.user?.id == userID else { return }
         products = loaded
     }
     private func readCheckoutRecovery(userID: String) {
@@ -73,24 +79,26 @@ final class UFitCartStore {
     }
     func update(id: String, quantity: Int) async {
         guard !busyItems.contains(id), let userID = session.user?.id else { return }
+        let request = generation
         busyItems.insert(id)
-        defer { busyItems.remove(id) }
+        defer { if generation == request { busyItems.remove(id) } }
         do {
             let response = try await client.setCartQuantity(itemID: id, quantity: quantity)
-            guard session.user?.id == userID else { return }
+            guard generation == request, session.user?.id == userID else { return }
             cart = response; hasLoaded = true; loadError = nil; message = nil
-            await hydrate(userID: userID)
-        } catch { if session.user?.id == userID { message = error.localizedDescription } }
+            await hydrate(userID: userID, request: request)
+        } catch { if generation == request, session.user?.id == userID { message = error.localizedDescription } }
     }
     func remove(id: String) async {
         guard !busyItems.contains(id), let userID = session.user?.id else { return }
+        let request = generation
         busyItems.insert(id)
-        defer { busyItems.remove(id) }
+        defer { if generation == request { busyItems.remove(id) } }
         do {
             let response = try await client.removeCartItem(id: id)
-            guard session.user?.id == userID else { return }
+            guard generation == request, session.user?.id == userID else { return }
             cart = response; hasLoaded = true; loadError = nil; message = nil
-            await hydrate(userID: userID)
-        } catch { if session.user?.id == userID { message = error.localizedDescription } }
+            await hydrate(userID: userID, request: request)
+        } catch { if generation == request, session.user?.id == userID { message = error.localizedDescription } }
     }
 }
