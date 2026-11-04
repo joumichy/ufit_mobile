@@ -7,6 +7,8 @@ final class UFitOrderDetailStore {
     private(set) var order: UFitOrderDTO?
     private(set) var isBusy = false
     private(set) var paymentSheet: PaymentSheet?
+    private(set) var payment: UFitCustomerPaymentStatusDTO?
+    private(set) var paymentMessage: String?
     var message: String?
     @ObservationIgnored private let id: String
     @ObservationIgnored private let client: UFitAPIClient
@@ -16,14 +18,40 @@ final class UFitOrderDetailStore {
     init(id: String, client: UFitAPIClient, session: UFitSessionStore, orders: UFitOrdersStore) {
         self.id = id; self.client = client; self.session = session; self.orders = orders
     }
-    var presentation: UFitOrderDetailPresentation? { order.map(UFitOrderPresentationAdapter.detail) }
+    var presentation: UFitOrderDetailPresentation? {
+        guard let order else { return nil }
+        var result = UFitOrderPresentationAdapter.detail(order)
+        result.needsPaymentStatus = order.status == .pendingPayment
+        result.canResumePayment = order.status == .pendingPayment && payment?.state.canResume == true && paymentMessage == nil
+        return result
+    }
     private func receive(_ order: UFitOrderDTO) { self.order = order; orders.receive(order) }
     func load() async {
         guard !isBusy, let userID = session.user?.id else { return }
-        isBusy = true; message = nil
+        isBusy = true; message = nil; payment = nil; paymentMessage = nil
         defer { isBusy = false }
-        do { let result = try await client.fetchOrder(id: id); if session.user?.id == userID { receive(result) } }
+        do {
+            let result = try await client.fetchOrder(id: id)
+            guard session.user?.id == userID else { return }; receive(result)
+            await readPayment(for: result, userID: userID)
+        }
         catch { if session.user?.id == userID { message = error.localizedDescription } }
+    }
+    private func readPayment(for order: UFitOrderDTO, userID: String) async {
+        guard order.status == .pendingPayment else { payment = nil; paymentMessage = nil; return }
+        do {
+            let result = try await client.fetchOrderPayment(order)
+            guard session.user?.id == userID else { return }
+            payment = result; paymentMessage = nil
+            if result.orderStatus != order.status {
+                let latest = try await client.fetchOrder(id: id)
+                guard session.user?.id == userID else { return }; receive(latest)
+                if latest.status != .pendingPayment { payment = nil }
+            }
+        } catch {
+            guard session.user?.id == userID else { return }
+            payment = nil; paymentMessage = UFitCustomerPaymentCopy.message(error)
+        }
     }
     func cancel() async {
         guard !isBusy, order?.actions.cancel == true, let userID = session.user?.id else { return }
@@ -58,22 +86,33 @@ final class UFitOrderDetailStore {
         catch { if session.user?.id == userID { message = error.localizedDescription } }
     }
     func resumePayment() async {
-        guard !isBusy, let order, order.actions.resumePayment, let userID = session.user?.id else { return }
+        guard !isBusy, let order, presentation?.canResumePayment == true, let userID = session.user?.id else { return }
         isBusy = true; message = nil
         defer { isBusy = false }
         do {
-            let key = try UFitPaymentSheetFactory.publicKey()
-            let result = try await client.resumeOrderPayment(id: id)
+            let result = try await client.resumeOrderPayment(order)
             guard session.user?.id == userID else { return }
-            paymentSheet = UFitPaymentSheetFactory.make(secret: result.clientSecret, address: order.shippingAddress, publicKey: key)
-        } catch { if session.user?.id == userID { message = error.localizedDescription } }
+            payment = result.payment; paymentMessage = nil
+            if let secret = result.clientSecret {
+                let key = try UFitPaymentSheetFactory.publicKey()
+                paymentSheet = UFitPaymentSheetFactory.make(secret: secret, address: order.shippingAddress, publicKey: key)
+            } else if result.payment.orderStatus != order.status {
+                let latest = try await client.fetchOrder(id: id)
+                guard session.user?.id == userID else { return }; receive(latest)
+                if latest.status != .pendingPayment { payment = nil }
+            }
+        } catch { if session.user?.id == userID { payment = nil; paymentMessage = UFitCustomerPaymentCopy.message(error) } }
     }
     func paymentFinished(_ result: PaymentSheetResult) async {
         paymentSheet = nil
         switch result {
         case .completed: await confirmPayment()
-        case .canceled: message = String(localized: "Le paiement a été interrompu. Vous pouvez le reprendre.")
-        case .failed: message = String(localized: "Le paiement n’a pas abouti. Vous pouvez réessayer.")
+        case .canceled:
+            await load()
+            if payment?.state.canResume == true { message = UFitCustomerPaymentCopy.interrupted }
+        case .failed:
+            await load()
+            if payment?.state.canResume == true { message = UFitCustomerPaymentCopy.failed }
         }
     }
     private func confirmPayment() async {
@@ -86,10 +125,10 @@ final class UFitOrderDetailStore {
                 let result = try await client.fetchOrder(id: id)
                 guard session.user?.id == userID else { return }
                 receive(result)
-                if result.status != .pendingPayment { return }
+                if result.status != .pendingPayment { payment = nil; return }
+                await readPayment(for: result, userID: userID)
                 if attempt < Confirmation.attempts - 1 { try await Task.sleep(for: Confirmation.interval) }
             }
-            message = String(localized: "Le paiement est en cours de confirmation. Actualisez le statut de la commande.")
         } catch is CancellationError { return }
         catch { if session.user?.id == userID { message = error.localizedDescription } }
     }

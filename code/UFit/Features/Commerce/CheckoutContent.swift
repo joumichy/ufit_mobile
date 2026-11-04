@@ -14,6 +14,7 @@ struct UFitCheckoutContent: View {
     let onPay: () -> Void
     let onRefresh: () -> Void
     let onFinish: () -> Void
+    var payment: UFitCustomerPaymentStatusDTO? = nil
     private enum Layout { static let spacing: CGFloat = UFitSpace.xl; static let fieldSpacing: CGFloat = UFitSpace.md; static let bottom: CGFloat = 110; static let fieldHeight: CGFloat = UFitControlSize.input }
     var body: some View {
         VStack(spacing: .zero) {
@@ -100,10 +101,10 @@ struct UFitCheckoutContent: View {
     private var confirmation: some View {
         VStack(alignment: .leading, spacing: Layout.spacing) {
             UFitIcon(systemName: step == .paid ? "checkmark.circle" : "clock").font(UFitTypography.largeTitle)
-            Text(step == .paid ? String(localized: "Votre commande est confirmée") : String(localized: "Confirmation en cours"))
+            Text(step == .paid ? String(localized: "Votre commande est confirmée") : payment.map { UFitCustomerPaymentCopy.title($0.state) } ?? String(localized: "Confirmation en cours"))
                 .font(UFitTypography.title2.weight(.semibold))
             if let orderNumber { Text(orderNumber).font(UFitTypography.headline) }
-            Text(step == .paid ? String(localized: "La marque va préparer votre sélection. Vous pourrez suivre son expédition dans vos commandes.") : String(localized: "Nous attendons la confirmation du paiement. Vous pouvez actualiser le statut de votre commande."))
+            Text(step == .paid ? String(localized: "La marque va préparer votre sélection. Vous pourrez suivre son expédition dans vos commandes.") : payment.map { UFitCustomerPaymentCopy.detail($0.state) } ?? String(localized: "Actualisez le statut pour vérifier le paiement de cette commande."))
                 .foregroundStyle(Color.ufitSecondaryText)
             UFitButton(action: step == .paid ? onFinish : onRefresh) {
                 Text(step == .paid ? String(localized: "Continuer") : String(localized: "Actualiser le statut")).frame(maxWidth: .infinity)

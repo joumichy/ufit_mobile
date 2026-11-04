@@ -53,9 +53,6 @@ extension UFitAPIClient {
         let result: UFitOrderDTO = try await send("POST", path: CommerceHTTP.orders + "/" + id + "/cancel", requiresAuth: true)
         try result.cancellation?.validateSettlement(amount: result.totalAmount, currency: result.currency); return result
     }
-    func resumeOrderPayment(id: String) async throws -> UFitPaymentIntentDTO {
-        try await send("POST", path: CommerceHTTP.orders + "/" + id + "/payment", requiresAuth: true)
-    }
     func fetchOrder(id: String) async throws -> UFitOrderDTO {
         let result: UFitOrderDTO = try await send(CommerceHTTP.get, path: CommerceHTTP.orders + "/" + id, requiresAuth: true)
         try result.cancellation?.validateSettlement(amount: result.totalAmount, currency: result.currency); return result

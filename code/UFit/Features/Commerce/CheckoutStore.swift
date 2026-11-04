@@ -11,6 +11,7 @@ final class UFitCheckoutStore {
     private(set) var quote: UFitCartQuoteDTO?
     private(set) var order: UFitOrderDTO?
     private(set) var paymentSheet: PaymentSheet?
+    private(set) var payment: UFitCustomerPaymentStatusDTO?
     var message: String?
     @ObservationIgnored private let client: UFitAPIClient
     @ObservationIgnored private let cart: UFitCartStore
@@ -25,8 +26,9 @@ final class UFitCheckoutStore {
     }
     var needsOrderDetails: Bool {
         guard let order else { return false }
-        return [.cancelling, .cancelled, .refunded].contains(order.status)
+        return [.cancelling, .cancelled, .refunded].contains(order.status) || payment?.state == .closed || payment?.state == .review || payment?.state == .orderUpdated
     }
+    var hasPreparedOrder: Bool { orderID != nil }
     var lines: [UFitCartPresentationLine] {
         guard let quote else { return cart.lines }
         return quote.items.compactMap { item in
@@ -82,23 +84,31 @@ final class UFitCheckoutStore {
             quote = result; requestID = nil; orderID = nil; paymentSheet = nil; step = .review
         } catch { message = error.localizedDescription }
     }
-    func editAddress() { guard !isBusy else { return }; step = .address; message = nil }
+    func editAddress() { guard !isBusy, !hasPreparedOrder else { return }; step = .address; message = nil }
     func preparePayment() async -> Bool {
         guard !isBusy, let quote else { return false }
         isBusy = true; message = nil
         defer { isBusy = false }
         requestID = requestID ?? UUID().uuidString
         do {
-            let publicKey = try UFitPaymentSheetFactory.publicKey()
             let intent = try await client.checkout(UFitCheckoutRequest(requestId: requestID!, quoteFingerprint: quote.fingerprint, shippingAddress: address))
-            orderID = intent.orderId
-            paymentSheet = UFitPaymentSheetFactory.make(secret: intent.clientSecret, address: address, publicKey: publicKey)
-            return true
+            guard intent.payment.amount == quote.totalAmount, intent.payment.currency == quote.currency,
+                  orderID == nil || orderID == intent.payment.orderId else { throw UFitCustomerPaymentFailure.document }
+            orderID = intent.payment.orderId; payment = intent.payment
+            let current = try await client.fetchOrder(id: intent.payment.orderId)
+            try receive(current)
+            if step == .paid { await cart.load(); return false }
+            if let secret = intent.clientSecret, current.status == .pendingPayment {
+                let publicKey = try UFitPaymentSheetFactory.publicKey()
+                paymentSheet = UFitPaymentSheetFactory.make(secret: secret, address: address, publicKey: publicKey)
+                return true
+            }
+            step = .confirming; return false
         } catch {
             if let failure = error as? UFitAPIError, case .requestFailed(_, _, let code) = failure, code == "checkout_quote_changed" {
                 step = .address; self.quote = nil; requestID = nil
             }
-            message = error.localizedDescription
+            message = UFitCustomerPaymentCopy.message(error)
             return false
         }
     }
@@ -106,19 +116,23 @@ final class UFitCheckoutStore {
         paymentSheet = nil
         switch result {
         case .completed: step = .confirming; await refreshConfirmation(polling: true)
-        case .canceled: message = String(localized: "Le paiement a été interrompu. Vous pouvez le reprendre.")
-        case .failed: message = String(localized: "Le paiement n’a pas abouti. Vérifiez votre carte et réessayez.")
+        case .canceled:
+            await refreshConfirmation()
+            if payment?.state.canResume == true { message = UFitCustomerPaymentCopy.interrupted }
+        case .failed:
+            await refreshConfirmation()
+            if payment?.state.canResume == true { message = UFitCustomerPaymentCopy.failed }
         }
     }
     func refreshConfirmation(polling: Bool = false) async {
         guard !isBusy, let orderID else { return }
-        isBusy = true; message = nil
+        isBusy = true; message = nil; step = .confirming; payment = nil
         defer { isBusy = false }
         do {
             for attempt in .zero..<(polling ? Confirmation.attempts : 1) {
                 try Task.checkCancellation()
                 let updated = try await client.fetchOrder(id: orderID)
-                order = updated
+                try receive(updated)
                 if [.paid, .preparing, .shipped, .delivered].contains(updated.status) {
                     step = .paid; await cart.load(); return
                 }
@@ -126,9 +140,18 @@ final class UFitCheckoutStore {
                 if updated.status != .pendingPayment {
                     message = String(localized: "Cette commande n’est plus en attente de paiement."); return
                 }
+                let status = try await client.fetchOrderPayment(updated)
+                payment = status
+                if status.state.canResume { step = .review; return }
+                if status.orderStatus != updated.status { continue }
                 if polling && attempt < Confirmation.attempts - 1 { try await Task.sleep(for: Confirmation.interval) }
             }
         } catch is CancellationError { return }
-        catch { message = error.localizedDescription }
+        catch { payment = nil; message = UFitCustomerPaymentCopy.message(error) }
+    }
+    private func receive(_ updated: UFitOrderDTO) throws {
+        guard updated.id == orderID, let quote, updated.totalAmount == quote.totalAmount, updated.currency == quote.currency else { throw UFitCustomerPaymentFailure.document }
+        order = updated
+        if [.paid, .preparing, .shipped, .delivered].contains(updated.status) { step = .paid; payment = nil }
     }
 }

@@ -9,6 +9,8 @@ struct UFitOrderDetailContent: View {
     let onPay: () -> Void
     let onCancel: () -> Void
     let onReturns: () -> Void
+    var payment: UFitCustomerPaymentStatusDTO? = nil
+    var paymentMessage: String? = nil
     var onRefundOrganization: (() -> Void)? = nil
     @State private var confirmingCancellation = false
     private enum Copy {
@@ -54,6 +56,9 @@ struct UFitOrderDetailContent: View {
             }
             if let note = order.cancellationNote { Text(note).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
             if let onRefundOrganization {UFitButton(UFitRefundOrganizationCopy.follow, action: onRefundOrganization).ufitButtonStyle(.secondary).disabled(isBusy)}
+            if order.needsPaymentStatus && (isBusy || payment != nil || paymentMessage != nil) {
+                UFitCustomerPaymentStatusContent(payment: payment, isLoading: isBusy, message: paymentMessage)
+            }
             if order.canResumePayment {
                 UFitButton(action: onPay) { Text(Copy.resume).frame(maxWidth: .infinity) }.ufitButtonStyle(.primary).disabled(isBusy)
             }

@@ -183,8 +183,9 @@ struct UFitAPIClient {
         try await send("POST", path: "cart/items", body: body, requiresAuth: true)
     }
 
-    func checkout(_ body: UFitCheckoutRequest) async throws -> UFitPaymentIntentDTO {
-        try await send("POST", path: "orders/checkout", body: body, requiresAuth: true)
+    func checkout(_ body: UFitCheckoutRequest) async throws -> UFitCustomerPaymentSessionDTO {
+        let result: UFitCustomerPaymentSessionDTO = try await send(UFitCustomerPaymentHTTP.post, path: UFitCustomerPaymentHTTP.checkout, body: body, requiresAuth: true)
+        try result.validate(); return result
     }
 
     func fetchPublicProduct(id: String) async throws -> UFitPublicProductDTO {
@@ -420,10 +421,4 @@ struct UFitCheckoutRequest: Encodable {
     let requestId: String
     let quoteFingerprint: String
     let shippingAddress: UFitShippingAddress
-}
-
-struct UFitPaymentIntentDTO: Decodable {
-    let orderId: String
-    let paymentIntentId: String
-    let clientSecret: String
 }

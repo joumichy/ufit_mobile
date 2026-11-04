@@ -4,7 +4,7 @@ enum UFitOrderLifecycle: String, Decodable, CaseIterable {
     case pendingPayment = "pending_payment", paid, cancelling, preparing, shipped, delivered, cancelled, refunded
     var label: String {
         switch self {
-        case .pendingPayment: String(localized: "En attente de paiement")
+        case .pendingPayment: String(localized: "Paiement non confirmé")
         case .paid: String(localized: "Paiement confirmé")
         case .cancelling: String(localized: "Annulation en cours")
         case .preparing: String(localized: "En préparation")
@@ -48,8 +48,9 @@ struct UFitOrderDetailPresentation {
     let cancellationPrompt: String
     let cancellationPending: Bool
     let canCancel: Bool
-    let canResumePayment: Bool
+    var canResumePayment: Bool
     var canRetryRefund = false
+    var needsPaymentStatus = false
 }
 
 enum UFitShipmentLifecycle: String, Decodable {

@@ -15,10 +15,14 @@ struct UFitOrderDetailHost: View {
     let onBack: () -> Void
     let onReturns: () -> Void
     @State private var refundOrganization: UFitRefundOrganizationStore?
+    @Environment(\.scenePhase) private var scenePhase
     var body: some View {
         UFitOrderDetailContent(order: store.presentation, isBusy: store.isBusy, message: store.message, onBack: onBack,
-            onRefresh: {Task {await store.load()}}, onPay: {Task {await store.resumePayment()}}, onCancel: {Task {await store.cancel()}}, onReturns: onReturns, onRefundOrganization: store.order?.cancellation?.refundOrganizationReference == nil ? nil : showRefundOrganization)
+            onRefresh: {Task {await store.load()}}, onPay: {Task {await store.resumePayment()}}, onCancel: {Task {await store.cancel()}}, onReturns: onReturns,
+            payment: store.payment, paymentMessage: store.paymentMessage,
+            onRefundOrganization: store.order?.cancellation?.refundOrganizationReference == nil ? nil : showRefundOrganization)
             .task {await store.load()}
+            .onChange(of: scenePhase) { _, phase in if phase == .active {Task {await store.load()}} }
             .task(id: store.order?.cancellation?.status) { await store.followCancellation() }
             .background {
                 if let sheet = store.paymentSheet {
