@@ -10,6 +10,15 @@ enum UFitWorkspaceFinancialModeCopy {
         case nil: String(localized: "Mode à confirmer")
         }
     }
+    static func context(currency: String, liveMode: Bool?) -> String {
+        String(localized: "\(currency) · \(label(liveMode))")
+    }
+    static func namedContext(_ name: String, currency: String, liveMode: Bool?) -> String {
+        String(localized: "\(name), \(currency), \(label(liveMode))")
+    }
+    static func amountContext(_ name: String, amount: String, liveMode: Bool?) -> String {
+        String(localized: "\(name), \(amount), \(label(liveMode))")
+    }
     static let unclassified = String(localized: "Les ventes dont le mode Stripe n’est pas encore confirmé restent séparées.")
 }
 struct UFitWorkspaceActivityFigure: Identifiable {

@@ -18,6 +18,7 @@ struct UFitRevenueChart: View {
         static let line: CGFloat = 2
         static let marker: CGFloat = 7
         static let padding: CGFloat = 5
+        static let edgeCount: CGFloat = 2
         static let guideCount = 3
         static let divisions: CGFloat = 2
         static let axisLine: CGFloat = 1
@@ -27,6 +28,16 @@ struct UFitRevenueChart: View {
         static let accessibilityHeightDivisor: CGFloat = 2
     }
     private enum Icon { static let chart = "chart.xyaxis.line"; static let table = "tablecells"; static let expand = "chevron.down"; static let collapse = "chevron.up" }
+    private enum Copy {
+        static let showValues = String(localized: "Voir les valeurs")
+        static let hideValues = String(localized: "Masquer les valeurs")
+        static func valueAction(expanded: Bool, title: String) -> String {
+            String(localized: "\(expanded ? hideValues : showValues), \(title)")
+        }
+        static func pointName(title: String, dateLabel: String) -> String {
+            String(localized: "\(title), \(dateLabel)")
+        }
+    }
     private var selectedIndex: Int? { points.firstIndex { $0.id == selectedID } }
     private var maximum: Int { points.map(\.value).max() ?? .zero }
     private var selected: UFitRevenueChartPoint? { selectedIndex.map { points[$0] } }
@@ -42,13 +53,15 @@ struct UFitRevenueChart: View {
                     Spacer()
                     Text(selected.formatted).monospacedDigit()
                 }.font(UFitTypography.caption).accessibilityElement(children: .combine)
+                    .accessibilityLabel(Copy.pointName(title: title, dateLabel: selected.label))
+                    .accessibilityValue(selected.formatted)
             }
             GeometryReader { geometry in
                 let size = geometry.size
-                let height = size.height - Layout.padding * 2
-                let width = size.width - Layout.padding * 2
+                let height = size.height - Layout.padding * Layout.edgeCount
+                let width = size.width - Layout.padding * Layout.edgeCount
                 ZStack(alignment: .topLeading) {
-                    ForEach(0..<Layout.guideCount) { index in
+                    ForEach(Int.zero..<Layout.guideCount) { index in
                         Path { path in
                             let y = Layout.padding + height * CGFloat(index) / Layout.divisions
                             path.move(to: CGPoint(x: .zero, y: y)); path.addLine(to: CGPoint(x: size.width, y: y))
@@ -99,11 +112,12 @@ struct UFitRevenueChart: View {
             UFitButton(action: { showsValues.toggle() }) {
                 HStack(spacing: UFitSpace.xs) {
                     UFitIcon(systemName: showsValues ? Icon.chart : Icon.table)
-                    Text(showsValues ? String(localized: "Masquer les valeurs") : String(localized: "Voir les valeurs"))
+                    Text(showsValues ? Copy.hideValues : Copy.showValues)
                     Spacer()
                     UFitIcon(systemName: showsValues ? Icon.collapse : Icon.expand)
                 }.font(UFitTypography.caption)
             }.ufitButtonStyle(.secondary, compact: true)
+                .accessibilityLabel(Copy.valueAction(expanded: showsValues, title: title))
             if showsValues {
                 VStack(spacing: UFitSpace.sm) {
                     ForEach(points) { point in
@@ -111,6 +125,8 @@ struct UFitRevenueChart: View {
                             HStack(alignment: .firstTextBaseline) { Text(point.label); Spacer(); Text(point.formatted).monospacedDigit() }
                             VStack(alignment: .leading) { Text(point.label); Text(point.formatted).monospacedDigit() }
                         }.font(UFitTypography.caption).accessibilityElement(children: .combine)
+                            .accessibilityLabel(Copy.pointName(title: title, dateLabel: point.label))
+                            .accessibilityValue(point.formatted)
                     }
                 }.padding(.top, UFitSpace.sm)
             }

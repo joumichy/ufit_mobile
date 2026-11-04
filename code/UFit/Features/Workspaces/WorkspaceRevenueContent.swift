@@ -38,11 +38,6 @@ struct UFitWorkspaceRevenueContent: View {
                 }
                 ForEach(document.currencies) { currency in
                     VStack(alignment: .leading, spacing: UFitSpace.lg) {
-                        HStack(alignment: .firstTextBaseline) {
-                            Text(currency.currency).font(UFitTypography.title3.weight(.semibold))
-                            Spacer(minLength: UFitSpace.sm)
-                            Text(UFitWorkspaceFinancialModeCopy.label(currency.liveMode)).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText)
-                        }
                         if isCreator {
                             UFitWorkspaceRevenueCard(currency: currency, granularity: document.granularity, isCommission: true, metric: $commissionMetric)
                             UFitRevenueCommissionDistribution(currency: currency)
@@ -79,8 +74,11 @@ private struct UFitWorkspaceRevenueCard: View {
         VStack(alignment: .leading, spacing: UFitSpace.md) {
             Text(isCommission ? String(localized: "Commissions générées") : attributedSales ? String(localized: "Ventes attribuées") : String(localized: "Ventes encaissées"))
                 .font(UFitTypography.subheadline).foregroundStyle(Color.ufitSecondaryText)
+            Text(UFitWorkspaceFinancialModeCopy.label(currency.liveMode))
+                .font(UFitTypography.caption.weight(.medium)).foregroundStyle(Color.ufitSecondaryText)
             Text(UFitMoney.format(currency.total(metric), currency: currency.currency)).font(UFitTypography.largeTitle.weight(.medium)).monospacedDigit()
-                .minimumScaleFactor(Layout.minimumAmountScale).lineLimit(Layout.amountLineCount).accessibilityLabel("\(metric.label), \(UFitMoney.format(currency.total(metric), currency: currency.currency))")
+                .minimumScaleFactor(Layout.minimumAmountScale).lineLimit(Layout.amountLineCount)
+                .accessibilityLabel(UFitWorkspaceFinancialModeCopy.amountContext(metric.label, amount: UFitMoney.format(currency.total(metric), currency: currency.currency), liveMode: currency.liveMode))
             if !isCommission {
                 Text(String(localized: "Avant frais Stripe et commissions")).font(UFitTypography.caption2).foregroundStyle(Color.ufitSecondaryText)
             }
@@ -90,12 +88,13 @@ private struct UFitWorkspaceRevenueCard: View {
                         UFitButton(action: { metric = value }) { Text(value.label).font(UFitTypography.caption) }
                             .ufitButtonStyle(value == metric ? .primary : .secondary, compact: true)
                             .accessibilityAddTraits(value == metric ? .isSelected : [])
+                            .accessibilityLabel(UFitWorkspaceFinancialModeCopy.namedContext(value.label, currency: currency.currency, liveMode: currency.liveMode))
                     }
                 }
             }.scrollIndicators(.hidden)
             UFitRevenueChart(points: currency.points.map { point in
                 UFitRevenueChartPoint(id: point.date, label: dateLabel(point.date), value: point.amount(metric), formatted: UFitMoney.format(point.amount(metric), currency: currency.currency))
-            }, title: metric.label)
+            }, title: UFitWorkspaceFinancialModeCopy.namedContext(metric.label, currency: currency.currency, liveMode: currency.liveMode))
             Text(granularity == .week ? String(localized: "Par semaine · première et dernière semaines partielles") : granularity == .month ? String(localized: "Par mois · mois en cours partiel") : String(localized: "Par jour · journée en cours partielle"))
                 .font(UFitTypography.caption2).foregroundStyle(Color.ufitSecondaryText)
         }.padding(UFitSpace.md).background(Color.ufitCanvas, in: RoundedRectangle(cornerRadius: UFitRadius.card))
@@ -121,7 +120,8 @@ private struct UFitRevenueCommissionDistribution: View {
     var body: some View {
         VStack(alignment: .leading, spacing: UFitSpace.md) {
             Text(String(localized: "Où en sont ces commissions ?")).font(UFitTypography.headline)
-            Text(String(localized: "État actuel des commissions de la période")).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText)
+            Text(String(localized: "État actuel · \(UFitWorkspaceFinancialModeCopy.context(currency: currency.currency, liveMode: currency.liveMode))"))
+                .font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText)
             ForEach(figures) { figure in
                 VStack(alignment: .leading, spacing: UFitSpace.xs) {
                     ViewThatFits(in: .horizontal) {
@@ -133,6 +133,7 @@ private struct UFitRevenueCommissionDistribution: View {
                         Capsule().fill(Color.ufitInk).frame(width: geometry.size.width * CGFloat(figure.value) / CGFloat(max(UFitRevenueContract.step, figures.map(\.value).max() ?? .zero)))
                     }.frame(height: Layout.bar).accessibilityHidden(true)
                 }.accessibilityElement(children: .combine)
+                    .accessibilityLabel(UFitWorkspaceFinancialModeCopy.amountContext(figure.id, amount: UFitMoney.format(figure.value, currency: currency.currency), liveMode: currency.liveMode))
             }
             Text(String(localized: "Disponible signifie éligible au versement ; seul « Payées » indique une commission déjà marquée payée."))
                 .font(UFitTypography.caption2).foregroundStyle(Color.ufitSecondaryText)
@@ -140,6 +141,7 @@ private struct UFitRevenueCommissionDistribution: View {
             if recovery > .zero {
                 Text(String(localized: "À récupérer sur les commissions payées : \(UFitMoney.format(recovery, currency: currency.currency))"))
                     .font(UFitTypography.caption)
+                    .accessibilityLabel(UFitWorkspaceFinancialModeCopy.amountContext(String(localized: "À récupérer sur les commissions payées"), amount: UFitMoney.format(recovery, currency: currency.currency), liveMode: currency.liveMode))
             }
         }.padding(UFitSpace.md).background(Color.ufitSecondary, in: RoundedRectangle(cornerRadius: UFitRadius.card))
     }
