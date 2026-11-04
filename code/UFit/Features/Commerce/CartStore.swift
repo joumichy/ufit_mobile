@@ -92,7 +92,7 @@ final class UFitCartStore {
     func remove(id: String) async {
         guard !busyItems.contains(id), let userID = session.user?.id else { return }
         let request = generation
-        busyItems.insert(id)
+        busyItems.insert(id); message = nil
         defer { if generation == request { busyItems.remove(id) } }
         do {
             let response = try await client.removeCartItem(id: id)

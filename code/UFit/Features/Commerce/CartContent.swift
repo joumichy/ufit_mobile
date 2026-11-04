@@ -41,11 +41,11 @@ struct UFitCartContent: View {
                                 UFitNotice(message: loadError, kind: .error)
                                 UFitActionButton(title: Copy.retry, kind: .secondary, action: refresh)
                             }
+                            if let message { UFitNotice(message: message, kind: .error) }
                             ForEach(lines) { line in
                                 UFitCartLineContent(line: line, onQuantity: { onQuantity(line.id, $0) }, onRemove: { onRemove(line.id) })
                                 Divider()
                             }
-                            if let message { UFitNotice(message: message, kind: .error) }
                         }
                     }.padding(Layout.spacing).frame(minHeight: viewport.size.height, alignment: lines.isEmpty && checkoutRecovery == nil ? .center : .topLeading)
                 }.ufitRefreshable { await onRefresh() }
@@ -92,7 +92,8 @@ private struct UFitCartLineContent: View {
     let onRemove: () -> Void
     private enum Copy {
         static let quantity = String(localized: "Quantité")
-        static let remove = String(localized: "Supprimer")
+        static let remove = String(localized: "Retirer")
+        static func removeItem(_ name: String, variant: String) -> String { String(localized: "Retirer \(name), \(variant) du panier") }
         static let unavailable = String(localized: "Pièce indisponible")
         static let photo = "photo"
     }
@@ -113,8 +114,10 @@ private struct UFitCartLineContent: View {
             }
                 UFitQuantityControl(Copy.quantity, value: Binding(get: {line.quantity}, set: onQuantity), in: Layout.minimum...max(Layout.minimum, line.maximumQuantity))
                     .disabled(line.isBusy || !line.isAvailable)
-                HStack {
-                    UFitButton(Copy.remove, role: .destructive, action: onRemove).disabled(line.isBusy)
+                HStack(spacing: UFitSpace.sm) {
+                    UFitButton(Copy.remove, role: .destructive, action: onRemove)
+                        .ufitButtonStyle(.secondary, compact: true).disabled(line.isBusy)
+                        .accessibilityLabel(Copy.removeItem(line.name, variant: line.variant))
                     if line.isBusy { UFitLoading() }
                 }
         }.frame(maxWidth: .infinity, alignment: .leading)
