@@ -1,5 +1,21 @@
 import SwiftUI
 
+struct UFitContentSizedSheet<Content: View>: View {
+    @ViewBuilder let content: Content
+    @State private var contentHeight = Layout.initialHeight
+    @Environment(\.dynamicTypeSize) private var typeSize
+    private enum Layout { static var initialHeight: CGFloat { 280 } }
+    var body: some View {
+        ScrollView {
+            content.fixedSize(horizontal: false, vertical: true)
+                .onGeometryChange(for: CGFloat.self, of: { $0.size.height.rounded(.up) }) { contentHeight = $0 }
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        .presentationDetents(typeSize.isAccessibilitySize ? [.large] : [.height(contentHeight)])
+        .presentationDragIndicator(.hidden)
+    }
+}
+
 struct UFitSheetHeader: View {
     let title: String
     let onClose: () -> Void

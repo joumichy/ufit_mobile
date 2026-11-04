@@ -41,6 +41,10 @@ struct UFitExperienceChoice: Identifiable, Equatable {
     var id: UFitExperienceSelection { selection }
     var canSelect: Bool { status == nil || status == .active || status == .paused }
 }
+enum UFitExperienceMessage: Equatable {
+    case accessChanged
+    case loadFailed(String)
+}
 struct UFitAdminActivity: Equatable {
     let applications: Int
 }
