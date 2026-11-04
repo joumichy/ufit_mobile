@@ -8,6 +8,10 @@ struct UFitShippingAddressBookHost: View {
     @State private var editor: Editor?
     @State private var removingID: String?
     private struct Editor: Identifiable { let id: UUID; let item: UFitShippingAddressItem? }
+    private enum LoadCopy {
+        static let retryPage = String(localized: "Réessayer cette page")
+        static let refresh = String(localized: "Actualiser le carnet")
+    }
     var body: some View {
         Group {
             if let editor {
@@ -24,10 +28,7 @@ struct UFitShippingAddressBookHost: View {
                 VStack(alignment: .leading, spacing: UFitSpace.xl) {
                     Text(onSelect == nil ? String(localized: "Prêt pour votre prochaine sélection.") : String(localized: "Choisir une adresse de livraison"))
                         .font(UFitTypography.title2.weight(.regular))
-                    if let error = store.loadError {
-                        UFitNotice(message: error, kind: .error)
-                        UFitActionButton(title: String(localized: "Actualiser le carnet"), kind: .secondary, isBusy: store.isLoading) { Task { await store.load() } }
-                    }
+                    if let error = store.loadError, !store.loadFailedAtEnd { loadFailure(error, more: false) }
                     if store.isLoading { UFitLoading(String(localized: "Chargement de vos adresses")) }
                     UFitShippingAddressRecovery(store: store)
                     if store.hasLoaded, store.items.isEmpty, store.loadError == nil {
@@ -35,13 +36,23 @@ struct UFitShippingAddressBookHost: View {
                             message: String(localized: "Enregistrez vos informations de livraison pour les retrouver lors de vos prochains achats."), symbol: "mappin.and.ellipse")
                     }
                     ForEach(store.items) { item in card(item) }
-                    if store.nextCursor != nil {
+                    if let error = store.loadError, store.loadFailedAtEnd {
+                        loadFailure(error, more: store.nextCursor != nil)
+                    } else if store.nextCursor != nil {
                         UFitActionButton(title: String(localized: "Voir plus d’adresses"), kind: .secondary, isBusy: store.isLoading) { Task { await store.load(more: true) } }
                     }
                     if store.hasLoaded {
                         UFitActionButton(title: String(localized: "Ajouter une adresse"), kind: onSelect == nil ? .primary : .secondary) { editor = .init(id: UUID(), item: nil) }
                     }
                 }.padding(UFitSpace.page)
+            }
+        }
+    }
+    private func loadFailure(_ message: String, more: Bool) -> some View {
+        VStack(alignment: .leading, spacing: UFitSpace.md) {
+            UFitNotice(message: message, kind: .error)
+            UFitActionButton(title: more ? LoadCopy.retryPage : LoadCopy.refresh, kind: .secondary, isBusy: store.isLoading) {
+                Task { await store.load(more: more) }
             }
         }
     }

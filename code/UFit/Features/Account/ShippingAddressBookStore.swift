@@ -14,11 +14,16 @@ final class UFitShippingAddressBookStore {
     private(set) var busyID: String?
     private(set) var isResuming = false
     private(set) var loadError: String?
+    private(set) var loadFailedAtEnd = false
     private(set) var countryError: String?
     private(set) var message: String?
     private(set) var pending: UFitShippingAddressCommand?
     private(set) var storageFailed = false
     private(set) var needsRefresh = false
+    private enum LoadCopy {
+        static let pageFailure = String(localized: "Les adresses suivantes n’ont pas pu être chargées. Réessayez.")
+        static let bookFailure = String(localized: "Vos adresses n’ont pas pu être chargées. Réessayez.")
+    }
     @ObservationIgnored private let session: UFitSessionStore
     @ObservationIgnored private var generation = UUID()
     @ObservationIgnored private var loadGeneration = UUID()
@@ -29,7 +34,7 @@ final class UFitShippingAddressBookStore {
     private func journal(_ userID: String) -> UFitShippingAddressJournal { .init(userID: userID, endpoint: session.api.configuration.baseURL) }
     func reset() {
         generation = UUID(); loadGeneration = UUID(); ownerID = nil; items = []; defaultAddress = nil; defaultID = nil; version = nil; nextCursor = nil
-        countries = []; isLoading = false; isLoadingCountries = false; busyID = nil; isResuming = false; loadError = nil; countryError = nil
+        countries = []; isLoading = false; isLoadingCountries = false; busyID = nil; isResuming = false; loadError = nil; loadFailedAtEnd = false; countryError = nil
         message = nil; pending = nil; storageFailed = false; needsRefresh = false
     }
     func load(more: Bool = false) async {
@@ -39,7 +44,7 @@ final class UFitShippingAddressBookStore {
         let request = generation, cursor = more ? nextCursor : nil
         let loadRequest = UUID(); loadGeneration = loadRequest
         let ownsLoad = { self.current(userID, request) && self.loadGeneration == loadRequest }
-        isLoading = true; loadError = nil
+        isLoading = true; loadError = nil; loadFailedAtEnd = false
         defer { if ownsLoad() { isLoading = false } }
         do {
             let page = try await session.api.shippingAddresses(userID: userID, cursor: cursor)
@@ -80,9 +85,10 @@ final class UFitShippingAddressBookStore {
             }
         } catch {
             guard ownsLoad() else { return }
+            loadFailedAtEnd = more
             if more, Self.code(error) == UFitShippingAddressesHTTP.changed {
                 nextCursor = nil; loadError = String(localized: "Le carnet a changé. Actualisez pour retrouver vos adresses.")
-            } else { loadError = String(localized: "Vos adresses n’ont pas pu être chargées. Réessayez.") }
+            } else { loadError = more ? LoadCopy.pageFailure : LoadCopy.bookFailure }
             if case UFitAPIError.requestFailed(let status, _, _) = error, status == 401 || status == 403 || status == 404 {
                 items = []; defaultAddress = nil; defaultID = nil; version = nil; nextCursor = nil
             }
