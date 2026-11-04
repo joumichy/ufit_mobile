@@ -80,6 +80,7 @@ enum UFitAccountDeletionCopy {
     static let pending = String(localized: "Suppression en cours")
     static let pendingDetail = String(localized: "Votre compte est fermé. Ufit termine la suppression des médias personnels et des accès. Vous pouvez revenir ici pour suivre son achèvement.")
     static let completed = String(localized: "Votre compte est supprimé")
+    static let localDataRemoval = String(localized: "Le compte est fermé, mais certaines données locales de livraison et de commande n’ont pas pu être effacées. Réessayez.")
     static let completedDetail = String(localized: "Vos accès ont été supprimés. Les données nécessaires aux commandes restent conservées.")
     static let uncertain = String(localized: "Demande à vérifier")
     static let uncertainDetail = String(localized: "La réponse n’a pas été confirmée. Votre suivi est conservé sur cet iPhone. Actualisez avant de renouveler la demande.")

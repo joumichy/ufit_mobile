@@ -21,12 +21,18 @@ struct UFitCheckoutContent: View {
     var purchaseAvailable = false
     var onReplay: () -> Void = {}
     var onReload: () -> Void = {}
+    var addressOptions: AnyView? = nil
+    var savedAddress: UFitShippingAddress? = nil
+    var savedAddressID: String? = nil
+    var onEditSavedAddress: () -> Void = {}
+    var isLoadingAddress = false
     private enum Layout { static let spacing: CGFloat = UFitSpace.xl; static let fieldSpacing: CGFloat = UFitSpace.md; static let bottom: CGFloat = 110; static let fieldHeight: CGFloat = UFitControlSize.input }
+    private struct ScrollIdentity: Hashable { let step: UFitCheckoutStep; let addressID: String? }
     var body: some View {
         VStack(spacing: .zero) {
             DetailHeader(title: String(localized: "Livraison et paiement"), onBack: onBack)
                 .disabled(isBusy)
-            if step == .address, let message {
+            if step == .address || step == .review, let message {
                 Group {
                     if requiresNewReview { UFitNotice(message: message) }
                     else { UFitNotice(message: message, kind: .error) }
@@ -34,7 +40,8 @@ struct UFitCheckoutContent: View {
             }
             ScrollView {
                 VStack(alignment: .leading, spacing: Layout.spacing) {
-                    if step == .address { addressForm }
+                    if step == .address && isLoadingAddress { UFitLoading(String(localized: "Préparation de la livraison")) }
+                    else if step == .address { addressForm }
                     else if step == .review { review }
                     else if step == .recovery {
                         UFitCheckoutRecoveryContent(amount: recoveryAmount, canReplay: canReplay, isBusy: isBusy,
@@ -43,37 +50,31 @@ struct UFitCheckoutContent: View {
                     else { confirmation }
                     if step != .recovery {
                         if isBusy && step != .address && step != .review { UFitLoading().frame(maxWidth: .infinity) }
-                        if let message, step != .address { Text(message).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText).accessibilityIdentifier("checkout-message") }
+                        if let message, step != .address && step != .review { Text(message).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText).accessibilityIdentifier("checkout-message") }
                         if step == .address && destinations.isEmpty && message != nil {
                             UFitActionButton(title: UFitCheckoutRecoveryCopy.deliveryRetry, kind: .secondary, isBusy: isBusy, action: onReload)
                         }
                     }
                 }.padding(Layout.spacing).padding(.bottom, UFitSpace.xl)
-            }.scrollDismissesKeyboard(.interactively).id(step)
+            }.scrollDismissesKeyboard(.interactively).id(ScrollIdentity(step: step, addressID: savedAddressID))
         }.foregroundStyle(Color.ufitInk).background(Color.ufitCanvas)
     }
 
     private var addressForm: some View {
         VStack(alignment: .leading, spacing: Layout.spacing) {
             Text(String(localized: "Où livrer votre sélection ?")).font(UFitTypography.title2.weight(.semibold))
-            VStack(spacing: Layout.fieldSpacing) {
-                field(String(localized: "Nom complet"), text: $address.fullName, content: .name)
-                field(String(localized: "Adresse"), text: $address.line1, content: .streetAddressLine1)
-                field(String(localized: "Complément d’adresse (facultatif)"), text: optional($address.line2), content: .streetAddressLine2)
-                field(String(localized: "Code postal"), text: $address.postalCode, content: .postalCode)
-                field(String(localized: "Ville"), text: $address.city, content: .addressCity)
-                HStack {
-                    Text(String(localized: "Pays"))
-                    Spacer()
-                    UFitSelection(String(localized: "Pays de livraison"), selection: $address.country, options: destinations.map { .init(value: $0.id, title: $0.name) }).tint(Color.ufitInk)
-                }.frame(minHeight: Layout.fieldHeight)
-                field(String(localized: "Téléphone (facultatif)"), text: optional($address.phone), content: .telephoneNumber)
-                    .keyboardType(.phonePad)
-            }
+            if let savedAddress {
+                UFitPostalAddress(address: savedAddress)
+                if !destinations.contains(where: { $0.id == savedAddress.country }) {
+                    UFitNotice(message: String(localized: "Cette adresse n’est pas desservie par la marque."))
+                }
+                UFitActionButton(title: String(localized: "Modifier pour cet achat"), kind: .secondary, action: onEditSavedAddress)
+            } else { UFitShippingAddressFields(address: $address, countries: destinations) }
+            if let addressOptions { addressOptions }
             Text(String(localized: "Les frais et les conditions de la marque seront affichés avant paiement."))
                 .font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText)
             UFitActionButton(title: String(localized: "Vérifier ma commande"), isBusy: isBusy,
-                disabled: destinations.isEmpty, action: onReview)
+                disabled: !destinations.contains(where: { $0.id == address.country }), action: onReview)
         }.disabled(isBusy)
     }
 
@@ -135,11 +136,4 @@ struct UFitCheckoutContent: View {
     }
 
     private func amount(_ label: String, _ value: String) -> some View { HStack { Text(label); Spacer(); Text(value) } }
-    private func field(_ label: String, text: Binding<String>, content: UITextContentType) -> some View {
-        UFitTextField(label: label, text: text, contentType: content).autocorrectionDisabled()
-            .accessibilityLabel(label)
-    }
-    private func optional(_ value: Binding<String?>) -> Binding<String> {
-        Binding(get: {value.wrappedValue ?? String()}, set: {value.wrappedValue = $0.isEmpty ? nil : $0})
-    }
 }

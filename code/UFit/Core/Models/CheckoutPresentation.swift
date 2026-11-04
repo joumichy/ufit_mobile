@@ -1,14 +1,5 @@
 import Foundation
 
-struct UFitShippingAddress: Codable, Equatable {
-    var fullName = String()
-    var line1 = String()
-    var line2: String?
-    var postalCode = String()
-    var city = String()
-    var country = "CH"
-    var phone: String?
-}
 enum UFitCheckoutStep: Hashable { case address, review, recovery, confirming, paid }
 
 enum UFitCheckoutAvailabilityCopy {
@@ -34,7 +25,6 @@ enum UFitCheckoutRecoveryCopy {
     static let cartTitle = String(localized: "Une tentative à vérifier")
     static let cartDetail = String(localized: "Vérifiez votre dernière tentative avant de continuer.")
     static let deliveryRetry = String(localized: "Actualiser la livraison")
-    static let localRemoval = String(localized: "Le compte est fermé, mais le suivi local d’une commande n’a pas pu être supprimé. Réessayez.")
 }
 
 enum UFitCheckoutRecoveryNotice {

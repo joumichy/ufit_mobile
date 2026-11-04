@@ -5,9 +5,15 @@ import StripePaymentSheet
 @MainActor @Observable
 final class UFitCheckoutStore {
     var address = UFitShippingAddress()
+    let addressBook: UFitShippingAddressBookStore
+    var saveAddress = false
+    var makeAddressDefault = false
+    private(set) var selectedAddressID: String?
+    @ObservationIgnored private var loadedAddressBook = false
     private(set) var step = UFitCheckoutStep.address
     private(set) var destinations = [UFitCountry]()
     private(set) var isBusy = false
+    private(set) var isLoadingAddress = false
     private(set) var quote: UFitCartQuoteDTO?
     private(set) var order: UFitOrderDTO?
     private(set) var paymentSheet: PaymentSheet?
@@ -28,8 +34,9 @@ final class UFitCheckoutStore {
         static let attempts = 12
         static let interval = Duration.seconds(1)
     }
-    init(userID: String, session: UFitSessionStore, cart: UFitCartStore) {
+    init(userID: String, session: UFitSessionStore, cart: UFitCartStore, addressBook: UFitShippingAddressBookStore) {
         self.userID = userID; self.session = session; self.client = session.api; self.cart = cart
+        self.addressBook = addressBook
         self.journal = .init(userID: userID, endpoint: session.api.configuration.baseURL)
         address.fullName = session.user?.displayName ?? String()
     }
@@ -61,8 +68,8 @@ final class UFitCheckoutStore {
     }
     func load() async {
         guard isCurrentAccount, !isBusy, step == .address || step == .recovery else { return }
-        isBusy = true; message = nil; canReplay = false
-        defer { isBusy = false }
+        isBusy = true; isLoadingAddress = true; message = nil; canReplay = false
+        defer { isBusy = false; isLoadingAddress = false }
         do { pending = try journal.read(); journalUnavailable = false }
         catch { journalUnavailable = true; step = .recovery; message = UFitCheckoutRecoveryCopy.localRead; return }
         if let pending {
@@ -72,7 +79,15 @@ final class UFitCheckoutStore {
             return
         }
         step = .address
-        do { try await loadDestinations() }
+        do {
+            try await loadDestinations()
+            if !loadedAddressBook {
+                await addressBook.load()
+                guard isCurrentAccount else { return }
+                if let saved = addressBook.defaultAddress { selectAddress(saved) }
+                loadedAddressBook = true
+            }
+        }
         catch { if isCurrentAccount { message = error.localizedDescription } }
     }
     private func loadDestinations() async throws {
@@ -88,18 +103,17 @@ final class UFitCheckoutStore {
         destinations = Set(policy.shippingRates.filter { $0.currency == active.currency }.map(\.country))
             .map { UFitCountry(id: $0, name: locale.localizedString(forRegionCode: $0) ?? $0) }
             .sorted { $0.name.localizedCompare($1.name) == .orderedAscending }
-        if !destinations.contains(where: { $0.id == address.country }), let first = destinations.first { address.country = first.id }
+        if selectedAddressID == nil, address.line1.isEmpty,
+           !destinations.contains(where: { $0.id == address.country }), let first = destinations.first { address.country = first.id }
         message = destinations.isEmpty ? String(localized: "La marque ne propose pas de livraison pour cette devise.") : nil
     }
     func review() async {
         guard isCurrentAccount, !isBusy, !journalUnavailable, pending == nil else { return }
         requiresNewReview = false; purchaseAvailable = false
-        address.fullName = address.fullName.trimmingCharacters(in: .whitespacesAndNewlines)
-        address.line1 = address.line1.trimmingCharacters(in: .whitespacesAndNewlines)
-        address.postalCode = address.postalCode.trimmingCharacters(in: .whitespacesAndNewlines)
-        address.city = address.city.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !address.fullName.isEmpty, !address.line1.isEmpty, !address.postalCode.isEmpty, !address.city.isEmpty else {
-            message = String(localized: "Complétez votre nom et votre adresse de livraison."); return
+        address = address.normalized
+        do { try address.validate() } catch { message = error.localizedDescription; return }
+        guard destinations.contains(where: { $0.id == address.country }) else {
+            message = String(localized: "La marque ne livre pas à cette adresse. Choisissez une autre destination."); return
         }
         isBusy = true; message = nil
         defer { isBusy = false }
@@ -110,12 +124,28 @@ final class UFitCheckoutStore {
             let result = try await client.reviewCheckout(cart: activeCart, country: address.country)
             guard isCurrentAccount else { return }
             quote = result.quote; purchaseAvailable = result.available; paymentSheet = nil; step = .review
+            if saveAddress, selectedAddressID == nil {
+                await addressBook.loadCountries()
+                guard isCurrentAccount else { return }
+                let saved = await addressBook.save(address: address, id: nil, makeDefault: makeAddressDefault)
+                guard isCurrentAccount else { return }
+                if saved { saveAddress = false }
+                else { message = String(localized: "L’enregistrement de cette adresse reste à vérifier depuis Mon compte.") }
+            }
         } catch {
             if isCurrentAccount {
                 quote = nil; step = .address
                 message = error is DecodingError || error is UFitCheckoutReviewFailure ? UFitCheckoutAvailabilityCopy.failed : error.localizedDescription
             }
         }
+    }
+    func selectAddress(_ item: UFitShippingAddressItem) {
+        guard isCurrentAccount, pending == nil else { return }
+        address = item.shippingAddress; selectedAddressID = item.id; saveAddress = false; makeAddressDefault = false
+    }
+    func useManualAddress() {
+        guard isCurrentAccount, pending == nil else { return }
+        selectedAddressID = nil; saveAddress = false; makeAddressDefault = false
     }
     func editAddress() { guard isCurrentAccount, !isBusy, pending == nil else { return }; step = .address; message = nil }
     func preparePayment() async -> Bool {

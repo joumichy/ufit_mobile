@@ -12,6 +12,7 @@ struct UFitAccountView: View {
     var onChooseExperience: (() -> Void)?
     var onNotifications: (() -> Void)?
     var onStyles: (() -> Void)?
+    var onShippingAddresses: (() -> Void)?
     var onDeleteAccount: (() -> Void)?
     var onBack: (() -> Void)?
     var photoHeader: AnyView? = nil
@@ -70,6 +71,7 @@ struct UFitAccountView: View {
                 if let message { Text(message).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
                 Divider()
                 if let onOrders { UFitButton(action: onOrders) { Label(Copy.orders, systemImage: Copy.ordersIcon) }.frame(minHeight: Layout.touch) }
+                if let onShippingAddresses { UFitButton(action: onShippingAddresses) { Label(String(localized: "Mes adresses"), systemImage: "mappin.and.ellipse") }.frame(minHeight: Layout.touch) }
                 if let onApplications { UFitButton(action: onApplications) { Label(Copy.applications, systemImage: Copy.applicationsIcon) }.frame(minHeight: Layout.touch) }
                 if let onNotifications { UFitButton(action: onNotifications) { Label(UFitNotificationPreferencesCopy.title, systemImage: Copy.notificationsIcon) }.frame(minHeight: Layout.touch) }
                 if let onStyles { UFitButton(action: onStyles) { Label(UFitStylePreferencesCopy.title, systemImage: UFitStylePreferencesCopy.icon) }.frame(minHeight: Layout.touch) }

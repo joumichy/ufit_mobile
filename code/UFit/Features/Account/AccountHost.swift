@@ -9,6 +9,7 @@ struct UFitAccountHost: View {
     var onChooseExperience: (() -> Void)?
     var onNotifications: (() -> Void)?
     var onStyles: (() -> Void)?
+    var onShippingAddresses: (() -> Void)?
     var onDeleteAccount: (() -> Void)?
     var onBack: (() -> Void)?
     @State private var photoStore: UFitProfileImageStore?
@@ -39,7 +40,7 @@ struct UFitAccountHost: View {
                         await session.signOut()
                         if !session.isSignedIn { onSignedOut() }
                     } }, onOrders: onOrders, onApplications: onApplications, onChooseExperience: onChooseExperience,
-                    onNotifications: onNotifications, onStyles: onStyles, onDeleteAccount: onDeleteAccount, onBack: onBack,
+                    onNotifications: onNotifications, onStyles: onStyles, onShippingAddresses: onShippingAddresses, onDeleteAccount: onDeleteAccount, onBack: onBack,
                     photoHeader: photoHeader(user))
             } else if let message = session.message {
                 VStack(spacing: UFitSpace.lg) {

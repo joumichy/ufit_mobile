@@ -35,6 +35,7 @@ enum AppRoute {
     case checkout(UFitCheckoutStore)
     case saved
     case account
+    case shippingAddresses(UFitShippingAddressBookStore)
     case notificationPreferences(UFitNotificationPreferencesStore)
     case stylePreferences
     case applications

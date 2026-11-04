@@ -12,6 +12,7 @@ struct MarketplaceRootView: View {
     @State private var outfitSearch: UFitOutfitSearchStore
     @State private var stylePreferences: UFitStylePreferencesStore
     @State private var cart: UFitCartStore
+    @State private var shippingAddresses: UFitShippingAddressBookStore
     @State private var orders: UFitOrdersStore
     @State private var workspaces: UFitWorkspacesStore
     @State private var applications: UFitApplicationsStore
@@ -37,6 +38,7 @@ struct MarketplaceRootView: View {
         _outfitSearch = State(initialValue: UFitOutfitSearchStore(client: session.api))
         _stylePreferences = State(initialValue: UFitStylePreferencesStore(session: session))
         _cart = State(initialValue: UFitCartStore(client: session.api, session: session))
+        _shippingAddresses = State(initialValue: UFitShippingAddressBookStore(session: session))
         _orders = State(initialValue: UFitOrdersStore(client: session.api, session: session))
         let workspaces = UFitWorkspacesStore(client: session.api, session: session)
         _workspaces = State(initialValue: workspaces)
@@ -90,6 +92,7 @@ struct MarketplaceRootView: View {
             store.clearAccountData()
             outfitSearch.criteria = .init()
             cart.reset()
+            shippingAddresses.reset()
             orders.reset()
             workspaces.reset()
             applications.reset()
@@ -248,8 +251,11 @@ struct MarketplaceRootView: View {
                 onChooseExperience: experience.canChooseAnotherExperience ? showExperiencePicker : nil,
                 onNotifications: showNotificationPreferences,
                 onStyles: experience.kind == .customer ? showStylePreferences : nil,
+                onShippingAddresses: { routeHistory.append(activeRoute); activeRoute = .shippingAddresses(shippingAddresses) },
                 onDeleteAccount: { showAccountDeletion = true },
                 onBack: routeHistory.isEmpty ? nil : goBack)
+        case .shippingAddresses(let addresses):
+            UFitShippingAddressBookHost(store: addresses, onBack: goBack)
         case .notificationPreferences(let preferences):
             UFitNotificationPreferencesHost(store: preferences, device: session.deviceNotifications, onBack: goBack)
         case .stylePreferences:
@@ -658,7 +664,7 @@ private extension MarketplaceRootView {
     func showCheckout() {
         guard let userID = session.user?.id else { showCart(); return }
         routeHistory.append(activeRoute)
-        activeRoute = .checkout(UFitCheckoutStore(userID: userID, session: session, cart: cart))
+        activeRoute = .checkout(UFitCheckoutStore(userID: userID, session: session, cart: cart, addressBook: shippingAddresses))
     }
 
     func showPayments() {
