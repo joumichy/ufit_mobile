@@ -9,9 +9,10 @@ struct UFitWorkspaceRevenueContent: View {
     let onRetry: () -> Void
     @State private var salesMetric: UFitRevenueMetric = .salesNet
     @State private var commissionMetric: UFitRevenueMetric = .commissionNet
+    @State private var selectedGroup: UFitWorkspaceFinancialGroup?
+    @State private var showsAttributedSales = false
     var body: some View {
         VStack(alignment: .leading, spacing: UFitSpace.lg) {
-            Text(String(localized: "Vos revenus, en perspective")).font(UFitTypography.title2.weight(.medium))
             HStack(spacing: UFitSpace.xs) {
                 ForEach(UFitRevenuePeriod.allCases) { choice in
                     UFitButton(action: { period = choice }) { Text(choice.label).frame(maxWidth: .infinity) }
@@ -21,7 +22,7 @@ struct UFitWorkspaceRevenueContent: View {
                 }
             }
             if let message {
-                UFitEmptyState(title: String(localized: "Graphiques indisponibles"), message: message, symbol: Icon.chart)
+                UFitEmptyState(title: Copy.unavailable, message: message, symbol: Icon.chart)
                 UFitActionButton(title: String(localized: "Réessayer"), kind: .secondary, action: onRetry)
             } else if isLoading || document == nil {
                 UFitLoading(String(localized: "Chargement des revenus")).frame(maxWidth: .infinity, minHeight: Layout.loadingHeight)
@@ -30,23 +31,37 @@ struct UFitWorkspaceRevenueContent: View {
                 if document.currencies.isEmpty {
                     VStack(alignment: .leading, spacing: UFitSpace.sm) {
                         UFitIcon(systemName: Icon.chart).font(UFitTypography.title).accessibilityHidden(true)
-                        Text(String(localized: "La suite s’écrit ici")).font(UFitTypography.headline)
-                        Text(isCreator ? String(localized: "Aucune vente attribuée ni commission sur cette période. Vos premières ventes donneront vie à ces graphiques.") : String(localized: "Aucune commande encaissée sur cette période. Essayez une période plus longue pour retrouver vos ventes."))
+                        Text(Copy.emptyTitle).font(UFitTypography.headline)
+                        Text(isCreator ? Copy.creatorEmpty : Copy.brandEmpty)
                             .font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText)
                     }.padding(UFitSpace.lg).frame(maxWidth: .infinity, alignment: .leading)
                         .background(Color.ufitSecondary, in: RoundedRectangle(cornerRadius: UFitRadius.card))
                 }
-                ForEach(document.currencies) { currency in
-                    VStack(alignment: .leading, spacing: UFitSpace.lg) {
-                        if isCreator {
-                            UFitWorkspaceRevenueCard(currency: currency, granularity: document.granularity, isCommission: true, metric: $commissionMetric)
-                            UFitRevenueCommissionDistribution(currency: currency)
-                        }
-                        UFitWorkspaceRevenueCard(currency: currency, granularity: document.granularity, isCommission: false, metric: $salesMetric, attributedSales: isCreator)
+                if let currency = document.currencies.first(where: { $0.id == selectedGroup }) ?? document.currencies.first {
+                    if document.currencies.count > Layout.singleGroup {
+                        UFitChoiceBar(title: Copy.context, selection: Binding(get: { currency.id }, set: { selectedGroup = $0 }),
+                            options: document.currencies.map { .init(value: $0.id, title: UFitWorkspaceFinancialModeCopy.context(currency: $0.currency, liveMode: $0.liveMode)) })
+                    }
+                    if isCreator {
+                        UFitChoiceBar(title: Copy.analysis, selection: $showsAttributedSales,
+                            options: [.init(value: false, title: Copy.commissions), .init(value: true, title: Copy.attributedSales)])
+                    }
+                    UFitWorkspaceRevenueCard(currency: currency, granularity: document.granularity,
+                        isCommission: isCreator && !showsAttributedSales,
+                        metric: isCreator && !showsAttributedSales ? $commissionMetric : $salesMetric, attributedSales: isCreator)
+                        .id(currency.id)
+                    if currency.liveMode == nil {
+                        Text(UFitWorkspaceFinancialModeCopy.unclassified).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText)
+                    }
+                    if isCreator && !showsAttributedSales {
+                        UFitDisclosure(Copy.commissionStates) { UFitRevenueCommissionDistribution(currency: currency) }
+                            .id(currency.id)
                     }
                 }
-                Text(isCreator ? String(localized: "Ventes classées par date de commande ; commissions par date de création. Montants et états après ajustements connus à ce jour. Pièces attribuées, hors livraison et taxes.") : String(localized: "Commandes classées par date de création, parmi celles encaissées. Remboursements connus à ce jour, livraison et taxes incluses. Ce net ne déduit pas les frais Stripe ni les commissions et ne représente pas un versement."))
-                    .font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText)
+                UFitDisclosure(Copy.calculation) {
+                    Text(isCreator ? Copy.creatorBasis : Copy.brandBasis)
+                        .font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText)
+                }
                 Text(String(localized: "Jours UTC · Actualisé le \(document.asOf.value.formatted(.dateTime.day().month().hour().minute()))"))
                     .font(UFitTypography.caption2).foregroundStyle(Color.ufitSecondaryText)
             }
@@ -59,7 +74,21 @@ struct UFitWorkspaceRevenueContent: View {
         style.timeZone = UFitRevenueCalendar.zone
         return "\(start.formatted(style)) – \(last.formatted(style))"
     }
-    private enum Layout { static let loadingHeight: CGFloat = 220 }
+    private enum Copy {
+        static let unavailable = String(localized: "Analyse indisponible")
+        static let emptyTitle = String(localized: "Aucun revenu sur cette période")
+        static let creatorEmpty = String(localized: "Aucune vente attribuée ni commission. Essayez une période plus longue.")
+        static let brandEmpty = String(localized: "Aucune commande encaissée. Essayez une période plus longue.")
+        static let context = String(localized: "Devise et mode")
+        static let analysis = String(localized: "Analyse")
+        static let commissions = String(localized: "Commissions")
+        static let attributedSales = String(localized: "Ventes attribuées")
+        static let commissionStates = String(localized: "État des commissions de cette période")
+        static let calculation = String(localized: "Comprendre les montants")
+        static let creatorBasis = String(localized: "Ventes classées par date de commande ; commissions par date de création. Montants et états après ajustements connus à ce jour. Pièces attribuées, hors livraison et taxes.")
+        static let brandBasis = String(localized: "Commandes classées par date de création, parmi celles encaissées. Remboursements connus à ce jour, livraison et taxes incluses. Ce net ne déduit pas les frais Stripe ni les commissions et ne représente pas un versement.")
+    }
+    private enum Layout { static let loadingHeight: CGFloat = 220; static let singleGroup = 1 }
     private enum Icon { static let chart = "chart.xyaxis.line" }
 }
 
@@ -72,14 +101,15 @@ private struct UFitWorkspaceRevenueCard: View {
     private var metrics: [UFitRevenueMetric] { isCommission ? UFitRevenueMetric.commissions : UFitRevenueMetric.sales }
     var body: some View {
         VStack(alignment: .leading, spacing: UFitSpace.md) {
-            Text(isCommission ? String(localized: "Commissions générées") : attributedSales ? String(localized: "Ventes attribuées") : String(localized: "Ventes encaissées"))
-                .font(UFitTypography.subheadline).foregroundStyle(Color.ufitSecondaryText)
-            Text(UFitWorkspaceFinancialModeCopy.label(currency.liveMode))
-                .font(UFitTypography.caption.weight(.medium)).foregroundStyle(Color.ufitSecondaryText)
+            ViewThatFits(in: .horizontal) {
+                HStack(alignment: .firstTextBaseline) { Text(heading); Spacer(); Text(UFitWorkspaceFinancialModeCopy.label(currency.liveMode)) }
+                VStack(alignment: .leading, spacing: UFitSpace.xs) { Text(heading); Text(UFitWorkspaceFinancialModeCopy.label(currency.liveMode)) }
+            }.font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText)
             Text(UFitMoney.format(currency.total(metric), currency: currency.currency)).font(UFitTypography.largeTitle.weight(.medium)).monospacedDigit()
                 .minimumScaleFactor(Layout.minimumAmountScale).lineLimit(Layout.amountLineCount)
                 .accessibilityLabel(UFitWorkspaceFinancialModeCopy.amountContext(metric.label, amount: UFitMoney.format(currency.total(metric), currency: currency.currency), liveMode: currency.liveMode))
-            if !isCommission {
+            if !isCommission && attributedSales { Text(Copy.merchandiseBasis).font(UFitTypography.caption2).foregroundStyle(Color.ufitSecondaryText) }
+            if !isCommission && !attributedSales {
                 Text(String(localized: "Avant frais Stripe et commissions")).font(UFitTypography.caption2).foregroundStyle(Color.ufitSecondaryText)
             }
             ScrollView(.horizontal) {
@@ -92,13 +122,26 @@ private struct UFitWorkspaceRevenueCard: View {
                     }
                 }
             }.scrollIndicators(.hidden)
-            UFitRevenueChart(points: currency.points.map { point in
-                UFitRevenueChartPoint(id: point.date, label: dateLabel(point.date), value: point.amount(metric), formatted: UFitMoney.format(point.amount(metric), currency: currency.currency))
-            }, title: UFitWorkspaceFinancialModeCopy.namedContext(metric.label, currency: currency.currency, liveMode: currency.liveMode))
-            Text(granularity == .week ? String(localized: "Par semaine · première et dernière semaines partielles") : granularity == .month ? String(localized: "Par mois · mois en cours partiel") : String(localized: "Par jour · journée en cours partielle"))
-                .font(UFitTypography.caption2).foregroundStyle(Color.ufitSecondaryText)
+            if currency.points.contains(where: { $0.amount(metric) > .zero }) {
+                UFitRevenueChart(points: currency.points.map { point in
+                    UFitRevenueChartPoint(id: point.date, label: dateLabel(point.date), value: point.amount(metric), formatted: UFitMoney.format(point.amount(metric), currency: currency.currency))
+                }, title: UFitWorkspaceFinancialModeCopy.namedContext(metric.label, currency: currency.currency, liveMode: currency.liveMode))
+                Text(granularity == .week ? String(localized: "Par semaine · première et dernière semaines partielles") : granularity == .month ? String(localized: "Par mois · mois en cours partiel") : String(localized: "Par jour · journée en cours partielle"))
+                    .font(UFitTypography.caption2).foregroundStyle(Color.ufitSecondaryText)
+            } else {
+                Text(Copy.noAmount)
+                    .font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText).padding(.vertical, UFitSpace.lg)
+            }
         }.padding(UFitSpace.md).background(Color.ufitCanvas, in: RoundedRectangle(cornerRadius: UFitRadius.card))
             .overlay { RoundedRectangle(cornerRadius: UFitRadius.card).stroke(Color.ufitBorder) }
+    }
+    private var heading: String { isCommission ? Copy.commissions : attributedSales ? Copy.attributed : Copy.sales }
+    private enum Copy {
+        static let commissions = String(localized: "Commissions")
+        static let attributed = String(localized: "Ventes attribuées")
+        static let sales = String(localized: "Ventes")
+        static let noAmount = String(localized: "Aucun montant pour cette mesure sur la période.")
+        static let merchandiseBasis = String(localized: "Pièces attribuées, hors livraison et taxes")
     }
     private func dateLabel(_ text: String) -> String {
         guard let date = UFitRevenueCalendar.parse(text) else { return text }
@@ -119,7 +162,6 @@ private struct UFitRevenueCommissionDistribution: View {
     }
     var body: some View {
         VStack(alignment: .leading, spacing: UFitSpace.md) {
-            Text(String(localized: "Où en sont ces commissions ?")).font(UFitTypography.headline)
             Text(String(localized: "État actuel · \(UFitWorkspaceFinancialModeCopy.context(currency: currency.currency, liveMode: currency.liveMode))"))
                 .font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText)
             ForEach(figures) { figure in
@@ -128,10 +170,6 @@ private struct UFitRevenueCommissionDistribution: View {
                         HStack { Text(figure.id); Spacer(); Text(UFitMoney.format(figure.value, currency: currency.currency)).monospacedDigit() }
                         VStack(alignment: .leading) { Text(figure.id); Text(UFitMoney.format(figure.value, currency: currency.currency)).monospacedDigit() }
                     }.font(UFitTypography.caption)
-                    GeometryReader { geometry in
-                        Capsule().fill(Color.ufitBorder)
-                        Capsule().fill(Color.ufitInk).frame(width: geometry.size.width * CGFloat(figure.value) / CGFloat(max(UFitRevenueContract.step, figures.map(\.value).max() ?? .zero)))
-                    }.frame(height: Layout.bar).accessibilityHidden(true)
                 }.accessibilityElement(children: .combine)
                     .accessibilityLabel(UFitWorkspaceFinancialModeCopy.amountContext(figure.id, amount: UFitMoney.format(figure.value, currency: currency.currency), liveMode: currency.liveMode))
             }
@@ -145,5 +183,4 @@ private struct UFitRevenueCommissionDistribution: View {
             }
         }.padding(UFitSpace.md).background(Color.ufitSecondary, in: RoundedRectangle(cornerRadius: UFitRadius.card))
     }
-    private enum Layout { static let bar: CGFloat = 4 }
 }

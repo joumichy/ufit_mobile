@@ -19,6 +19,7 @@ struct UFitWorkspaceDashboardContent: View {
     var showsActivity = true
     private enum Copy {
         static let title = String(localized: "Tableau de bord")
+        static let lifetime = String(localized: "Bilan depuis le début")
         static let refresh = String(localized: "Actualiser le tableau de bord")
         static let loading = String(localized: "Chargement du tableau de bord")
         static let retry = String(localized: "Réessayer")
@@ -50,7 +51,7 @@ struct UFitWorkspaceDashboardContent: View {
         static let singleColumn = [GridItem(.flexible(), alignment: .topLeading)]
         static let columns = [GridItem(.flexible(), alignment: .topLeading), GridItem(.flexible(), alignment: .topLeading)]
     }
-    private enum Icon { static let refresh = "arrow.clockwise"; static let next = "chevron.right" }
+    private enum Icon { static let refresh = "arrow.clockwise"; static let commissions = "list.bullet.rectangle" }
     var body: some View {
         VStack(spacing: .zero) {
             DetailHeader(title: sectionTitle, onBack: onBack) {
@@ -63,21 +64,20 @@ struct UFitWorkspaceDashboardContent: View {
                         UFitActionButton(title: Copy.retry, kind: .secondary, action: onRefresh)
                     }
                     if let document {
-                        VStack(alignment: .leading, spacing: Layout.small) {
-                            Text(document.name).font(UFitTypography.title.weight(.medium))
-                            Text(document.status).font(UFitTypography.subheadline).foregroundStyle(Color.ufitSecondaryText)
-                            if let grade = document.grade { Text(grade).font(UFitTypography.subheadline.weight(.medium)) }
-                        }
-                        UFitExperienceActionRow(title: UFitWorkspaceTransfersCopy.title, systemImage: UFitWorkspaceTransfersCopy.historyIcon, action: onTransfers)
+                        Text(document.name).font(UFitTypography.subheadline).foregroundStyle(Color.ufitSecondaryText)
                         if showsActivity { activity(document.activity) }
-                        if document.sales.contains(where: { $0.liveMode == nil }) || document.commissions.contains(where: { $0.liveMode == nil }) {
-                            Text(UFitWorkspaceFinancialModeCopy.unclassified).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText)
-                        }
                         UFitWorkspaceRevenueContent(document: revenue, period: $revenuePeriod, isLoading: isRevenueLoading,
                             message: revenueMessage, isCreator: document.kind == .creator, onRetry: onRevenueRetry)
-                        Text(String(localized: "Depuis le début")).font(UFitTypography.title2.weight(.medium))
-                        sales(document)
-                        if document.kind == .creator { commissions(document.commissions) }
+                        UFitDisclosure(Copy.lifetime) {
+                            VStack(alignment: .leading, spacing: Layout.page) {
+                                sales(document)
+                                if document.kind == .creator { commissions(document.commissions) }
+                            }.padding(.top, Layout.gap)
+                        }
+                        if document.kind == .creator {
+                            UFitExperienceActionRow(title: Copy.ledger, systemImage: Icon.commissions, action: onCommissions)
+                        }
+                        UFitExperienceActionRow(title: UFitWorkspaceTransfersCopy.title, systemImage: UFitWorkspaceTransfersCopy.historyIcon, action: onTransfers)
                     } else if isLoading || message == nil { UFitLoading(Copy.loading).frame(maxWidth: .infinity) }
                 }.padding(Layout.page).padding(.bottom, UFitSpace.xl).frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -143,9 +143,6 @@ struct UFitWorkspaceDashboardContent: View {
                     figure(Copy.paid, value.paid)
                     if value.hasPaidAdjustment { figure(Copy.recover, value.paidAdjustment, emphasized: true) }
                 }.padding(Layout.gap).overlay { RoundedRectangle(cornerRadius: Layout.radius).stroke(Color.ufitBorder) }
-            }
-            UFitButton(action: onCommissions) {
-                HStack { Text(Copy.ledger); Spacer(); UFitIcon(systemName: Icon.next) }.frame(minHeight: Layout.touch).contentShape(Rectangle())
             }
         }
     }
