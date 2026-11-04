@@ -18,6 +18,7 @@ struct UFitCheckoutContent: View {
     var recoveryAmount: String? = nil
     var canReplay = false
     var requiresNewReview = false
+    var purchaseAvailable = false
     var onReplay: () -> Void = {}
     var onReload: () -> Void = {}
     private enum Layout { static let spacing: CGFloat = UFitSpace.xl; static let fieldSpacing: CGFloat = UFitSpace.md; static let bottom: CGFloat = 110; static let fieldHeight: CGFloat = UFitControlSize.input }
@@ -25,9 +26,14 @@ struct UFitCheckoutContent: View {
         VStack(spacing: .zero) {
             DetailHeader(title: String(localized: "Livraison et paiement"), onBack: onBack)
                 .disabled(isBusy)
+            if step == .address, let message {
+                Group {
+                    if requiresNewReview { UFitNotice(message: message) }
+                    else { UFitNotice(message: message, kind: .error) }
+                }.padding(.horizontal, Layout.spacing).padding(.top, UFitSpace.md)
+            }
             ScrollView {
                 VStack(alignment: .leading, spacing: Layout.spacing) {
-                    if step == .address && requiresNewReview, let message { UFitNotice(message: message) }
                     if step == .address { addressForm }
                     else if step == .review { review }
                     else if step == .recovery {
@@ -36,8 +42,8 @@ struct UFitCheckoutContent: View {
                     }
                     else { confirmation }
                     if step != .recovery {
-                        if isBusy { UFitLoading().frame(maxWidth: .infinity) }
-                        if let message, !(step == .address && requiresNewReview) { Text(message).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText).accessibilityIdentifier("checkout-message") }
+                        if isBusy && step != .address && step != .review { UFitLoading().frame(maxWidth: .infinity) }
+                        if let message, step != .address { Text(message).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText).accessibilityIdentifier("checkout-message") }
                         if step == .address && destinations.isEmpty && message != nil {
                             UFitActionButton(title: UFitCheckoutRecoveryCopy.deliveryRetry, kind: .secondary, isBusy: isBusy, action: onReload)
                         }
@@ -66,13 +72,14 @@ struct UFitCheckoutContent: View {
             }
             Text(String(localized: "Les frais et les conditions de la marque seront affichés avant paiement."))
                 .font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText)
-            UFitButton(action: onReview) { Text(String(localized: "Vérifier ma commande")).frame(maxWidth: .infinity) }
-                .ufitButtonStyle(.primary).disabled(isBusy || destinations.isEmpty)
+            UFitActionButton(title: String(localized: "Vérifier ma commande"), isBusy: isBusy,
+                disabled: destinations.isEmpty, action: onReview)
         }.disabled(isBusy)
     }
 
     @ViewBuilder private var review: some View {
         if let summary {
+            if !purchaseAvailable { UFitNotice(message: UFitCheckoutAvailabilityCopy.unavailable) }
             Text(String(localized: "Votre commande")).font(UFitTypography.title2.weight(.semibold))
             ForEach(lines) { line in
                 HStack(alignment: .top, spacing: Layout.fieldSpacing) {
@@ -108,8 +115,8 @@ struct UFitCheckoutContent: View {
                 Text(summary.returnPolicy)
                 Text(summary.refundPolicy.explanation)
             }.font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText)
-            UFitButton(action: onPay) { Text(String(localized: "Payer \(summary.total)")).frame(maxWidth: .infinity) }
-                .ufitButtonStyle(.primary).disabled(isBusy)
+            UFitActionButton(title: purchaseAvailable ? String(localized: "Payer \(summary.total)") : UFitCheckoutAvailabilityCopy.recheck,
+                isBusy: isBusy, action: purchaseAvailable ? onPay : onReview)
         }
     }
 

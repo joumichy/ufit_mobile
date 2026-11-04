@@ -16,6 +16,7 @@ final class UFitCheckoutStore {
     private(set) var journalUnavailable = false
     private(set) var recoveredOrderAvailable = false
     private(set) var requiresNewReview = false
+    private(set) var purchaseAvailable = false
     var message: String?
     @ObservationIgnored private let client: UFitAPIClient
     @ObservationIgnored private let session: UFitSessionStore
@@ -92,7 +93,7 @@ final class UFitCheckoutStore {
     }
     func review() async {
         guard isCurrentAccount, !isBusy, !journalUnavailable, pending == nil else { return }
-        requiresNewReview = false
+        requiresNewReview = false; purchaseAvailable = false
         address.fullName = address.fullName.trimmingCharacters(in: .whitespacesAndNewlines)
         address.line1 = address.line1.trimmingCharacters(in: .whitespacesAndNewlines)
         address.postalCode = address.postalCode.trimmingCharacters(in: .whitespacesAndNewlines)
@@ -105,17 +106,20 @@ final class UFitCheckoutStore {
         do {
             await cart.load()
             guard isCurrentAccount else { return }
-            let result = try await client.quoteCart(country: address.country)
+            guard cart.loadError == nil, let activeCart = cart.cart else { throw UFitCheckoutReviewFailure.invalid }
+            let result = try await client.reviewCheckout(cart: activeCart, country: address.country)
             guard isCurrentAccount else { return }
-            guard result.items.allSatisfy({ item in cart.lines.contains { $0.id == item.id } }) else {
-                message = String(localized: "Le panier a changé. Vérifiez-le avant de continuer."); return
+            quote = result.quote; purchaseAvailable = result.available; paymentSheet = nil; step = .review
+        } catch {
+            if isCurrentAccount {
+                quote = nil; step = .address
+                message = error is DecodingError || error is UFitCheckoutReviewFailure ? UFitCheckoutAvailabilityCopy.failed : error.localizedDescription
             }
-            quote = result; paymentSheet = nil; step = .review
-        } catch { if isCurrentAccount { message = error.localizedDescription } }
+        }
     }
     func editAddress() { guard isCurrentAccount, !isBusy, pending == nil else { return }; step = .address; message = nil }
     func preparePayment() async -> Bool {
-        guard isCurrentAccount, !isBusy, !journalUnavailable, let quote else { return false }
+        guard isCurrentAccount, !isBusy, !journalUnavailable, purchaseAvailable, let quote else { return false }
         isBusy = true; message = nil
         defer { isBusy = false }
         do {
@@ -189,7 +193,7 @@ final class UFitCheckoutStore {
         if let attempt = pending {
             step = .recovery
             if case UFitAPIError.requestFailed(_, _, let code) = error,
-               code == UFitCheckoutRecoveryHTTP.quoteChanged, attempt.orderID == nil {
+               code == UFitCheckoutHTTP.quoteChanged, attempt.orderID == nil {
                 do {
                     let outcome = try await client.checkoutOutcome(requestID: attempt.request.requestId, knownOrderID: nil)
                     guard isCurrentAccount else { return }
@@ -258,8 +262,8 @@ final class UFitCheckoutStore {
     }
     private func recoveryMessage(_ error: Error) -> String {
         if error is DecodingError { return UFitCheckoutRecoveryCopy.invalid }
-        if case UFitAPIError.requestFailed(_, _, let code) = error, code == UFitCheckoutRecoveryHTTP.invalid { return UFitCheckoutRecoveryCopy.invalid }
-        if case UFitAPIError.requestFailed(_, _, let code) = error, code == UFitCheckoutRecoveryHTTP.commissionUnavailable { return UFitCheckoutRecoveryCopy.commissionUnavailable }
+        if case UFitAPIError.requestFailed(_, _, let code) = error, code == UFitCheckoutHTTP.invalid { return UFitCheckoutRecoveryCopy.invalid }
+        if case UFitAPIError.requestFailed(_, _, let code) = error, code == UFitCheckoutHTTP.commissionUnavailable { return UFitCheckoutRecoveryCopy.commissionUnavailable }
         return UFitCustomerPaymentCopy.message(error)
     }
 }

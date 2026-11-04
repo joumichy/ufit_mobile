@@ -16,6 +16,7 @@ struct UFitCheckoutHost: View {
             onPay: { Task { _ = await store.preparePayment() } },
             onRefresh: { Task { await store.refreshConfirmation() } }, onFinish: onFinish, payment: store.payment,
             recoveryAmount: store.recoveryAmount, canReplay: store.canReplay, requiresNewReview: store.requiresNewReview,
+            purchaseAvailable: store.purchaseAvailable,
             onReplay: { Task { await store.replay() } }, onReload: { Task { await store.load() } })
             .task { await store.load() }
             .onChange(of: store.needsOrderDetails) { _, needed in if needed { onFinish() } }

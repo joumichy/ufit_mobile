@@ -1,13 +1,5 @@
 import Foundation
 
-enum UFitCheckoutRecoveryHTTP {
-    static let route = "orders/checkout-requests/"
-    static let invalid = "checkout_recovery_invalid"
-    static let quoteChanged = "checkout_quote_changed"
-    static let commissionUnavailable = "commission_rule_unconfigured"
-    static let fingerprintPattern = "^[a-f0-9]{64}$"
-}
-
 struct UFitCheckoutOutcomeDTO: Decodable {
     let requestId: String
     @UFitRequiredNullable var orderId: String?
@@ -21,7 +13,7 @@ struct UFitCheckoutOutcomeDTO: Decodable {
 extension UFitAPIClient {
     func checkoutOutcome(requestID: String, knownOrderID: String?) async throws -> UFitCheckoutOutcomeDTO {
         let result: UFitCheckoutOutcomeDTO = try await send(UFitCustomerPaymentHTTP.get,
-            path: UFitCheckoutRecoveryHTTP.route + requestID, requiresAuth: true, cachePolicy: .reloadIgnoringLocalCacheData)
+            path: UFitCheckoutHTTP.outcomeRoute + requestID, requiresAuth: true, cachePolicy: .reloadIgnoringLocalCacheData)
         try result.validate(requestID: requestID, knownOrderID: knownOrderID)
         return result
     }

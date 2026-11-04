@@ -11,6 +11,12 @@ struct UFitShippingAddress: Codable, Equatable {
 }
 enum UFitCheckoutStep: Hashable { case address, review, recovery, confirming, paid }
 
+enum UFitCheckoutAvailabilityCopy {
+    static let unavailable = String(localized: "Cette sélection ne peut pas être achetée pour le moment.")
+    static let recheck = String(localized: "Vérifier la disponibilité")
+    static let failed = String(localized: "La disponibilité de votre sélection n’a pas pu être vérifiée. Réessayez.")
+}
+
 enum UFitCheckoutRecoveryCopy {
     static let title = String(localized: "Retrouver votre achat")
     static let detail = String(localized: "Vérifiez son état avant de recommencer une commande.")

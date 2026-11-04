@@ -18,7 +18,7 @@ struct UFitCheckoutRecoveryRecord: Codable {
         guard version == UFitCheckoutJournal.version, self.userID == userID, self.endpoint == endpoint,
               UUID(uuidString: userID) != nil, UUID(uuidString: cartID) != nil,
               UUID(uuidString: request.requestId) != nil, request.requestId == request.requestId.lowercased(),
-              request.quoteFingerprint.range(of: UFitCheckoutRecoveryHTTP.fingerprintPattern, options: .regularExpression) != nil,
+              request.quoteFingerprint.range(of: UFitCheckoutHTTP.fingerprintPattern, options: .regularExpression) != nil,
               amount > .zero, amount <= UFitCustomerPaymentHTTP.maximum,
               currency.range(of: UFitCurrency.codePattern, options: .regularExpression) != nil,
               !address.fullName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
