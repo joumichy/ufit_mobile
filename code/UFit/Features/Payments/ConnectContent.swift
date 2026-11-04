@@ -8,11 +8,14 @@ struct UFitConnectContent: View {
     @Binding var country: String
     let loadingProfiles: Bool
     let hasLoaded: Bool
+    let loadingCountries: Bool
+    let countryError: String?
     let busyIDs: Set<String>
     let message: String?
     let onBack: () -> Void
     let onSelect: (UFitPaymentProfile) -> Void
     let onRefresh: () -> Void
+    let onRetryCountries: () -> Void
     let onConfigure: () -> Void
     let onDashboard: () -> Void
     private enum Copy {
@@ -26,6 +29,9 @@ struct UFitConnectContent: View {
         static let icon = "creditcard"
         static let test = String(localized: "Mode test")
         static let country = String(localized: "Pays d’établissement")
+        static let loadingCountries = String(localized: "Chargement des pays")
+        static let retryCountries = String(localized: "Recharger les pays")
+        static let loadingAccount = String(localized: "Chargement du compte Stripe")
         static let immutable = String(localized: "Le pays du compte Stripe ne pourra pas être modifié.")
         static let start = String(localized: "Continuer sur Stripe")
         static let dashboard = String(localized: "Gérer mon compte Stripe")
@@ -79,10 +85,11 @@ struct UFitConnectContent: View {
                             if let selected {
                                 if profiles.count == Layout.single { Text(selected.name).font(UFitTypography.title3.weight(.semibold)) }
                                 if let status { account(status) }
+                                else if isBusy { UFitLoading(Copy.loadingAccount).frame(maxWidth: .infinity) }
                             }
                             if let message {
                                 UFitNotice(message: message, kind: .error)
-                                if selected == nil { UFitActionButton(title: Copy.retry, kind: .secondary, action: onRefresh) }
+                                UFitActionButton(title: Copy.retry, kind: .secondary, action: onRefresh)
                             }
                         }
                     }.padding(Layout.spacing).frame(minHeight: viewport.size.height, alignment: profiles.isEmpty ? .center : .topLeading)
@@ -98,14 +105,20 @@ struct UFitConnectContent: View {
             if let selectedCountry = status.country {
                 VStack(alignment: .leading, spacing: Layout.row) {
                     Text(Copy.country).font(UFitTypography.subheadline.weight(.medium))
-                    Text(countries.first { $0.id == selectedCountry }?.name ?? selectedCountry)
+                    Text(UFitConnectCountry.localizedName(selectedCountry))
                 }
             } else if status.canConfigure {
                 VStack(alignment: .leading, spacing: Layout.row) {
                     Text(Copy.country).font(UFitTypography.subheadline.weight(.medium))
-                    UFitSelection(Copy.country, selection: $country, options: countries.map { .init(value: $0.id, title: $0.name) })
-                        .labelsHidden().pickerStyle(.menu).tint(Color.ufitInk).frame(minHeight: Layout.touch).disabled(isBusy)
-                    Text(Copy.immutable).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText)
+                    if loadingCountries { UFitLoading(Copy.loadingCountries).frame(maxWidth: .infinity) }
+                    else if let countryError {
+                        UFitNotice(message: countryError, kind: .error)
+                        UFitActionButton(title: Copy.retryCountries, kind: .secondary, action: onRetryCountries)
+                    } else {
+                        UFitSelection(Copy.country, selection: $country, options: countries.map { .init(value: $0.id, title: $0.name) })
+                            .labelsHidden().frame(minHeight: Layout.touch).disabled(isBusy)
+                        Text(Copy.immutable).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText)
+                    }
                 }
             }
             Divider()
@@ -113,10 +126,11 @@ struct UFitConnectContent: View {
             capability(Copy.payouts, status.payoutsEnabled)
             if status.canConfigure {
                 if status.stage != .ready {
-                    UFitActionButton(title: Copy.start, isBusy: isBusy, disabled: status.country == nil && country.isEmpty, action: onConfigure)
+                    UFitActionButton(title: Copy.start, isBusy: isBusy,
+                        disabled: message != nil || (status.country == nil && (loadingCountries || countryError != nil || !countries.contains { $0.id == country })), action: onConfigure)
                 }
                 if status.stage == .ready || status.stage == .restricted {
-                    UFitActionButton(title: Copy.dashboard, kind: .secondary, isBusy: isBusy, action: onDashboard)
+                    UFitActionButton(title: Copy.dashboard, kind: .secondary, isBusy: isBusy, disabled: message != nil, action: onDashboard)
                 }
             } else { Text(Copy.owner).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
         }

@@ -10,7 +10,12 @@ struct UFitPaymentProfile: Identifiable, Hashable {
     var id: String { kind.rawValue + ProfileIdentity.separator + profileID }
     private enum ProfileIdentity { static let separator = ":" }
 }
-struct UFitConnectCountry: Identifiable { let id: String; let name: String }
+struct UFitConnectCountry: Identifiable {
+    let id: String
+    let name: String
+    private static let locale = Locale(identifier: "fr")
+    static func localizedName(_ code: String) -> String { locale.localizedString(forRegionCode: code) ?? code }
+}
 enum UFitConnectStage: String, Decodable {
     case notStarted = "not_started", incomplete, verifying = "pending_verification", restricted, ready
     var label: String {
