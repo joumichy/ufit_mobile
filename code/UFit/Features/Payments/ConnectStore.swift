@@ -33,6 +33,10 @@ final class UFitConnectStore {
         self.client = client; self.session = session; requestedProfile = profile
     }
     private enum Selection { static let single = 1; static let first = 0 }
+    private enum StatusAccess {
+        static let unauthorized = 401; static let forbidden = 403; static let missing = 404
+        static let unavailable: Set<Int> = [unauthorized, forbidden, missing]
+    }
     private enum ProfileFailure: LocalizedError {
         case unavailable
         var errorDescription: String? { String(localized: "Ce compte de versement n’est plus disponible dans cet espace. Actualisez vos accès.") }
@@ -78,7 +82,20 @@ final class UFitConnectStore {
             guard session.user?.id == userID else { return }
             receive(status, for: profile)
             if selectedID == profile.id { await loadCountries() }
-        } catch { if session.user?.id == userID { messages[profile.id] = error.localizedDescription } }
+        } catch {
+            guard session.user?.id == userID else { return }
+            discardUnavailableStatus(error, for: profile)
+            messages[profile.id] = error.localizedDescription
+        }
+    }
+    private func discardUnavailableStatus(_ error: Error, for profile: UFitPaymentProfile) {
+        switch error {
+        case UFitAPIError.authenticationRequired: break
+        case UFitAPIError.requestFailed(let status, _, _) where StatusAccess.unavailable.contains(status): break
+        default: return
+        }
+        statuses[profile.id] = nil
+        countryDrafts[profile.id] = nil
     }
     private func receive(_ status: UFitConnectAccountStatus, for profile: UFitPaymentProfile) {
         statuses[profile.id] = status
@@ -120,7 +137,12 @@ final class UFitConnectStore {
         } catch {
             guard session.user?.id == userID else { return }
             messages[profile.id] = error.localizedDescription
-            if let current = try? await client.fetchConnectStatus(profile), session.user?.id == userID { receive(current, for: profile) }
+            do {
+                let current = try await client.fetchConnectStatus(profile)
+                if session.user?.id == userID { receive(current, for: profile) }
+            } catch {
+                if session.user?.id == userID { discardUnavailableStatus(error, for: profile) }
+            }
         }
     }
     func browserClosed() async {

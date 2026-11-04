@@ -42,6 +42,8 @@ struct UFitConnectContent: View {
         static let payouts = String(localized: "Versements bancaires")
         static let enabled = String(localized: "Activés")
         static let pending = String(localized: "À activer")
+        static let checking = String(localized: "En cours de vérification")
+        static let lastKnown = String(localized: "Dernier état connu")
         static let selected = "checkmark"
         static let disclosure = "chevron.right"
     }
@@ -82,14 +84,16 @@ struct UFitConnectContent: View {
                                     }
                                 }
                             }
-                            if let selected {
-                                if profiles.count == Layout.single { Text(selected.name).font(UFitTypography.title3.weight(.semibold)) }
-                                if let status { account(status) }
-                                else if isBusy { UFitLoading(Copy.loadingAccount).frame(maxWidth: .infinity) }
-                            }
+                            if profiles.count == Layout.single, let selected { Text(selected.name).font(UFitTypography.title3.weight(.semibold)) }
                             if let message {
                                 UFitNotice(message: message, kind: .error)
                                 UFitActionButton(title: Copy.retry, kind: .secondary, action: onRefresh)
+                            }
+                            if selected != nil {
+                                if let status {
+                                    if message != nil { Text(Copy.lastKnown).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText) }
+                                    account(status)
+                                } else if isBusy { UFitLoading(Copy.loadingAccount).frame(maxWidth: .infinity) }
                             }
                         }
                     }.padding(Layout.spacing).frame(minHeight: viewport.size.height, alignment: profiles.isEmpty ? .center : .topLeading)
@@ -102,6 +106,13 @@ struct UFitConnectContent: View {
             if !status.liveMode { Text(Copy.test).font(UFitTypography.caption.weight(.semibold)).padding(.horizontal, Layout.row).padding(.vertical, Layout.pillVertical).background(Color.ufitCanvas, in: Capsule()) }
             Text(status.stage.label).font(UFitTypography.title2.weight(.medium))
             if status.stage != .ready { Text(Copy.required).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
+            if !status.requirements.missing.isEmpty { requirementItems(status.requirements.missing) }
+            if !status.requirements.pending.isEmpty {
+                if status.stage != .verifying || !status.requirements.missing.isEmpty {
+                    Text(Copy.checking).font(UFitTypography.subheadline.weight(.medium))
+                }
+                requirementItems(status.requirements.pending)
+            }
             if let selectedCountry = status.country {
                 VStack(alignment: .leading, spacing: Layout.row) {
                     Text(Copy.country).font(UFitTypography.subheadline.weight(.medium))
@@ -137,5 +148,16 @@ struct UFitConnectContent: View {
     }
     private func capability(_ title: String, _ enabled: Bool) -> some View {
         HStack { Text(title).font(UFitTypography.subheadline); Spacer(); Text(enabled ? Copy.enabled : Copy.pending).font(UFitTypography.subheadline.weight(.medium)) }
+    }
+    private func requirementItems(_ categories: [UFitConnectRequirementCategory]) -> some View {
+        VStack(alignment: .leading, spacing: UFitSpace.md) {
+            ForEach(categories, id: \.self) { category in
+                Label {
+                    Text(category.title).font(UFitTypography.callout)
+                } icon: {
+                    UFitIcon(systemName: category.symbol).foregroundStyle(Color.ufitSecondaryText)
+                }.accessibilityElement(children: .combine)
+            }
+        }
     }
 }

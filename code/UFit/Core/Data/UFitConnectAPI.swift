@@ -10,11 +10,13 @@ private enum ConnectHTTP {
     static let dashboard = "/dashboard"
 }
 private enum ConnectContractError: LocalizedError {
-    case profileMismatch, invalidCountries
+    case profileMismatch, invalidCountries, invalidRequirements
+    private enum Copy { static let invalidRequirements = String(localized: "Les informations du compte Stripe sont indisponibles. Réessayez.") }
     var errorDescription: String? {
         switch self {
         case .profileMismatch: String(localized: "Le compte Stripe reçu ne correspond pas à cet espace.")
         case .invalidCountries: String(localized: "Les pays d’établissement sont indisponibles. Réessayez.")
+        case .invalidRequirements: Copy.invalidRequirements
         }
     }
 }
@@ -31,8 +33,14 @@ extension UFitAPIClient {
         return result.countries
     }
     func fetchConnectStatus(_ profile: UFitPaymentProfile) async throws -> UFitConnectAccountStatus {
-        let status: UFitConnectAccountStatus = try await send(ConnectHTTP.get, path: ConnectHTTP.base + profile.kind.rawValue + ConnectHTTP.separator + profile.profileID, requiresAuth: true)
+        let status: UFitConnectAccountStatus
+        do {
+            status = try await send(ConnectHTTP.get, path: ConnectHTTP.base + profile.kind.rawValue + ConnectHTTP.separator + profile.profileID, requiresAuth: true)
+        } catch is DecodingError { throw ConnectContractError.invalidRequirements }
         guard status.kind == profile.kind, status.profileId == profile.profileID else { throw ConnectContractError.profileMismatch }
+        guard status.requirements.isValid(missingCount: status.missingInformationCount, pendingCount: status.pendingVerificationCount) else {
+            throw ConnectContractError.invalidRequirements
+        }
         return status
     }
     func createConnectOnboarding(_ profile: UFitPaymentProfile, country: String) async throws -> UFitConnectLink {
