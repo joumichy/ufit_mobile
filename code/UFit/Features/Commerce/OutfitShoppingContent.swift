@@ -48,7 +48,12 @@ struct UFitOutfitShoppingContent: View {
                             .frame(width: geometry.size.width)
                     }
                     VStack(alignment: .leading, spacing: Layout.spacing) {
-                        Text(title).ufitFont(size: Layout.title, weight: .regular, design: .serif).fixedSize(horizontal: false, vertical: true)
+                        if focusedItemID == nil {
+                            Text(title).ufitFont(size: Layout.title, weight: .regular, design: .serif).fixedSize(horizontal: false, vertical: true)
+                        } else {
+                            Text(title).font(UFitTypography.subheadline).foregroundStyle(Color.ufitSecondaryText)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
                         if let author {
                             UFitButton(action: onAuthor) { HStack { Text(author.name); Spacer(); UFitIcon(systemName: Copy.authorChevron) }.frame(minHeight: AuthorLayout.touch) }.font(UFitTypography.subheadline)
                         }
@@ -59,16 +64,17 @@ struct UFitOutfitShoppingContent: View {
                         else if pieces.isEmpty {
                             UFitButton(Copy.retry, action: onRetry).ufitButtonStyle(.primary, compact: true)
                         } else {
-                            Text(Copy.pieces).font(UFitTypography.title2.weight(.semibold))
+                            if focusedItemID == nil { Text(Copy.pieces).font(UFitTypography.title2.weight(.semibold)) }
                             if let focusedItemID, !pieces.contains(where: { $0.id == focusedItemID }) { Text(Copy.missing).font(UFitTypography.callout) }
                             ForEach(pieces.filter { focusedItemID == nil || $0.id == focusedItemID }) { piece in
-                                UFitShoppingPieceCard(piece: piece,
+                                UFitShoppingPieceCard(piece: piece, isFocused: focusedItemID != nil,
                                     onBrand: { if let brandID = piece.brandID { onBrand(brandID) } },
                                     onSelect: { onSelect(piece.id, $0) },
                                     onQuantity: { onQuantity(piece.id, $0) }, onAdd: { onAdd(piece.id) })
                             }
                         }
                     }.padding(.horizontal, Layout.spacing)
+                        .padding(.top, focusedItemID == nil ? .zero : UFitSpace.md)
                 }.frame(width: geometry.size.width).padding(.bottom, UFitSpace.xl)
             }
             .scrollIndicators(.hidden)
@@ -80,6 +86,7 @@ struct UFitOutfitShoppingContent: View {
 
 private struct UFitShoppingPieceCard: View {
     let piece: UFitShoppingPiece
+    let isFocused: Bool
     let onBrand: () -> Void
     let onSelect: (String) -> Void
     let onQuantity: (Int) -> Void
@@ -110,7 +117,8 @@ private struct UFitShoppingPieceCard: View {
                     if let brand = piece.brand, piece.brandID != nil {
                         UFitButton(action: onBrand) { HStack { Text(brand); UFitIcon(systemName: Copy.brandChevron) }.frame(minHeight: BrandLayout.touch) }.font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText)
                     }
-                    Text(piece.name).font(UFitTypography.headline)
+                    Text(piece.name).font(isFocused ? UFitTypography.title2 : UFitTypography.headline)
+                        .fixedSize(horizontal: false, vertical: true)
                     Text(piece.price).font(UFitTypography.subheadline.weight(.medium))
                 }.frame(maxWidth: .infinity, alignment: .leading)
             }

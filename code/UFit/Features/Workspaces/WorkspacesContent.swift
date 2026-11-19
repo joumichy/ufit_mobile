@@ -46,18 +46,20 @@ struct UFitWorkspacesContent: View {
         static let page: CGFloat = UFitSpace.xl; static let gap: CGFloat = UFitSpace.md; static let small: CGFloat = UFitSpace.xs
         static let touch: CGFloat = UFitControlSize.touch; static let bottom: CGFloat = 110; static let title: CGFloat = UFitTypography.Size.editorial; static let radius: CGFloat = UFitRadius.card
     }
-    private enum Icon { static let refresh = "arrow.clockwise"; static let chevron = "chevron.right" }
+    private enum Icon { static let chevron = "chevron.right" }
     var body: some View {
         VStack(spacing: .zero) {
             HStack {
                 Text(Copy.title).ufitFont(size: Layout.title, design: .serif)
                 Spacer()
                 if isLoading { UFitLoading().frame(width: Layout.touch, height: Layout.touch) }
-                else { UFitButton(action: onRefresh) { UFitIcon(systemName: Icon.refresh).frame(width: Layout.touch, height: Layout.touch) }.accessibilityLabel(Copy.refresh) }
             }.padding(.horizontal, Layout.page).padding(.top, Layout.gap)
             ScrollView {
                 VStack(alignment: .leading, spacing: Layout.page) {
-                    if let message { Text(message).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText).accessibilityAddTraits(.updatesFrequently) }
+                    if let message {
+                        Text(message).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText).accessibilityAddTraits(.updatesFrequently)
+                        UFitActionButton(title: Copy.refresh, kind: .secondary, disabled: isLoading, action: onRefresh)
+                    }
                     if !hasLoaded && isLoading { Text(Copy.loading).foregroundStyle(Color.ufitSecondaryText) }
                     if hasLoaded {
                         if spaces.isEmpty && message == nil && !isLoading { Text(Copy.empty).font(UFitTypography.title2).padding(.vertical, Layout.page) }
@@ -118,7 +120,7 @@ struct UFitWorkspacesContent: View {
                         }
                     }
                 }.padding(Layout.page).padding(.bottom, UFitSpace.xl).frame(maxWidth: .infinity, alignment: .leading)
-            }
+            }.ufitRefreshable(isEnabled: !isLoading, title: Copy.refresh) { onRefresh() }
         }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.ufitCanvas)
     }
 }

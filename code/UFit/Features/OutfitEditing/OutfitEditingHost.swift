@@ -67,7 +67,7 @@ struct UFitOutfitFormHost: View {
                     onSave: { Task { if let outfit = await store.save() { onSaved(outfit) } } }, onReloadTags: { Task { await store.prepare(reloadMetadata: true) } },
                     onAddPhotos: { selectedPhotos = []; showingPhotos = true }, onRetryPhoto: store.retryPhoto, onRemovePhoto: store.removePhoto,
                     onSelectProduct: { productSelection = UFitOutfitProductSelectionStore(form: store) }, renewPhotoSource: store.renewPhotoSource,
-                    cancelsScheduledPublication: store.original?.scheduledFor != nil)
+                    cancelsScheduledPublication: store.original?.status == .scheduled)
             } else {
                 UFitOutfitPreparationContent(isLoading: store.isLoading, message: store.message, onBack: onBack, onRetry: { Task { await store.prepare() } })
             }

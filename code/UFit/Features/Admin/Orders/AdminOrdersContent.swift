@@ -5,6 +5,13 @@ struct UFitAdminOrdersContent: View {
     let onBack: () -> Void; let onOpen: (String) -> Void
     private var rows: [UFitAdminOrderSummary] { store.canRead ? store.rows : [] }
     private let shipmentOptions: [UFitShipmentLifecycle] = [.pending, .preparing, .shipped, .delivered, .failed, .cancelled]
+    private enum Copy {
+        static let filters = String(localized: "Affiner les commandes")
+        static let separator = " · "
+    }
+    private var activeFilters: String {
+        [store.status?.label, store.currency, store.shipmentStatus?.label].compactMap { $0 }.joined(separator: Copy.separator)
+    }
     var body: some View {
         VStack(spacing: .zero) {
             header
@@ -31,14 +38,25 @@ struct UFitAdminOrdersContent: View {
         }
     }
     private var filters: some View {
-        VStack(spacing: UFitSpace.md) {
+        VStack(alignment: .leading, spacing: UFitSpace.md) {
             UFitSearchField(query: $store.search, prompt: UFitAdminOrdersCopy.search)
-            ViewThatFits(in: .horizontal) {
-                HStack(alignment: .top, spacing: UFitSpace.sm) { statusFilter; currencyFilter }
-                VStack(spacing: UFitSpace.sm) { statusFilter; currencyFilter }
+            UFitDisclosure(Copy.filters) {
+                VStack(alignment: .leading, spacing: UFitSpace.lg) {
+                    filterGroup(UFitAdminOrdersCopy.status) { statusFilter }
+                    filterGroup(UFitAdminOrdersCopy.currency) { currencyFilter }
+                    filterGroup(UFitAdminOrdersCopy.shipping) {
+                        UFitFilterChoices(title: UFitAdminOrdersCopy.shipping, selection: $store.shipmentStatus,
+                            options: [.init(value: nil, title: UFitAdminOrdersCopy.allShipments)] + shipmentOptions.map { .init(value: Optional($0), title: $0.label) })
+                    }
+                }.padding(.top, UFitSpace.sm)
             }
-            UFitSelection(UFitAdminOrdersCopy.shipping, selection: $store.shipmentStatus,
-                options: [.init(value: nil, title: UFitAdminOrdersCopy.allShipments)] + shipmentOptions.map { .init(value: Optional($0), title: $0.label) })
+            if !activeFilters.isEmpty { Text(activeFilters).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText) }
+        }
+    }
+    private func filterGroup<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: UFitSpace.xs) {
+            Text(title).font(UFitTypography.subheadline.weight(.medium))
+            content()
         }
     }
     @ViewBuilder private var metadata: some View {
@@ -76,11 +94,11 @@ struct UFitAdminOrdersContent: View {
         }
     }
     private var statusFilter: some View {
-        UFitSelection(UFitAdminOrdersCopy.status, selection: $store.status,
+        UFitFilterChoices(title: UFitAdminOrdersCopy.status, selection: $store.status,
             options: [.init(value: nil, title: UFitAdminOrdersCopy.allStatuses)] + UFitOrderLifecycle.allCases.map { .init(value: Optional($0), title: $0.label) })
     }
     private var currencyFilter: some View {
-        UFitSelection(UFitAdminOrdersCopy.currency, selection: $store.currency,
+        UFitFilterChoices(title: UFitAdminOrdersCopy.currency, selection: $store.currency,
             options: [.init(value: nil, title: UFitAdminOrdersCopy.allCurrencies)] + store.currencies.map { .init(value: Optional($0), title: $0) })
     }
     @ViewBuilder private var failure: some View {

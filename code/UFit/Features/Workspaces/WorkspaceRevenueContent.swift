@@ -13,14 +13,8 @@ struct UFitWorkspaceRevenueContent: View {
     @State private var showsAttributedSales = false
     var body: some View {
         VStack(alignment: .leading, spacing: UFitSpace.lg) {
-            HStack(spacing: UFitSpace.xs) {
-                ForEach(UFitRevenuePeriod.allCases) { choice in
-                    UFitButton(action: { period = choice }) { Text(choice.label).frame(maxWidth: .infinity) }
-                        .ufitButtonStyle(period == choice ? .primary : .secondary, compact: true)
-                        .accessibilityAddTraits(period == choice ? .isSelected : [])
-                        .accessibilityHint(String(localized: "Période des revenus"))
-                }
-            }
+            UFitChoiceBar(title: Copy.period, selection: $period,
+                options: UFitRevenuePeriod.allCases.map { .init(value: $0, title: $0.label) }, appearance: .underline)
             if let message {
                 UFitEmptyState(title: Copy.unavailable, message: message, symbol: Icon.chart)
                 UFitActionButton(title: String(localized: "Réessayer"), kind: .secondary, action: onRetry)
@@ -40,11 +34,11 @@ struct UFitWorkspaceRevenueContent: View {
                 if let currency = document.currencies.first(where: { $0.id == selectedGroup }) ?? document.currencies.first {
                     if document.currencies.count > Layout.singleGroup {
                         UFitChoiceBar(title: Copy.context, selection: Binding(get: { currency.id }, set: { selectedGroup = $0 }),
-                            options: document.currencies.map { .init(value: $0.id, title: UFitWorkspaceFinancialModeCopy.context(currency: $0.currency, liveMode: $0.liveMode)) })
+                            options: document.currencies.map { .init(value: $0.id, title: UFitWorkspaceFinancialModeCopy.context(currency: $0.currency, liveMode: $0.liveMode)) }, appearance: .chips)
                     }
                     if isCreator {
                         UFitChoiceBar(title: Copy.analysis, selection: $showsAttributedSales,
-                            options: [.init(value: false, title: Copy.commissions), .init(value: true, title: Copy.attributedSales)])
+                            options: [.init(value: false, title: Copy.commissions), .init(value: true, title: Copy.attributedSales)], appearance: .chips)
                     }
                     UFitWorkspaceRevenueCard(currency: currency, granularity: document.granularity,
                         isCommission: isCreator && !showsAttributedSales,
@@ -80,6 +74,7 @@ struct UFitWorkspaceRevenueContent: View {
         static let creatorEmpty = String(localized: "Aucune vente attribuée ni commission. Essayez une période plus longue.")
         static let brandEmpty = String(localized: "Aucune commande encaissée. Essayez une période plus longue.")
         static let context = String(localized: "Devise et mode")
+        static let period = String(localized: "Période des revenus")
         static let analysis = String(localized: "Analyse")
         static let commissions = String(localized: "Commissions")
         static let attributedSales = String(localized: "Ventes attribuées")
@@ -115,9 +110,7 @@ private struct UFitWorkspaceRevenueCard: View {
             ScrollView(.horizontal) {
                 HStack(spacing: UFitSpace.xs) {
                     ForEach(metrics) { value in
-                        UFitButton(action: { metric = value }) { Text(value.label).font(UFitTypography.caption) }
-                            .ufitButtonStyle(value == metric ? .primary : .secondary, compact: true)
-                            .accessibilityAddTraits(value == metric ? .isSelected : [])
+                        UFitChoiceChip(selected: value == metric, action: { metric = value }) { Text(value.label) }
                             .accessibilityLabel(UFitWorkspaceFinancialModeCopy.namedContext(value.label, currency: currency.currency, liveMode: currency.liveMode))
                     }
                 }

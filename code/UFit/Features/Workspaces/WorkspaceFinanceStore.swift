@@ -116,7 +116,7 @@ final class UFitWorkspaceDashboardStore {
     func load() async {
         guard !isLoading, isCurrentAccount else { return }
         let request = generation
-        isLoading = true; message = nil; document = nil
+        isLoading = true; message = nil
         defer { if generation == request { isLoading = false } }
         do {
             let dataGeneration = await session.api.dataGeneration()

@@ -11,6 +11,7 @@ struct UFitApplicationReviewContent: View {
     let onRefresh: () -> Void
     let onDecide: (UFitApplicationDecision) -> Void
     @State private var confirmation: UFitApplicationDecision?
+    @State private var confirmingDiscard = false
     private enum Copy {
         static let title = String(localized: "Dossier de candidature")
         static let refresh = String(localized: "Actualiser")
@@ -24,13 +25,20 @@ struct UFitApplicationReviewContent: View {
         static let explanation = String(localized: "Le candidat verra cette décision et votre message. L’acceptation active son espace Ufit.")
         static let valid = String(localized: "https")
         static let separator = " · "
+        static let discardTitle = String(localized: "Abandonner le message ?")
+        static let discardMessage = String(localized: "Ce message n’a pas été envoyé au candidat.")
+        static let discard = String(localized: "Abandonner le message")
+        static let keep = String(localized: "Continuer la saisie")
     }
     private enum Layout { static let spacing: CGFloat = UFitSpace.xl; static let inline: CGFloat = 10; static let title: CGFloat = UFitTypography.Size.editorial; static let touch: CGFloat = UFitControlSize.touch; static let radius: CGFloat = UFitRadius.field; static let editorHeight: CGFloat = 140; static let border: CGFloat = UFitSpace.hairline }
     var body: some View {
         VStack(spacing: .zero) {
-            DetailHeader(onBack: onBack) {
+            DetailHeader(onBack: {
+                if !notes.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { confirmingDiscard = true }
+                else { onBack() }
+            }) {
                 if isLoading { UFitLoading() }
-            }
+            }.disabled(isDeciding)
             ScrollView {
                 VStack(alignment: .leading, spacing: Layout.spacing) {
                     Text(Copy.title).ufitFont(size: Layout.title, design: .serif).accessibilityAddTraits(.isHeader)
@@ -82,6 +90,10 @@ struct UFitApplicationReviewContent: View {
             }.scrollDismissesKeyboard(.interactively)
                 .ufitRefreshable(isEnabled: !isLoading && !isDeciding, title: Copy.refresh) { onRefresh() }
         }.foregroundStyle(Color.ufitInk).background(Color.ufitCanvas)
+            .ufitConfirmationDialog(Copy.discardTitle, isPresented: $confirmingDiscard, titleVisibility: .visible) {
+                UFitButton(Copy.discard, role: .destructive, action: onBack)
+                UFitButton(Copy.keep, role: .cancel) { confirmingDiscard = false }
+            } message: { Text(Copy.discardMessage) }
             .ufitConfirmationDialog(confirmation?.label ?? Copy.confirm, isPresented: Binding(get: { confirmation != nil }, set: { if !$0 { confirmation = nil } }), titleVisibility: .visible) {
                 if let decision = confirmation { UFitButton(Copy.confirm) { confirmation = nil; onDecide(decision) } }
                 UFitButton(Copy.cancel, role: .cancel) { confirmation = nil }

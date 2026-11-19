@@ -18,7 +18,9 @@ struct UFitApplicationQueueContent: View {
         static let title = String(localized: "Candidatures")
         static let refresh = String(localized: "Actualiser")
         static let more = String(localized: "Voir la suite")
-        static let allKinds = String(localized: "Créateurs et marques")
+        static let all = String(localized: "Tous")
+        static let status = String(localized: "Statut de candidature")
+        static let kind = String(localized: "Profil candidat")
         static let empty = String(localized: "Aucune candidature dans cette sélection.")
         static let separator = " · "
         static let chevron = "chevron.right"
@@ -31,12 +33,12 @@ struct UFitApplicationQueueContent: View {
                 VStack(alignment: .leading, spacing: Layout.spacing) {
                     Text(Copy.title).ufitFont(size: Layout.title, design: .serif).accessibilityAddTraits(.isHeader)
                     VStack(alignment: .leading, spacing: Layout.inline) {
-                        UFitActionMenu(filter.label) { ForEach(UFitApplicationQueueFilter.allCases) { item in UFitButton(item.label) { onFilter(item) } } }.frame(minHeight: Layout.touch)
-                        UFitActionMenu(kind?.label ?? Copy.allKinds) {
-                            UFitButton(Copy.allKinds) { onKind(nil) }
-                            ForEach(UFitApplicationKind.allCases) { item in UFitButton(item.label) { onKind(item) } }
-                        }.frame(minHeight: Layout.touch)
-                    }.tint(Color.ufitInk)
+                        UFitChoiceBar(title: Copy.kind, selection: Binding(get: { kind }, set: onKind),
+                            options: [.init(value: nil, title: Copy.all)] + UFitApplicationKind.allCases.map { .init(value: Optional($0), title: $0.label) },
+                            appearance: .underline)
+                        UFitChoiceBar(title: Copy.status, selection: Binding(get: { filter }, set: onFilter),
+                            options: UFitApplicationQueueFilter.allCases.map { .init(value: $0, title: $0.label) }, appearance: .chips)
+                    }
                     if let message {
                         Text(message).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText)
                         UFitActionButton(title: Copy.refresh, kind: .secondary, disabled: isLoading, action: onRefresh)
