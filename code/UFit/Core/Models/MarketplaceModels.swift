@@ -1,36 +1,39 @@
 import SwiftUI
 
-struct OnboardingSlide: Identifiable {
-    let id: Int
-    let systemImage: String
-    let title: String
-    let description: String
-}
-
 struct Outfit: Identifiable {
     let id: String
     let imageName: String
     let creator: String
     let creatorAvatar: String
+    let author: OutfitAuthor?
     let price: String
-    let likes: Int
-    let comments: Int
     let title: String
     let description: String
-    let currency: String
-    let totalPrice: Int?
     let sourceCreatorId: String?
     let sourceOutfitId: String?
     let products: [OutfitProduct]
     let pieces: [OutfitPiece]
+    var photos: [UFitOutfitGalleryPhoto] = []
+    var pins: [UFitOutfitPin] = []
+}
+
+struct OutfitAuthor: Decodable {
+    enum Kind: String, Codable, Hashable { case creator, brand }
+    let id: String
+    let kind: Kind
+    let name: String
+    let avatarUrl: String?
 }
 
 struct OutfitProduct: Identifiable {
     let id: String
-    let systemImage: String
+    let itemType: UFitOutfitItemType
     let name: String
     let productID: String?
     let brandID: String?
+    var image: String? = nil
+    var brandName: String? = nil
+    var price: String? = nil
 }
 
 struct OutfitPiece: Identifiable {

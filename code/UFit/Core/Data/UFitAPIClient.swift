@@ -1,36 +1,124 @@
 import Foundation
 
+private enum UFitPrivateDownloadHTTP {static let get = "GET"}
+
+private enum UFitHTTPBodyContent {
+    static let json = "application/json"
+    static let contentTypeHeader = "Content-Type"
+}
+
+private enum UFitOutfitPublicHTTP {
+    static let get = "GET"; static let root = "outfits"; static let separator = "/"
+    static let defaultLimit = 20
+    static let limit = "limit"; static let cursor = "cursor"; static let creator = "creatorId"; static let brand = "brandId"
+}
+
 struct UFitAPIConfiguration {
     let baseURL: URL
     let bearerToken: String?
-    let brandProfileID: String?
 
     static func live(environment: [String: String] = ProcessInfo.processInfo.environment) -> UFitAPIConfiguration {
         let rawBaseURL = environment["UFIT_API_BASE_URL"] ?? "http://127.0.0.1:4000"
         return UFitAPIConfiguration(
             baseURL: URL(string: rawBaseURL) ?? URL(string: "http://127.0.0.1:4000")!,
-            bearerToken: environment["UFIT_API_BEARER_TOKEN"].flatMap { $0.isEmpty ? nil : $0 },
-            brandProfileID: environment["UFIT_BRAND_PROFILE_ID"].flatMap { $0.isEmpty ? nil : $0 }
+            bearerToken: environment["UFIT_API_BEARER_TOKEN"].flatMap { $0.isEmpty ? nil : $0 }
         )
     }
 }
 
 enum UFitAPIError: LocalizedError {
-    case authenticationRequired
-    case invalidURL
-    case requestFailed(statusCode: Int, message: String)
-    case emptyResponse
-
+    case authenticationRequired, invalidURL, emptyResponse
+    case requestFailed(statusCode: Int, message: String, code: String? = nil)
+    var isApplicationVersionConflict: Bool {
+        guard case .requestFailed(_, _, let code) = self else { return false }
+        return code == Code.applicationChanged
+    }
+    var isCartConflict: Bool {
+        guard case .requestFailed(_, _, let code) = self else { return false }
+        return code == Code.brand || code == Code.currency
+    }
+    private enum Code {
+        static let profileEditUnavailable = "profile_edit_unavailable"
+        static let applicationChanged = "application_version_changed"
+        static let applicationPending = "application_already_pending"
+        static let applicationCreator = "application_creator_exists"
+        static let applicationClosed = "application_review_closed"
+        static let applicationCorrection = "application_correction_unavailable"
+        static let applicationReason = "application_reason_required"
+        static let applicationDossier = "application_dossier_incomplete"
+        static let applicationApplicant = "application_applicant_inactive"
+        static let brand = "cart_brand_conflict"
+        static let currency = "cart_currency_conflict"
+        static let stock = "cart_insufficient_stock"
+        static let cancellationUnavailable = "order_cancellation_unavailable"
+        static let cancellationChanged = "order_cancellation_changed"
+        static let paymentUnavailable = "order_payment_unavailable"
+        static let connectSetup = "connect_platform_setup_required"
+        static let connectCountry = "connect_country_immutable"
+        static let connectRecipient = "connect_recipient_incomplete"
+        static let connectOwner = "connect_owner_required"
+        static let refundAttention = "order_refund_requires_attention"
+    }
+    private enum ApplicationCopy {
+        static let changed = String(localized: "Cette candidature a changé. Revenez au dossier et actualisez avant de continuer.")
+        static let pending = String(localized: "Une candidature est déjà en cours. Actualisez son statut.")
+        static let creatorExists = String(localized: "Votre compte possède déjà un profil créateur.")
+        static let closed = String(localized: "Cette candidature ne peut plus être modifiée dans son état actuel.")
+        static let reason = String(localized: "Ajoutez un message pour expliquer cette décision au candidat.")
+        static let dossier = String(localized: "Demandez les compléments du dossier avant de l’accepter.")
+        static let applicant = String(localized: "Le compte candidat doit être actif pour continuer.")
+    }
     var errorDescription: String? {
         switch self {
-        case .authenticationRequired:
-            "Connect a UFit session to continue."
-        case .invalidURL:
-            "The UFit API URL is invalid."
-        case .requestFailed(let statusCode, let message):
-            message.isEmpty ? "UFit API request failed with status \(statusCode)." : message
-        case .emptyResponse:
-            "The UFit API returned an empty response."
+        case .authenticationRequired: String(localized: "Connectez-vous pour continuer.")
+        case .invalidURL, .emptyResponse: String(localized: "Le service est momentanément indisponible.")
+        case .requestFailed(let status, _, let code):
+            if let catalog = catalogFailureDescription { catalog }
+            else if let outfit = outfitFailureDescription { outfit }
+            else if let commerce = brandCommerceFailureDescription { commerce }
+            else if let order = brandOrderFailureDescription { order }
+            else if let orderReturn = returnFailureDescription { orderReturn }
+            else if code == Code.brand || code == Code.currency { String(localized: "Votre panier contient une autre marque ou devise.") }
+            else if code == "checkout_quote_changed" || code == "cart_changed" { String(localized: "Le panier ou les frais ont changé. Vérifiez le nouveau montant.") }
+            else if code == "shipping_unavailable" { String(localized: "La marque ne livre pas dans ce pays pour cette devise.") }
+            else if code == "brand_policy_missing" || code == "brand_policy_invalid" { String(localized: "Les conditions de livraison de la marque ne sont pas encore disponibles.") }
+            else if code == Code.cancellationUnavailable { String(localized: "Cette commande ne peut plus être annulée.") }
+            else if code == Code.cancellationChanged { String(localized: "L’état de la commande a changé. Actualisez avant de réessayer.") }
+            else if code == Code.paymentUnavailable { String(localized: "Cette commande n’accepte plus de paiement. Actualisez son statut.") }
+            else if code == Code.connectSetup { String(localized: "La plateforme doit terminer sa configuration Stripe Connect. Votre compte n’est pas encore activé.") }
+            else if code == Code.connectCountry { String(localized: "Le pays de ce compte Stripe ne peut plus être modifié.") }
+            else if code == Code.connectRecipient { String(localized: "La marque ou le créateur doit terminer sa configuration Stripe avant cet achat.") }
+            else if code == Code.connectOwner { String(localized: "Seul le propriétaire peut configurer ce compte Stripe.") }
+            else if code == Code.refundAttention { String(localized: "Le remboursement nécessite une vérification. Votre demande d’annulation reste enregistrée.") }
+            else if code == Code.stock { String(localized: "La quantité demandée n’est plus disponible.") }
+            else if code == Code.profileEditUnavailable { String(localized: "Votre accès ou le statut du profil a changé. Revenez aux espaces et actualisez.") }
+            else if code == Code.applicationChanged { ApplicationCopy.changed }
+            else if code == Code.applicationPending { ApplicationCopy.pending }
+            else if code == Code.applicationCreator { ApplicationCopy.creatorExists }
+            else if code == Code.applicationClosed || code == Code.applicationCorrection { ApplicationCopy.closed }
+            else if code == Code.applicationReason { ApplicationCopy.reason }
+            else if code == Code.applicationDossier { ApplicationCopy.dossier }
+            else if code == Code.applicationApplicant { ApplicationCopy.applicant }
+            else if status == 401 { String(localized: "Votre session a expiré. Reconnectez-vous.") }
+            else if status == 403 { String(localized: "Votre compte ne peut pas effectuer cette action.") }
+            else if status == 404 { String(localized: "Cet élément n’est plus disponible.") }
+            else { String(localized: "L’action a échoué. Actualisez et réessayez.") }
+        }
+    }
+}
+
+private struct UFitServerFailure: Decodable {
+    let code: String?
+    let message: Message?
+    enum Message: Decodable {
+        case text(String), fields([String])
+        init(from decoder: Decoder) throws {
+            let value = try decoder.singleValueContainer()
+            if let text = try? value.decode(String.self) { self = .text(text) }
+            else { self = .fields(try value.decode([String].self)) }
+        }
+        var text: String {
+            switch self { case .text(let text): text; case .fields(let fields): fields.joined(separator: "\n") }
         }
     }
 }
@@ -38,87 +126,114 @@ enum UFitAPIError: LocalizedError {
 struct UFitAPIClient {
     let configuration: UFitAPIConfiguration
     private let session: URLSession
+    private let tokenProvider: (@Sendable () async throws -> String?)?
+    private let onAuthenticationRejected: (@Sendable (String) async -> Void)?
     private let decoder = JSONDecoder()
     private let encoder = JSONEncoder()
+    private let readReuse = UFitAPIReadReuse()
 
-    init(configuration: UFitAPIConfiguration = .live(), session: URLSession = .shared) {
+    init(configuration: UFitAPIConfiguration = .live(), session: URLSession = .shared,
+         tokenProvider: (@Sendable () async throws -> String?)? = nil,
+         onAuthenticationRejected: (@Sendable (String) async -> Void)? = nil) {
         self.configuration = configuration
         self.session = session
+        self.tokenProvider = tokenProvider
+        self.onAuthenticationRejected = onAuthenticationRejected
     }
 
-    func fetchOutfitFeed(limit: Int = 20, cursor: String? = nil) async throws -> UFitFeedResponseDTO {
-        var query = [URLQueryItem(name: "limit", value: String(limit))]
-        if let cursor {
-            query.append(URLQueryItem(name: "cursor", value: cursor))
+    func updateProfile(name: String) async throws -> UFitCurrentUser {
+        struct ProfilePatch: Encodable { let displayName: String }
+        return try await send("PATCH", path: "me", body: ProfilePatch(displayName: name), requiresAuth: true, publicOutfitsChange: false)
+    }
+
+    func fetchCurrentUser() async throws -> UFitCurrentUser {
+        try await send(UFitAuthenticationHTTP.get, path: UFitAuthenticationHTTP.me,
+                       requiresAuth: true, cachePolicy: .reloadIgnoringLocalCacheData)
+    }
+
+    func fetchOutfitFeed(limit: Int = UFitOutfitPublicHTTP.defaultLimit, cursor: String? = nil, author: UFitPublicProfileReference? = nil,
+                        discovery: UFitOutfitSearchCriteria? = nil) async throws -> UFitFeedResponseDTO {
+        var query = [URLQueryItem(name: UFitOutfitPublicHTTP.limit, value: String(limit))]
+        if let cursor { query.append(URLQueryItem(name: UFitOutfitPublicHTTP.cursor, value: cursor)) }
+        if let author { query.append(URLQueryItem(name: author.kind == .creator ? UFitOutfitPublicHTTP.creator : UFitOutfitPublicHTTP.brand, value: author.id)) }
+        if let discovery { query.append(contentsOf: discovery.queryItems) }
+        let page: UFitFeedResponseDTO
+        do { page = try await send(UFitOutfitPublicHTTP.get, path: UFitOutfitPublicHTTP.root, query: query, readScope: .publicOutfits) }
+        catch is DecodingError { throw UFitPublicProfileContractError.outfits }
+        for item in page.items {
+            try item.validateShopping()
+            try UFitPublicOutfitIdentity.validate(id: item.id, author: item.author, creatorID: item.creatorId, brandID: item.brandId)
         }
-        return try await send("GET", path: "outfits", query: query)
+        guard Set(page.items.map(\.id)).count == page.items.count,
+              author == nil || page.items.allSatisfy({ $0.author?.id == author?.id && $0.author?.kind == author?.kind }),
+              page.nextCursor == nil || (page.nextCursor == page.items.last?.id && page.nextCursor != cursor && UUID(uuidString: page.nextCursor!) != nil) else { throw UFitPublicProfileContractError.outfits }
+        return page
     }
 
     func fetchOutfitDetail(id: String) async throws -> UFitOutfitDetailDTO {
-        try await send("GET", path: "outfits/\(id)")
-    }
-
-    func saveOutfit(id: String) async throws -> UFitSavedActionDTO {
-        try await send("PUT", path: "me/saved-outfits/\(id)", requiresAuth: true)
-    }
-
-    func unsaveOutfit(id: String) async throws -> UFitSavedActionDTO {
-        try await send("DELETE", path: "me/saved-outfits/\(id)", requiresAuth: true)
+        let detail: UFitOutfitDetailDTO
+        do { detail = try await send(UFitOutfitPublicHTTP.get, path: UFitOutfitPublicHTTP.root + UFitOutfitPublicHTTP.separator + id, readScope: .publicOutfits) }
+        catch is DecodingError { throw UFitPublicProfileContractError.outfits }
+        guard detail.id == id else { throw UFitPublicProfileContractError.outfits }
+        try UFitPublicOutfitIdentity.validate(id: detail.id, author: detail.author, creatorID: detail.creatorId, brandID: detail.brandId)
+        try detail.validateGallery()
+        return detail
     }
 
     func addCartItem(_ body: UFitAddCartItemRequest) async throws -> UFitCartDTO {
-        try await send("POST", path: "cart/items", body: body, requiresAuth: true)
+        try await send("POST", path: "cart/items", body: body, requiresAuth: true, publicOutfitsChange: false)
     }
 
-    func checkout(_ body: UFitCheckoutRequest) async throws -> UFitCheckoutSessionDTO {
-        try await send("POST", path: "orders/checkout", body: body, requiresAuth: true)
+    func checkout(_ body: UFitCheckoutRequest) async throws -> UFitCustomerPaymentSessionDTO {
+        let result: UFitCustomerPaymentSessionDTO = try await send(UFitCustomerPaymentHTTP.post, path: UFitCustomerPaymentHTTP.checkout, body: body, requiresAuth: true, publicOutfitsChange: false)
+        try result.validate(); return result
     }
 
     func fetchPublicProduct(id: String) async throws -> UFitPublicProductDTO {
         try await send("GET", path: "products/\(id)/public")
     }
 
-    func fetchCreatorDashboard() async throws -> UFitCreatorDashboardDTO {
-        try await send("GET", path: "creators/me/dashboard", requiresAuth: true)
+    func invalidateReadData() async { await readReuse.invalidateAccount() }
+    func dataGeneration() async -> UUID { await readReuse.generation(for: .account) }
+    func publicOutfitsGeneration() async -> UUID { await readReuse.generation(for: .publicOutfits) }
+
+    func fetchReference<Response: Decodable>(path: String, requiresAuth: Bool = true, reload: Bool = false,
+        validate: @escaping @Sendable (Response) throws -> Void) async throws -> Response {
+        let reference = UFitAPIReadReuse.Reference(reload: reload) { data in
+            try validate(JSONDecoder().decode(Response.self, from: data))
+        }
+        let (data, _) = try await response(UFitAPIReadReuse.Policy.get, path: path, query: [], bodyData: nil,
+            requiresAuth: requiresAuth, cachePolicy: .reloadIgnoringLocalCacheData, reference: reference)
+        return try decoder.decode(Response.self, from: data)
     }
 
-    func fetchCreatorOutfits(limit: Int = 20) async throws -> UFitCreatorOutfitsDTO {
-        try await send("GET", path: "creators/me/outfits", query: [URLQueryItem(name: "limit", value: String(limit))], requiresAuth: true)
-    }
-
-    func fetchCreatorCommissions(limit: Int = 20) async throws -> UFitCreatorCommissionsDTO {
-        try await send("GET", path: "creators/me/commissions", query: [URLQueryItem(name: "limit", value: String(limit))], requiresAuth: true)
-    }
-
-    func fetchBrandDashboard(brandProfileID: String) async throws -> UFitBrandDashboardDTO {
-        try await send("GET", path: "brands/\(brandProfileID)/dashboard", requiresAuth: true)
-    }
-
-    func fetchBrandProducts(brandProfileID: String, limit: Int = 20) async throws -> UFitBrandProductsDTO {
-        try await send("GET", path: "brands/\(brandProfileID)/products", query: [URLQueryItem(name: "limit", value: String(limit))], requiresAuth: true)
-    }
-
-    func fetchBrandOrders(brandProfileID: String, limit: Int = 20) async throws -> UFitBrandOrdersDTO {
-        try await send("GET", path: "brands/\(brandProfileID)/orders", query: [URLQueryItem(name: "limit", value: String(limit))], requiresAuth: true)
-    }
-
-    private func send<Response: Decodable, Body: Encodable>(
+    func send<Response: Decodable, Body: Encodable>(
         _ method: String,
         path: String,
         query: [URLQueryItem] = [],
         body: Body,
-        requiresAuth: Bool = false
+        requiresAuth: Bool = false,
+        headers: [String: String] = [:],
+        publicOutfitsChange: Bool = true
     ) async throws -> Response {
-        try await send(method, path: path, query: query, bodyData: encoder.encode(body), requiresAuth: requiresAuth)
+        try await send(method, path: path, query: query, bodyData: encoder.encode(body), requiresAuth: requiresAuth, headers: headers, publicOutfitsChange: publicOutfitsChange)
     }
 
-    private func send<Response: Decodable>(
+    func send<Response: Decodable>(
         _ method: String,
         path: String,
         query: [URLQueryItem] = [],
-        requiresAuth: Bool = false
+        requiresAuth: Bool = false,
+        cachePolicy: URLRequest.CachePolicy = .useProtocolCachePolicy,
+        headers: [String: String] = [:],
+        readScope: UFitAPIReadReuse.Scope = .account,
+        publicOutfitsChange: Bool = true
     ) async throws -> Response {
-        try await send(method, path: path, query: query, bodyData: nil, requiresAuth: requiresAuth)
+        try await send(method, path: path, query: query, bodyData: nil, requiresAuth: requiresAuth, cachePolicy: cachePolicy, headers: headers, readScope: readScope, publicOutfitsChange: publicOutfitsChange)
+    }
+
+    func send<Response: Decodable>(_ method: String, path: String, multipart: UFitMultipartBody, requiresAuth: Bool, publicOutfitsChange: Bool = true) async throws -> Response {
+        try await send(method, path: path, query: [], bodyData: multipart.data, requiresAuth: requiresAuth, bodyContentType: multipart.contentType, publicOutfitsChange: publicOutfitsChange)
     }
 
     private func send<Response: Decodable>(
@@ -126,9 +241,36 @@ struct UFitAPIClient {
         path: String,
         query: [URLQueryItem],
         bodyData: Data?,
-        requiresAuth: Bool
+        requiresAuth: Bool,
+        bodyContentType: String = UFitHTTPBodyContent.json,
+        cachePolicy: URLRequest.CachePolicy = .useProtocolCachePolicy,
+        headers: [String: String] = [:],
+        readScope: UFitAPIReadReuse.Scope = .account,
+        publicOutfitsChange: Bool = true
     ) async throws -> Response {
-        if requiresAuth, configuration.bearerToken == nil {
+        let (data, _) = try await response(method, path: path, query: query, bodyData: bodyData, requiresAuth: requiresAuth, bodyContentType: bodyContentType, cachePolicy: cachePolicy, headers: headers, readScope: readScope, publicOutfitsChange: publicOutfitsChange)
+        return try decoder.decode(Response.self, from: data)
+    }
+
+    func downloadPrivateDocument(path: String, query: [URLQueryItem], contentType: String) async throws -> (data: Data, contentType: String?) {
+        let (data, reply) = try await response(UFitPrivateDownloadHTTP.get, path: path, query: query, bodyData: nil, requiresAuth: true, cachePolicy: .reloadIgnoringLocalCacheData, accept: contentType)
+        return (data, reply.mimeType)
+    }
+
+    private func response(_ method: String, path: String, query: [URLQueryItem], bodyData: Data?, requiresAuth: Bool,
+                          bodyContentType: String = UFitHTTPBodyContent.json, cachePolicy: URLRequest.CachePolicy = .useProtocolCachePolicy,
+                          headers: [String: String] = [:], accept: String = UFitHTTPBodyContent.json,
+                          reference: UFitAPIReadReuse.Reference? = nil, readScope: UFitAPIReadReuse.Scope = .account,
+                          publicOutfitsChange: Bool = true) async throws -> (Data, HTTPURLResponse) {
+        let isRead = method == UFitAPIReadReuse.Policy.get
+        if !isRead { await readReuse.invalidateMutation(publicOutfitsChange: publicOutfitsChange) }
+        let scope = reference == nil ? readScope : .reference
+        let readContext = await readReuse.generation(for: scope)
+        let token: String?
+        if let tokenProvider {
+            token = requiresAuth ? try await tokenProvider() : nil
+        } else { token = configuration.bearerToken }
+        if requiresAuth, token == nil {
             throw UFitAPIError.authenticationRequired
         }
 
@@ -136,28 +278,48 @@ struct UFitAPIClient {
             throw UFitAPIError.invalidURL
         }
 
-        var request = URLRequest(url: url)
+        var request = URLRequest(url: url, cachePolicy: cachePolicy)
         request.httpMethod = method
-        request.setValue("application/json", forHTTPHeaderField: "Accept")
+        for (name, value) in headers { request.setValue(value, forHTTPHeaderField: name) }
+        request.setValue(accept, forHTTPHeaderField: "Accept")
         if let bodyData {
             request.httpBody = bodyData
-            request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+            request.setValue(bodyContentType, forHTTPHeaderField: UFitHTTPBodyContent.contentTypeHeader)
         }
-        if let token = configuration.bearerToken {
+        if let token {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
 
-        let (data, response) = try await session.data(for: request)
+        let data: Data
+        let response: URLResponse
+        if isRead {
+            (data, response) = try await readReuse.data(for: request, session: session, scope: scope, context: readContext, reference: reference)
+        } else {
+            do {
+                (data, response) = try await session.data(for: request)
+                await readReuse.invalidateMutation(publicOutfitsChange: publicOutfitsChange)
+            } catch {
+                await readReuse.invalidateMutation(publicOutfitsChange: publicOutfitsChange)
+                throw error
+            }
+        }
         guard let httpResponse = response as? HTTPURLResponse else {
             throw UFitAPIError.emptyResponse
         }
         guard 200..<300 ~= httpResponse.statusCode else {
-            throw UFitAPIError.requestFailed(statusCode: httpResponse.statusCode, message: String(data: data, encoding: .utf8) ?? "")
+            if requiresAuth, httpResponse.statusCode == UFitAuthenticationHTTP.unauthorized || httpResponse.statusCode == UFitAuthenticationHTTP.forbidden {
+                await readReuse.invalidateAccount()
+            }
+            if requiresAuth, httpResponse.statusCode == UFitAuthenticationHTTP.unauthorized, let token {
+                await onAuthenticationRejected?(token)
+            }
+            let failure = try? decoder.decode(UFitServerFailure.self, from: data)
+            throw UFitAPIError.requestFailed(statusCode: httpResponse.statusCode, message: failure?.message?.text ?? String(), code: failure?.code)
         }
         guard !data.isEmpty else {
             throw UFitAPIError.emptyResponse
         }
-        return try decoder.decode(Response.self, from: data)
+        return (data, httpResponse)
     }
 
     private func makeURL(path: String, query: [URLQueryItem]) -> URL? {
@@ -179,33 +341,65 @@ struct UFitFeedResponseDTO: Decodable {
     let nextCursor: String?
 }
 
+@propertyWrapper
+struct UFitRequiredOutfitAuthor: Decodable {
+    var wrappedValue: OutfitAuthor?
+    init(from decoder: Decoder) throws {
+        let value = try decoder.singleValueContainer()
+        wrappedValue = value.decodeNil() ? nil : try value.decode(OutfitAuthor.self)
+    }
+}
+
 struct UFitOutfitCardDTO: Decodable {
+    let items: [UFitOutfitItemDTO]
+    let images: [UFitOutfitGalleryPhoto]
+    let pins: [UFitOutfitPin]
     let id: String
     let title: String
     let coverImageUrl: String
-    let totalPriceMin: Int
-    let totalPriceMax: Int
-    let currency: String
+    let prices: [UFitProductPriceDTO]
+    @UFitRequiredOutfitAuthor var author: OutfitAuthor?
+    let creatorId: String?
+    let brandId: String?
     let publishedAt: String?
+    func validateShopping() throws {
+        guard !images.isEmpty, images.count <= UFitOutfitInput.photosMax, items.count <= UFitOutfitInput.itemsMax,
+              Set(images.map(\.id)).count == images.count, Set(images.map(\.position)).count == images.count,
+              Set(items.map(\.id)).count == items.count, Set(items.map(\.position)).count == items.count,
+              images.allSatisfy({ UUID(uuidString: $0.id) != nil && $0.position >= .zero }),
+              items.allSatisfy({ UUID(uuidString: $0.id) != nil && $0.position >= .zero }),
+              coverImageUrl == images.sorted(by: { $0.position < $1.position }).first?.url,
+              UFitOutfitPin.valid(pins, imageIDs: Set(images.map(\.id)), itemIDs: Set(items.map(\.id))) else { throw UFitPublicProfileContractError.outfits }
+    }
 }
 
 struct UFitOutfitDetailDTO: Decodable {
     let id: String
     let title: String
     let coverImageUrl: String
-    let totalPriceMin: Int
-    let totalPriceMax: Int
-    let currency: String
-    let publishedAt: String?
-    let description: String
+    let prices: [UFitProductPriceDTO]
+    @UFitRequiredOutfitAuthor var author: OutfitAuthor?
     let creatorId: String?
     let brandId: String?
+    let publishedAt: String?
+    let description: String
+    let pins: [UFitOutfitPin]
+    let images: [UFitOutfitGalleryPhoto]
     let items: [UFitOutfitItemDTO]
+    func validateGallery() throws {
+        guard UFitOutfitPin.valid(pins, imageIDs: Set(images.map(\.id)), itemIDs: Set(items.map(\.id))),
+              Set(images.map(\.id)).count == images.count, !images.isEmpty, images.count <= UFitOutfitInput.photosMax,
+              Set(images.map(\.position)).count == images.count,
+              images.allSatisfy({ photo in
+                  guard photo.position >= .zero, let url = URL(string: photo.url), let scheme = url.scheme else { return false }
+                  return UFitMultipartEncoding.allowedSchemes.contains(scheme) && url.host != nil && url.user == nil && url.password == nil
+              }), coverImageUrl == images.sorted(by: { $0.position < $1.position }).first?.url else { throw UFitPublicProfileContractError.outfits }
+    }
 }
 
 struct UFitOutfitItemDTO: Decodable {
     let id: String
-    let itemType: String
+    let itemType: UFitOutfitItemType
     let label: String
     let position: Int
     let isRequired: Bool
@@ -218,6 +412,7 @@ struct UFitOutfitProductDTO: Decodable {
     let id: String
     let name: String
     let brandId: String
+    let brandName: String
     let price: Int
     let currency: String
     let imageUrl: String?
@@ -227,6 +422,9 @@ struct UFitPublicProductDTO: Decodable {
     let id: String
     let brandId: String
     let name: String
+    let description: String
+    let category: String
+    let images: [UFitProductImageDTO]
     let price: UFitProductPriceDTO
     let variants: [UFitProductVariantDTO]
 }
@@ -245,180 +443,23 @@ struct UFitProductVariantDTO: Decodable {
     let price: Int
 }
 
-struct UFitSavedActionDTO: Decodable {
-    let saved: Bool?
-}
-
 struct UFitCartDTO: Decodable {
     let id: String
+    let status: String
+    let brandId: String?
     let subtotalAmount: Int
     let currency: String
+    let items: [UFitCartLineDTO]
 }
 
 struct UFitAddCartItemRequest: Encodable {
     let productVariantId: String
     let quantity: Int
     let sourceOutfitId: String?
-    let sourceCreatorId: String?
 }
 
-struct UFitShippingAddress: Encodable {
-    var fullName: String
-    var line1: String
-    var line2: String?
-    var postalCode: String
-    var city: String
-    var country: String
-    var phone: String?
-}
-
-struct UFitCheckoutRequest: Encodable {
+struct UFitCheckoutRequest: Codable {
+    let requestId: String
+    let quoteFingerprint: String
     let shippingAddress: UFitShippingAddress
-    let shippingAmount: Int?
-}
-
-struct UFitCheckoutSessionDTO: Decodable {
-    let orderId: String
-    let checkoutSessionId: String
-    let url: String
-}
-
-struct UFitCreatorDashboardDTO: Decodable {
-    let profile: UFitCreatorWorkspaceProfileDTO
-    let performance: UFitCreatorPerformanceDTO
-}
-
-struct UFitCreatorWorkspaceProfileDTO: Decodable {
-    let id: String
-    let displayName: String
-    let slug: String
-    let status: String
-    let grade: UFitCreatorGradeDTO
-}
-
-struct UFitCreatorGradeDTO: Decodable {
-    let code: String
-    let label: String
-    let rank: Int
-    let commissionBps: Int
-}
-
-struct UFitCreatorPerformanceDTO: Decodable {
-    let outfits: UFitCreatorOutfitMetricsDTO
-    let commissions: UFitCreatorCommissionMetricsDTO
-    let sales: UFitSalesMetricsDTO
-}
-
-struct UFitCreatorOutfitMetricsDTO: Decodable {
-    let total: Int
-    let draft: Int
-    let underReview: Int
-    let published: Int
-    let rejected: Int
-}
-
-struct UFitCreatorCommissionMetricsDTO: Decodable {
-    let pendingAmount: Int
-    let validatedAmount: Int
-    let paidAmount: Int
-    let totalAmount: Int
-    let pendingCount: Int
-    let validatedCount: Int
-    let paidCount: Int
-}
-
-struct UFitSalesMetricsDTO: Decodable {
-    let paidOrderCount: Int
-    let grossAmount: Int
-    let currency: String
-}
-
-struct UFitCreatorOutfitsDTO: Decodable {
-    let items: [UFitCreatorOutfitDTO]
-}
-
-struct UFitCreatorOutfitDTO: Decodable {
-    let id: String
-    let title: String
-    let status: String
-    let totalPriceMax: Int
-    let publishedAt: String?
-}
-
-struct UFitCreatorCommissionsDTO: Decodable {
-    let items: [UFitCreatorCommissionDTO]
-}
-
-struct UFitCreatorCommissionDTO: Decodable {
-    let id: String
-    let status: String
-    let commissionAmount: Int
-    let createdAt: String?
-}
-
-struct UFitBrandDashboardDTO: Decodable {
-    let profile: UFitBrandWorkspaceProfileDTO
-    let performance: UFitBrandPerformanceDTO
-}
-
-struct UFitBrandWorkspaceProfileDTO: Decodable {
-    let id: String
-    let brandName: String
-    let slug: String
-    let status: String
-    let memberRole: String
-}
-
-struct UFitBrandPerformanceDTO: Decodable {
-    let products: UFitBrandProductMetricsDTO
-    let orders: UFitBrandOrderMetricsDTO
-    let sales: UFitSalesMetricsDTO
-    let stock: UFitBrandStockMetricsDTO
-}
-
-struct UFitBrandProductMetricsDTO: Decodable {
-    let total: Int
-    let draft: Int
-    let underReview: Int
-    let active: Int
-    let rejected: Int
-    let archived: Int
-}
-
-struct UFitBrandOrderMetricsDTO: Decodable {
-    let paid: Int
-    let preparing: Int
-    let shipped: Int
-    let delivered: Int
-    let cancelled: Int
-    let refunded: Int
-}
-
-struct UFitBrandStockMetricsDTO: Decodable {
-    let lowStockVariants: Int
-}
-
-struct UFitBrandProductsDTO: Decodable {
-    let items: [UFitBrandProductDTO]
-}
-
-struct UFitBrandProductDTO: Decodable {
-    let id: String
-    let name: String
-    let status: String
-    let totalStock: Int
-}
-
-struct UFitBrandOrdersDTO: Decodable {
-    let items: [UFitBrandOrderDTO]
-}
-
-struct UFitBrandOrderDTO: Decodable {
-    let id: String
-    let orderNumber: String
-    let status: String
-    let totalAmount: Int
-    let currency: String
-    let sourceCreatorId: String?
-    let createdAt: String?
 }

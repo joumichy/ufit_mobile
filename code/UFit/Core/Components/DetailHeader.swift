@@ -15,32 +15,40 @@ struct DetailHeader<Trailing: View>: View {
         self.trailing = trailing
     }
 
+    @Environment(\.ufitPrimarySection) private var isPrimarySection
     var body: some View {
         HStack {
-            Button(action: onBack) {
-                Image(systemName: "chevron.left")
-                    .font(.system(size: 22, weight: .medium))
-                    .foregroundStyle(Color.ufitInk)
-                    .frame(width: 42, height: 42)
+            if !isPrimarySection {
+                UFitButton(action: onBack) {
+                    UFitIcon(systemName: DetailHeaderIcon.back).ufitFont(size: DetailHeaderLayout.icon, weight: .medium)
+                        .foregroundStyle(Color.ufitInk).frame(width: DetailHeaderLayout.touch, height: DetailHeaderLayout.touch)
+                }.ufitButtonStyle(.text).accessibilityLabel(DetailHeaderCopy.back)
             }
-            .buttonStyle(.plain)
-
             if let title {
                 Text(title)
-                    .font(.system(size: 18, weight: .medium))
-                    .foregroundStyle(Color.ufitInk)
+                    .ufitFont(size: isPrimarySection ? DetailHeaderLayout.sectionTitle : DetailHeaderLayout.title, weight: isPrimarySection ? .regular : .medium, design: isPrimarySection ? .serif : .default)
+                    .foregroundStyle(Color.ufitInk).accessibilityAddTraits(.isHeader)
             }
-
             Spacer()
             trailing()
-        }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 7)
-        .background(.white.opacity(0.95))
-        .overlay(alignment: .bottom) {
-            Rectangle()
-                .fill(Color.ufitBorder)
-                .frame(height: 1)
-        }
+        }.padding(.horizontal, isPrimarySection ? DetailHeaderLayout.sectionHorizontal : DetailHeaderLayout.horizontal)
+            .padding(.vertical, isPrimarySection ? DetailHeaderLayout.sectionVertical : DetailHeaderLayout.vertical)
+            .background(.white.opacity(DetailHeaderLayout.opacity))
+            .overlay(alignment: .bottom) { Rectangle().fill(Color.ufitBorder).frame(height: DetailHeaderLayout.border) }
     }
 }
+private struct UFitPrimarySectionKey: EnvironmentKey { static let defaultValue = false }
+extension EnvironmentValues {
+    var ufitPrimarySection: Bool {
+        get {self[UFitPrimarySectionKey.self]}
+        set {self[UFitPrimarySectionKey.self] = newValue}
+    }
+}
+
+private enum DetailHeaderLayout {
+        static let icon: CGFloat = 22; static let touch: CGFloat = UFitControlSize.touch; static let title: CGFloat = UFitTypography.Size.heading; static let sectionTitle: CGFloat = UFitTypography.Size.editorial
+        static let horizontal: CGFloat = 14; static let sectionHorizontal: CGFloat = UFitSpace.xl; static let vertical: CGFloat = 7; static let sectionVertical: CGFloat = UFitSpace.md; static let border: CGFloat = UFitSpace.hairline
+        static let opacity = 0.95
+    }
+private enum DetailHeaderCopy { static let back = String(localized: "Retour") }
+private enum DetailHeaderIcon { static let back = "chevron.left" }

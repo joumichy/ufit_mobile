@@ -2,115 +2,153 @@ import SwiftUI
 
 struct OnboardingView: View {
     let onComplete: () -> Void
+    let onSkip: () -> Void
 
-    @State private var currentIndex = 0
+    @State private var currentIndex: Int
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
-    private let slides = SampleData.onboardingSlides
+    private let slides = UFitOnboarding.slides
+    private enum Layout { static let photoFraction: CGFloat = 0.32 }
+
+    init(initialSlide: OnboardingSlide = .discovery, onComplete: @escaping () -> Void, onSkip: (() -> Void)? = nil) {
+        self.onComplete = onComplete
+        self.onSkip = onSkip ?? onComplete
+        _currentIndex = State(initialValue: initialSlide.rawValue)
+    }
 
     var body: some View {
-        VStack(spacing: 0) {
-            Spacer(minLength: 60)
+        GeometryReader { geometry in
+            VStack(spacing: .zero) {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: UFitSpace.xxl) {
+                        OnboardingSlideView(slide: slides[currentIndex], imageHeight: geometry.size.height * Layout.photoFraction)
+                            .animation(reduceMotion ? nil : .easeInOut(duration: UFitMotion.transition), value: currentIndex)
+                        OnboardingProgressIndicator(count: slides.count, currentIndex: currentIndex)
+                            .padding(.horizontal, UFitSpace.page)
+                    }.padding(.top, UFitSpace.md).padding(.bottom, UFitSpace.xl)
+                }.scrollIndicators(.hidden).id(slides[currentIndex].id)
 
-            OnboardingSlideView(slide: slides[currentIndex])
-                .animation(.easeInOut(duration: 0.2), value: currentIndex)
-
-            OnboardingProgressIndicator(count: slides.count, currentIndex: currentIndex)
-                .padding(.top, 32)
-
-            Spacer(minLength: 40)
-
-            OnboardingActions(
-                isLastSlide: currentIndex == slides.count - 1,
-                onContinue: continueOnboarding,
-                onSkip: onComplete
-            )
+                OnboardingActions(
+                    isLastSlide: currentIndex == slides.count - UFitOnboarding.positionStep,
+                    onContinue: continueOnboarding,
+                    onSkip: onSkip,
+                    onBack: currentIndex == UFitOnboarding.initialIndex ? nil : previousSlide
+                ).fixedSize(horizontal: false, vertical: true)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .background(Color.ufitCanvas)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color.white)
     }
 }
 
 private extension OnboardingView {
     func continueOnboarding() {
-        if currentIndex < slides.count - 1 {
-            withAnimation(.easeInOut(duration: 0.28)) {
-                currentIndex += 1
+        if currentIndex < slides.count - UFitOnboarding.positionStep {
+            withAnimation(reduceMotion ? nil : .easeInOut(duration: UFitMotion.transition)) {
+                currentIndex += UFitOnboarding.positionStep
             }
         } else {
             onComplete()
         }
     }
+    func previousSlide() {
+        guard currentIndex > UFitOnboarding.initialIndex else { return }
+        withAnimation(reduceMotion ? nil : .easeInOut(duration: UFitMotion.transition)) {
+            currentIndex -= UFitOnboarding.positionStep
+        }
+    }
 }
 
-private struct OnboardingSlideView: View {
+struct OnboardingSlideView: View {
     let slide: OnboardingSlide
+    var imageHeight: CGFloat = Layout.image
+    @Environment(\.dynamicTypeSize) private var typeSize
+    private enum Layout {
+        static let image: CGFloat = 280
+        static let accessibleImage: CGFloat = 160
+        static let lineSpacing: CGFloat = 4
+    }
 
     var body: some View {
-        VStack(spacing: 32) {
-            Image(systemName: slide.systemImage)
-                .font(.system(size: 42, weight: .light))
-                .foregroundStyle(Color.ufitInk)
-                .frame(width: 96, height: 96)
-                .background(Color.ufitSecondary, in: RoundedRectangle(cornerRadius: 28, style: .continuous))
+        VStack(alignment: .leading, spacing: UFitSpace.xl) {
+            FashionImage(source: slide.imageName)
+                .frame(maxWidth: .infinity)
+                .frame(height: min(imageHeight, typeSize.isAccessibilitySize ? Layout.accessibleImage : Layout.image), alignment: .bottom)
+                .clipped().accessibilityHidden(true)
 
-            VStack(spacing: 14) {
+            VStack(alignment: .leading, spacing: UFitSpace.md) {
                 Text(slide.title)
-                    .font(.system(size: 31, weight: .regular))
-                    .multilineTextAlignment(.center)
+                    .font(UFitTypography.editorialTitle)
+                    .fixedSize(horizontal: false, vertical: true)
                     .foregroundStyle(Color.ufitInk)
+                    .accessibilityAddTraits(.isHeader)
 
                 Text(slide.description)
-                    .font(.system(size: 16))
-                    .lineSpacing(4)
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(Color.ufitMuted)
-                    .padding(.horizontal, 10)
-            }
+                    .font(UFitTypography.body)
+                    .lineSpacing(Layout.lineSpacing)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .foregroundStyle(Color.ufitSecondaryText)
+            }.padding(.horizontal, UFitSpace.page)
         }
-        .frame(maxWidth: 390)
-        .padding(.horizontal, 28)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
 
-private struct OnboardingProgressIndicator: View {
+struct OnboardingProgressIndicator: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let count: Int
     let currentIndex: Int
+    private enum Layout { static let active: CGFloat = 32; static let inactive: CGFloat = 7; static let height: CGFloat = 7 }
+    private enum Copy {
+        static let label = String(localized: "Présentation d’Ufit")
+        static func step(_ number: Int, count: Int) -> String { String(localized: "Étape \(number) sur \(count)") }
+    }
 
     var body: some View {
-        HStack(spacing: 8) {
-            ForEach(0..<count, id: \.self) { index in
+        HStack(spacing: UFitSpace.xs) {
+            ForEach(.zero..<count, id: \.self) { index in
                 Capsule()
                     .fill(index == currentIndex ? Color.ufitInk : Color.ufitBorder)
-                    .frame(width: index == currentIndex ? 32 : 7, height: 7)
-                    .animation(.spring(response: 0.3, dampingFraction: 0.85), value: currentIndex)
+                    .frame(width: index == currentIndex ? Layout.active : Layout.inactive, height: Layout.height)
+                    .animation(reduceMotion ? nil : .easeOut(duration: UFitMotion.feedback), value: currentIndex)
             }
-        }
+        }.accessibilityElement(children: .ignore).accessibilityLabel(Copy.label)
+            .accessibilityValue(Copy.step(currentIndex + UFitOnboarding.positionStep, count: count))
     }
 }
 
-private struct OnboardingActions: View {
+struct OnboardingActions: View {
     let isLastSlide: Bool
     let onContinue: () -> Void
     let onSkip: () -> Void
+    var onBack: (() -> Void)? = nil
+    private enum Copy {
+        static let finish = String(localized: "Choisir mes styles")
+        static let next = String(localized: "Continuer")
+        static let skip = String(localized: "Passer")
+        static let back = String(localized: "Retour")
+    }
 
     var body: some View {
-        VStack(spacing: 12) {
-            Button(action: onContinue) {
-                Text(isLastSlide ? "Get Started" : "Continue")
+        VStack(spacing: UFitSpace.sm) {
+            UFitButton(action: onContinue) {
+                Text(isLastSlide ? Copy.finish : Copy.next)
                     .frame(maxWidth: .infinity)
             }
-            .buttonStyle(PrimaryButtonStyle())
+            .ufitButtonStyle(.primary)
 
-            if !isLastSlide {
-                Button("Skip", action: onSkip)
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundStyle(Color.ufitMuted)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 13)
+            if onBack != nil || !isLastSlide {
+                HStack {
+                    if let onBack { UFitButton(Copy.back, action: onBack) }
+                    Spacer(minLength: UFitSpace.md)
+                    if !isLastSlide { UFitButton(Copy.skip, action: onSkip) }
+                }.ufitButtonStyle(.text).font(UFitTypography.body).foregroundStyle(Color.ufitSecondaryText)
             }
         }
-        .padding(.horizontal, 24)
-        .padding(.bottom, 24)
+        .padding(.top, UFitSpace.md)
+        .padding(.horizontal, UFitSpace.xl)
+        .padding(.bottom, UFitSpace.xl)
+        .background(Color.ufitCanvas).overlay(alignment: .top) { Divider() }
     }
 }
 

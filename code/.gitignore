@@ -9,3 +9,6 @@ xcuserdata/
 .env
 .env.*
 !.env.example
+
+# Public client configuration stays local to the selected runtime.
+Config/UFit.local.xcconfig

@@ -1,52 +1,50 @@
 import SwiftUI
 
 struct HomeFeedView: View {
-    let store: MarketplaceStore
+    @Bindable var store: MarketplaceStore
     let onOutfitTap: (Outfit) -> Void
-    let onCreatorTap: () -> Void
+    let onAuthorTap: (OutfitAuthor) -> Void
+    var onItemTap: (Outfit, String) -> Void = {_,_ in}
+    var onSignIn: () -> Void = {}
 
     var body: some View {
-        ScrollView(.vertical) {
-            LazyVStack(spacing: 0) {
-                ForEach(store.outfits) { outfit in
-                    OutfitFeedCard(
-                        outfit: outfit,
-                        isLiked: store.savedOutfitIDs.contains(outfit.id),
-                        onLike: { toggleLike(outfit) },
-                        onOutfitTap: { onOutfitTap(outfit) },
-                        onCreatorTap: onCreatorTap
-                    )
-                    .containerRelativeFrame([.horizontal, .vertical])
-                }
-            }
-            .scrollTargetLayout()
-        }
-        .scrollIndicators(.hidden)
-        .scrollTargetBehavior(.paging)
-        .background(Color.black)
-        .ignoresSafeArea()
+        HomeFeedContentView(outfits: store.outfits, savedStates: store.savedStates, isAuthenticated: store.isAuthenticated,
+            expandedOutfitIDs: $store.expandedFeedIDs, photoIDs: $store.feedPhotoIDs, visibleOutfitID: $store.visibleFeedOutfitID,
+            onToggleSaved: toggleLike, onOutfitTap: onOutfitTap, onAuthorTap: onAuthorTap, onItemTap: onItemTap,
+            feedback: store.feedFeedback, loadError: store.feedErrorMessage,
+            onDismissFeedback: store.dismissFeedFeedback, onRetry: { Task { await store.refreshFeed() } },
+            isLoadingMore: store.isLoadingMoreFeed, moreError: store.feedMoreError,
+            onApproachOutfit: { id in Task { await store.loadMoreFeedIfNeeded(near: id) } },
+            onRetryMore: { Task { await store.retryMoreFeed() } })
         .task {
             await store.loadFeedIfNeeded()
+            await store.loadSavedStates(ids: store.outfits.map(\.id))
         }
-        .refreshable {
+        .onChange(of: store.isLoadingFeed) { _, loading in
+            if !loading, let id = store.visibleFeedOutfitID { Task { await store.loadMoreFeedIfNeeded(near: id) } }
+        }
+        .ufitRefreshable(isEnabled: !store.isLoadingFeed) {
             await store.refreshFeed()
         }
-        .overlay(alignment: .top) {
-            if let message = store.feedErrorMessage {
-                Text(message)
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(Color.ufitInk)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 9)
-                    .background(.white.opacity(0.92), in: Capsule())
-                    .padding(.top, 58)
+        .overlay {
+            if store.outfits.isEmpty {
+                UFitFeedStatusView(status: status) { Task { await store.refreshFeed() } }
             }
         }
+
     }
 }
 
+
 private extension HomeFeedView {
+    var status: UFitFeedStatus {
+        if store.isLoadingFeed || (!store.hasLoadedFeed && store.feedErrorMessage == nil) { return .loading }
+        if let message = store.feedErrorMessage { return .failed(message) }
+        return .empty
+    }
+
     func toggleLike(_ outfit: Outfit) {
+        guard store.isAuthenticated else { onSignIn(); return }
         Task {
             await store.toggleSaved(outfit: outfit)
         }
@@ -54,5 +52,5 @@ private extension HomeFeedView {
 }
 
 #Preview {
-    HomeFeedView(store: MarketplaceStore.live(), onOutfitTap: { _ in }, onCreatorTap: {})
+    HomeFeedView(store: MarketplaceStore.live(), onOutfitTap: { _ in }, onAuthorTap: {_ in})
 }

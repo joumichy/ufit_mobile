@@ -5,67 +5,171 @@ import Observation
 @Observable
 final class MarketplaceStore {
     var outfits: [Outfit]
-    var savedOutfitIDs = Set<String>()
+    var visibleFeedOutfitID: String?
+    var visibleSavedOutfitID: String?
+    var feedPhotoIDs = [String: String]()
+    var expandedFeedIDs = Set<String>()
+    private(set) var savedStates = [String: UFitSavedOutfitState]()
+    private var savedStateFailures = Set<String>()
+    private(set) var savedOutfits: [Outfit] = []
+    private(set) var isLoadingFeed = false
+    private(set) var hasLoadedFeed = false
+    private(set) var isLoadingMoreFeed = false
+    private(set) var feedMoreError: String?
+    private(set) var isLoadingSavedOutfits = false
+    private(set) var hasLoadedSavedOutfits = false
+    private(set) var savedErrorMessage: String?
+    private(set) var isLoadingMoreSavedOutfits = false
+    private(set) var savedMoreError: String?
     var feedErrorMessage: String?
     var actionMessage: String?
-    var creatorDashboard: UFitCreatorDashboardDTO?
-    var creatorOutfits: [UFitCreatorOutfitDTO] = []
-    var creatorCommissions: [UFitCreatorCommissionDTO] = []
-    var brandDashboard: UFitBrandDashboardDTO?
-    var brandOrders: [BrandOrder]
 
     @ObservationIgnored private let client: UFitAPIClient
-    @ObservationIgnored private var hasLoadedFeed = false
+    @ObservationIgnored private let session: UFitSessionStore?
+    @ObservationIgnored private var accountGeneration = UUID()
     @ObservationIgnored private var detailedOutfits = [String: Outfit]()
-
-    init(client: UFitAPIClient, fallbackOutfits: [Outfit] = SampleData.outfits) {
-        self.client = client
-        self.outfits = fallbackOutfits
-        self.brandOrders = SampleData.orders
+    @ObservationIgnored private var detailedOutfitsGeneration: UUID?
+    @ObservationIgnored private var detailedOutfitReads = [String: Date]()
+    @ObservationIgnored private var nextFeedCursor: String?
+    @ObservationIgnored private var consumedFeedCursors = Set<String>()
+    @ObservationIgnored private var feedGeneration = UUID()
+    @ObservationIgnored private var feedDataGeneration: UUID?
+    @ObservationIgnored private var feedReceivedAt: Date?
+    @ObservationIgnored private var savedGeneration = UUID()
+    @ObservationIgnored private var nextSavedCursor: String?
+    @ObservationIgnored private var consumedSavedCursors = Set<String>()
+    @ObservationIgnored private var savedReferenceIDs = Set<String>()
+    @ObservationIgnored private var lastSavedReference: UFitSavedReferencesDTO.Item?
+    @ObservationIgnored private var savedStateRevisions = [String: UUID]()
+    private enum FeedPaging {
+        static let prefetchDistance = 3
+        static let unavailable = String(localized: "La suite des tenues n’a pas pu être chargée. Les tenues déjà affichées restent disponibles.")
+        static let changed = String(localized: "Les tenues ont changé. Actualisez pour les retrouver.")
+        static let snapshotAttempts = 2
+        static let snapshotLifetime: TimeInterval = 30
+    }
+    private enum FeedReadFailure: LocalizedError {
+        case changed
+        var errorDescription: String? { FeedPaging.changed }
     }
 
-    static func live() -> MarketplaceStore {
-        MarketplaceStore(client: UFitAPIClient())
+    init(client: UFitAPIClient, session: UFitSessionStore? = nil, fallbackOutfits: [Outfit] = []) {
+        self.client = client
+        self.session = session
+        self.outfits = fallbackOutfits
+    }
+
+    static func live(client: UFitAPIClient = UFitAPIClient(), session: UFitSessionStore? = nil) -> MarketplaceStore {
+        MarketplaceStore(client: client, session: session)
     }
 
     var isAuthenticated: Bool {
-        client.configuration.bearerToken != nil
+        session?.user != nil || client.configuration.bearerToken != nil
     }
-
-    var brandProfileID: String? {
-        client.configuration.brandProfileID
+    var accountID: String? { session?.user?.id }
+    var hasMoreSavedOutfits: Bool { nextSavedCursor != nil }
+    var feedFeedback: String? { savedStateFailures.isEmpty ? actionMessage : SavedCopy.verificationFailed }
+    func dismissFeedFeedback() {
+        savedStateFailures = []; actionMessage = nil
     }
 
     func loadFeedIfNeeded() async {
-        guard !hasLoadedFeed else { return }
-        hasLoadedFeed = true
+        let current = await client.publicOutfitsGeneration()
+        if hasLoadedFeed, feedDataGeneration == current, isFresh(feedReceivedAt) { return }
         await refreshFeed()
     }
 
+    private func isFresh(_ receivedAt: Date?) -> Bool {
+        guard let receivedAt else { return false }
+        let age = Date().timeIntervalSince(receivedAt)
+        return age >= .zero && age < FeedPaging.snapshotLifetime
+    }
+
     func refreshFeed() async {
+        guard !isLoadingFeed else { return }
+        feedGeneration = UUID(); let request = feedGeneration
+        isLoadingFeed = true; isLoadingMoreFeed = false; feedErrorMessage = nil; feedMoreError = nil
+        defer { if feedGeneration == request { isLoadingFeed = false } }
         do {
-            let response = try await client.fetchOutfitFeed(limit: 20)
-            let remoteOutfits = response.items.enumerated().map { index, item in
-                item.toOutfit(fallbackIndex: index)
-            }
-            feedErrorMessage = nil
-            if !remoteOutfits.isEmpty {
-                outfits = remoteOutfits
-            }
+            let (response, dataGeneration, receivedAt) = try await currentFeedSnapshot()
+            guard feedGeneration == request else { return }
+            let remoteOutfits = response.items.map { $0.toOutfit() }
+            feedErrorMessage = nil; feedMoreError = nil
+            outfits = remoteOutfits
+            nextFeedCursor = response.nextCursor; consumedFeedCursors = []
+            hasLoadedFeed = true
+            feedDataGeneration = dataGeneration; feedReceivedAt = receivedAt
+            detailedOutfits = [:]; detailedOutfitReads = [:]; detailedOutfitsGeneration = dataGeneration
+            if let visibleFeedOutfitID, !remoteOutfits.contains(where: { $0.id == visibleFeedOutfitID }) { self.visibleFeedOutfitID = nil }
+            await loadSavedStates(ids: remoteOutfits.map(\.id), force: true)
+        } catch is CancellationError {
         } catch {
-            feedErrorMessage = friendlyMessage(for: error)
+            if feedGeneration == request { feedErrorMessage = friendlyMessage(for: error) }
+        }
+    }
+
+    private func currentFeedSnapshot() async throws -> (UFitFeedResponseDTO, UUID, Date) {
+        for _ in .zero..<FeedPaging.snapshotAttempts {
+            let context = await client.publicOutfitsGeneration()
+            let page = try await client.fetchOutfitFeed()
+            let receivedAt = Date()
+            if await client.publicOutfitsGeneration() == context { return (page, context, receivedAt) }
+        }
+        throw FeedReadFailure.changed
+    }
+
+    func loadMoreFeedIfNeeded(near id: String) async {
+        guard !isLoadingFeed, !isLoadingMoreFeed, nextFeedCursor != nil,
+              feedMoreError == nil, let index = outfits.firstIndex(where: { $0.id == id }),
+              index >= outfits.count - FeedPaging.prefetchDistance else { return }
+        await loadMoreFeed()
+    }
+
+    func retryMoreFeed() async {
+        let current = await client.publicOutfitsGeneration()
+        if !hasLoadedFeed || feedDataGeneration != current { await refreshFeed() }
+        else { await loadMoreFeed() }
+    }
+
+    func loadMoreFeed() async {
+        guard !isLoadingFeed, !isLoadingMoreFeed, feedErrorMessage == nil, let cursor = nextFeedCursor else { return }
+        let request = feedGeneration
+        let dataGeneration = await client.publicOutfitsGeneration()
+        guard feedGeneration == request, !isLoadingFeed, !isLoadingMoreFeed else { return }
+        guard feedDataGeneration == dataGeneration else { feedMoreError = FeedPaging.changed; return }
+        isLoadingMoreFeed = true; feedMoreError = nil
+        defer { if feedGeneration == request { isLoadingMoreFeed = false } }
+        do {
+            let page = try await client.fetchOutfitFeed(cursor: cursor)
+            let current = await client.publicOutfitsGeneration()
+            guard feedGeneration == request else { return }
+            guard current == dataGeneration else { hasLoadedFeed = false; feedMoreError = FeedPaging.changed; return }
+            guard !consumedFeedCursors.contains(cursor), Set(outfits.map(\.id)).isDisjoint(with: page.items.map(\.id)) else {
+                throw UFitPublicProfileContractError.outfits
+            }
+            outfits.append(contentsOf: page.items.map { $0.toOutfit() })
+            nextFeedCursor = page.nextCursor; consumedFeedCursors.insert(cursor)
+            await loadSavedStates(ids: page.items.map(\.id))
+        } catch is CancellationError {
+        } catch {
+            if feedGeneration == request { feedMoreError = FeedPaging.unavailable }
         }
     }
 
     func detail(for outfit: Outfit) async -> Outfit {
-        if let detailed = detailedOutfits[outfit.id] {
+        let context = await client.publicOutfitsGeneration()
+        if detailedOutfitsGeneration != context { detailedOutfits = [:]; detailedOutfitReads = [:]; detailedOutfitsGeneration = context }
+        if let detailed = detailedOutfits[outfit.id], isFresh(detailedOutfitReads[outfit.id]) {
             return detailed
         }
 
         do {
             let dto = try await client.fetchOutfitDetail(id: outfit.id)
-            let detailed = dto.toOutfit(fallback: outfit)
+            let receivedAt = Date()
+            guard await client.publicOutfitsGeneration() == context else { throw FeedReadFailure.changed }
+            let detailed = dto.toOutfit()
             detailedOutfits[outfit.id] = detailed
+            detailedOutfitReads[outfit.id] = receivedAt
             if let index = outfits.firstIndex(where: { $0.id == outfit.id }) {
                 outfits[index] = detailed
             }
@@ -76,88 +180,164 @@ final class MarketplaceStore {
         }
     }
 
+    func loadSavedOutfits() async {
+        guard isAuthenticated, !isLoadingSavedOutfits else { return }
+        savedGeneration = UUID()
+        let request = accountGeneration, userID = accountID, pageRequest = savedGeneration, revisions = savedStateRevisions
+        isLoadingSavedOutfits = true; isLoadingMoreSavedOutfits = false; savedErrorMessage = nil; savedMoreError = nil
+        defer { if accountGeneration == request, savedGeneration == pageRequest { isLoadingSavedOutfits = false } }
+        do {
+            let page = try await client.fetchSavedOutfits()
+            let resolved = try await resolveSavedOutfits(page.items, account: request, page: pageRequest)
+            guard accountGeneration == request, accountID == userID, savedGeneration == pageRequest else { return }
+            acceptSavedReferences(page.items, revisions: revisions)
+            savedOutfits = resolved.filter { savedStates[$0.id] != .notSaved }
+            if let visibleSavedOutfitID, !savedOutfits.contains(where: { $0.id == visibleSavedOutfitID }) { self.visibleSavedOutfitID = nil }
+            savedReferenceIDs = Set(page.items.map(\.id)); lastSavedReference = page.items.last
+            nextSavedCursor = page.nextCursor; consumedSavedCursors = []
+            hasLoadedSavedOutfits = true
+        } catch {
+            if !Task.isCancelled, !(error is CancellationError), accountGeneration == request, accountID == userID, savedGeneration == pageRequest {
+                savedErrorMessage = friendlyMessage(for: error)
+            }
+        }
+    }
+
+    func loadMoreSavedOutfits() async {
+        guard isAuthenticated, !isLoadingSavedOutfits, !isLoadingMoreSavedOutfits, savedErrorMessage == nil, let cursor = nextSavedCursor else { return }
+        let request = accountGeneration, userID = accountID, pageRequest = savedGeneration, revisions = savedStateRevisions
+        isLoadingMoreSavedOutfits = true; savedMoreError = nil
+        defer { if accountGeneration == request, savedGeneration == pageRequest { isLoadingMoreSavedOutfits = false } }
+        do {
+            let page = try await client.fetchSavedOutfits(cursor: cursor)
+            guard accountGeneration == request, accountID == userID, savedGeneration == pageRequest else { return }
+            guard !consumedSavedCursors.contains(cursor), savedReferenceIDs.isDisjoint(with: page.items.map(\.id)) else { throw UFitSavedOutfitContractError.page }
+            if let previous = lastSavedReference, let first = page.items.first {
+                guard first.savedAt < previous.savedAt || (first.savedAt == previous.savedAt && first.id < previous.id) else { throw UFitSavedOutfitContractError.page }
+            }
+            let resolved = try await resolveSavedOutfits(page.items, account: request, page: pageRequest)
+            guard accountGeneration == request, accountID == userID, savedGeneration == pageRequest else { return }
+            acceptSavedReferences(page.items, revisions: revisions)
+            let present = Set(savedOutfits.map(\.id))
+            savedOutfits.append(contentsOf: resolved.filter { !present.contains($0.id) && savedStates[$0.id] != .notSaved })
+            savedReferenceIDs.formUnion(page.items.map(\.id)); lastSavedReference = page.items.last ?? lastSavedReference
+            nextSavedCursor = page.nextCursor; consumedSavedCursors.insert(cursor)
+        } catch {
+            if !Task.isCancelled, !(error is CancellationError), accountGeneration == request, accountID == userID, savedGeneration == pageRequest {
+                savedMoreError = SavedCopy.moreUnavailable
+            }
+        }
+    }
+
+    private func resolveSavedOutfits(_ references: [UFitSavedReferencesDTO.Item], account: UUID, page: UUID) async throws -> [Outfit] {
+        var resolved: [Outfit] = []
+        for reference in references {
+            guard accountGeneration == account, savedGeneration == page else { throw CancellationError() }
+            let detail = try await client.fetchOutfitDetail(id: reference.id)
+            resolved.append(detail.toOutfit())
+        }
+        return resolved
+    }
+
+    private func acceptSavedReferences(_ references: [UFitSavedReferencesDTO.Item], revisions: [String: UUID]) {
+        for reference in references where revisions[reference.id] == savedStateRevisions[reference.id] {
+            let state = savedStates[reference.id] ?? .unknown
+            if case .unconfirmed = state { continue }
+            if !state.isBusy { savedStates[reference.id] = .saved; savedStateFailures.remove(reference.id) }
+        }
+    }
+
+    func loadSavedStates(ids: [String], force: Bool = false) async {
+        guard isAuthenticated else { return }
+        let identities = Set(ids).sorted().filter { id in
+            let state = savedStates[id] ?? .unknown
+            return !state.isBusy && (force || state.confirmedValue == nil)
+        }
+        guard !identities.isEmpty else { return }
+        let request = accountGeneration, userID = accountID, previous = savedStates
+        var revisions = [String: UUID]()
+        for id in identities {
+            let revision = UUID(); revisions[id] = revision; savedStateRevisions[id] = revision; savedStates[id] = .checking
+        }
+        for start in stride(from: .zero, to: identities.count, by: UFitSavedOutfitsHTTP.maximumIdentities) {
+            guard accountGeneration == request, accountID == userID else { return }
+            let batch = Array(identities[start..<min(start + UFitSavedOutfitsHTTP.maximumIdentities, identities.count)])
+            do {
+                let results = try await client.fetchSavedOutfitStates(ids: batch)
+                guard accountGeneration == request, accountID == userID else { return }
+                for result in results where savedStateRevisions[result.id] == revisions[result.id] {
+                    savedStates[result.id] = result.saved ? .saved : .notSaved
+                    savedStateFailures.remove(result.id)
+                    if !result.saved { savedOutfits.removeAll { $0.id == result.id } }
+                    if case .unconfirmed(let target)? = previous[result.id] {
+                        if result.saved, let outfit = outfits.first(where: { $0.id == result.id }), !savedOutfits.contains(where: { $0.id == result.id }) {
+                            savedOutfits.insert(outfit, at: .zero)
+                        }
+                        actionMessage = result.saved == target ? (target ? SavedCopy.saved : SavedCopy.removed) : (target ? SavedCopy.notApplied : SavedCopy.stillSaved)
+                    }
+                }
+            } catch {
+                guard accountGeneration == request, accountID == userID else { return }
+                for id in batch where savedStateRevisions[id] == revisions[id] {
+                    savedStates[id] = previous[id] ?? .unknown
+                    if !Task.isCancelled { savedStateFailures.insert(id) }
+                }
+            }
+        }
+    }
+
+    func clearAccountData() {
+        accountGeneration = UUID()
+        savedOutfits = []
+        visibleSavedOutfitID = nil
+        savedStates = [:]; savedStateRevisions = [:]; savedStateFailures = []
+        savedGeneration = UUID(); nextSavedCursor = nil; consumedSavedCursors = []; savedReferenceIDs = []; lastSavedReference = nil
+        hasLoadedSavedOutfits = false
+        isLoadingSavedOutfits = false
+        savedErrorMessage = nil; isLoadingMoreSavedOutfits = false; savedMoreError = nil
+        actionMessage = nil
+    }
+
     func toggleSaved(outfit: Outfit) async {
-        let wasSaved = savedOutfitIDs.contains(outfit.id)
-        if wasSaved {
-            savedOutfitIDs.remove(outfit.id)
-        } else {
-            savedOutfitIDs.insert(outfit.id)
-        }
-
+        guard isAuthenticated else { return }
+        let state = savedStates[outfit.id] ?? .unknown
+        guard !state.isBusy else { return }
+        actionMessage = nil
+        guard let wasSaved = state.confirmedValue else { await loadSavedStates(ids: [outfit.id], force: true); return }
+        let request = accountGeneration, userID = accountID, target = !wasSaved
+        invalidateSavedPagination()
+        savedStateRevisions[outfit.id] = UUID(); savedStates[outfit.id] = .updating(target)
         do {
-            if wasSaved {
-                _ = try await client.unsaveOutfit(id: outfit.id)
-            } else {
-                _ = try await client.saveOutfit(id: outfit.id)
-            }
-            actionMessage = wasSaved ? "Removed from saved outfits." : "Saved to your wardrobe."
+            try await client.setSavedOutfit(id: outfit.id, saved: target)
+            guard accountGeneration == request, accountID == userID else { return }
+            invalidateSavedPagination()
+            savedStates[outfit.id] = target ? .saved : .notSaved
+            savedOutfits.removeAll { $0.id == outfit.id }
+            if target { savedOutfits.insert(outfit, at: .zero) }
+            actionMessage = target ? SavedCopy.saved : SavedCopy.removed
         } catch {
-            if wasSaved {
-                savedOutfitIDs.insert(outfit.id)
-            } else {
-                savedOutfitIDs.remove(outfit.id)
-            }
-            actionMessage = friendlyMessage(for: error)
+            guard accountGeneration == request, accountID == userID else { return }
+            invalidateSavedPagination()
+            savedStates[outfit.id] = .unconfirmed(target)
+            await loadSavedStates(ids: [outfit.id], force: true)
+        }
+        if accountGeneration == request, accountID == userID, !hasLoadedSavedOutfits {
+            await loadSavedOutfits()
         }
     }
 
-    func checkout(outfit: Outfit, shippingAddress: UFitShippingAddress) async throws -> URL {
-        let detail = await detail(for: outfit)
-        let shoppablePieces = detail.pieces.filter { $0.isShoppable && $0.productID != nil }
-        guard !shoppablePieces.isEmpty else {
-            throw UFitAPIError.requestFailed(statusCode: 422, message: "This outfit does not expose shoppable pieces yet.")
-        }
-
-        for piece in shoppablePieces {
-            guard let productID = piece.productID else { continue }
-            let publicProduct = try await client.fetchPublicProduct(id: productID)
-            guard let variant = publicProduct.variants.first(where: { $0.stockQuantity > 0 }) else {
-                throw UFitAPIError.requestFailed(statusCode: 409, message: "\(publicProduct.name) is currently out of stock.")
-            }
-            _ = try await client.addCartItem(
-                UFitAddCartItemRequest(
-                    productVariantId: variant.id,
-                    quantity: 1,
-                    sourceOutfitId: detail.id,
-                    sourceCreatorId: detail.sourceCreatorId
-                )
-            )
-        }
-
-        let session = try await client.checkout(UFitCheckoutRequest(shippingAddress: shippingAddress, shippingAmount: 0))
-        guard let url = URL(string: session.url) else {
-            throw UFitAPIError.invalidURL
-        }
-        return url
+    private func invalidateSavedPagination() {
+        // A page read started before a write must not undo its visible result.
+        savedGeneration = UUID(); isLoadingSavedOutfits = false; isLoadingMoreSavedOutfits = false
     }
 
-    func loadCreatorWorkspace() async {
-        do {
-            async let dashboard = client.fetchCreatorDashboard()
-            async let outfits = client.fetchCreatorOutfits(limit: 20)
-            async let commissions = client.fetchCreatorCommissions(limit: 20)
-            creatorDashboard = try await dashboard
-            creatorOutfits = try await outfits.items
-            creatorCommissions = try await commissions.items
-        } catch {
-            actionMessage = friendlyMessage(for: error)
-        }
-    }
-
-    func loadBrandWorkspace() async {
-        guard let brandProfileID else {
-            actionMessage = "Set UFIT_BRAND_PROFILE_ID to load the brand workspace."
-            return
-        }
-
-        do {
-            async let dashboard = client.fetchBrandDashboard(brandProfileID: brandProfileID)
-            async let orders = client.fetchBrandOrders(brandProfileID: brandProfileID, limit: 8)
-            brandDashboard = try await dashboard
-            brandOrders = try await orders.items.map { $0.toBrandOrder() }
-        } catch {
-            actionMessage = friendlyMessage(for: error)
-        }
+    private enum SavedCopy {
+        static let removed = String(localized: "Tenue retirée des favoris.")
+        static let saved = String(localized: "Tenue enregistrée.")
+        static let notApplied = String(localized: "La tenue n’a pas été enregistrée.")
+        static let stillSaved = String(localized: "La tenue est toujours dans vos favoris.")
+        static let verificationFailed = String(localized: "L’état des favoris n’a pas pu être vérifié. Touchez le marque-page pour vérifier à nouveau.")
+        static let moreUnavailable = String(localized: "La suite des favoris est indisponible.")
     }
 
     private func friendlyMessage(for error: Error) -> String {
@@ -168,107 +348,67 @@ final class MarketplaceStore {
     }
 }
 
+enum UFitOutfitPresentation {
+    static let editorial = String(localized: "Sélection Ufit")
+    static let initials = "UF"
+    static let inspiration = String(localized: "Inspiration")
+    static let unavailable = String(localized: "Article indisponible")
+    private static let unavailablePrices = String(localized: "Pièces indisponibles à l’achat")
+    static let empty = String()
+    static func priceSummary(prices: [UFitProductPriceDTO], items: [UFitOutfitItemDTO]) -> String {
+        if prices.isEmpty && items.contains(where: \.isShoppable) { return unavailablePrices }
+        return UFitMoney.ranges(prices)
+    }
+    static func initials(for author: OutfitAuthor?) -> String {
+        guard let author else { return initials }
+        return author.name.split(whereSeparator: \.isWhitespace).prefix(2).compactMap(\.first).map(String.init).joined()
+    }
+}
+
 extension UFitOutfitCardDTO {
-    func toOutfit(fallbackIndex: Int) -> Outfit {
-        let fallbackImage = SampleData.outfits.indices.contains(fallbackIndex) ? SampleData.outfits[fallbackIndex].imageName : "unsplash-09"
-        return Outfit(
-            id: id,
-            imageName: coverImageUrl.isEmpty ? fallbackImage : coverImageUrl,
-            creator: "UFit Creator",
-            creatorAvatar: "UF",
-            price: UFitMoney.format(totalPriceMax, currency: currency),
-            likes: 0,
-            comments: 0,
-            title: title,
-            description: "A curated silhouette selected by UFit.",
-            currency: currency,
-            totalPrice: totalPriceMax,
-            sourceCreatorId: nil,
-            sourceOutfitId: id,
-            products: [],
-            pieces: []
-        )
+    func toOutfit() -> Outfit {
+        Outfit(id: id, imageName: coverImageUrl,
+            creator: author?.name ?? UFitOutfitPresentation.editorial,
+            creatorAvatar: UFitOutfitPresentation.initials(for: author), author: author,
+            price: UFitOutfitPresentation.priceSummary(prices: prices, items: items), title: title, description: UFitOutfitPresentation.empty,
+            sourceCreatorId: creatorId, sourceOutfitId: id,
+            products: items.sorted { $0.position < $1.position }.map { .init(id: $0.id, itemType: $0.itemType, name: $0.label, productID: $0.product?.id, brandID: $0.product?.brandId, image: $0.product?.imageUrl, brandName: $0.product?.brandName,
+                price: $0.product.map { UFitMoney.format($0.price, currency: $0.currency) } ?? ($0.isShoppable ? UFitOutfitPresentation.unavailable : UFitOutfitPresentation.inspiration)) },
+            pieces: [], photos: images.sorted { $0.position < $1.position }, pins: pins)
     }
 }
 
 extension UFitOutfitDetailDTO {
-    func toOutfit(fallback: Outfit) -> Outfit {
-        let sortedItems = items.sorted { $0.position < $1.position }
-        let products = sortedItems.map { item in
-            OutfitProduct(
-                id: item.product?.id ?? item.id,
-                systemImage: item.symbolName,
-                name: item.label,
-                productID: item.product?.id,
-                brandID: item.product?.brandId
-            )
+    func toOutfit() -> Outfit {
+        let sorted = items.sorted { $0.position < $1.position }
+        let products = sorted.map { item in
+            OutfitProduct(id: item.id, itemType: item.itemType, name: item.label,
+                productID: item.product?.id, brandID: item.product?.brandId, image: item.product?.imageUrl, brandName: item.product?.brandName,
+                price: item.product.map { UFitMoney.format($0.price, currency: $0.currency) } ?? (item.isShoppable ? UFitOutfitPresentation.unavailable : UFitOutfitPresentation.inspiration))
         }
-        let pieces = sortedItems.map { item in
-            OutfitPiece(
-                id: item.id,
-                name: item.label,
-                brand: item.product?.brandId ?? "Independent brand",
-                price: item.product.map { UFitMoney.format($0.price, currency: $0.currency) } ?? "On request",
-                sizes: ["One Size"],
-                productID: item.product?.id,
-                isRequired: item.isRequired,
-                isShoppable: item.isShoppable
-            )
+        let pieces = sorted.map { item in
+            OutfitPiece(id: item.id, name: item.label, brand: UFitOutfitPresentation.empty,
+                price: item.product.map { UFitMoney.format($0.price, currency: $0.currency) } ?? (item.isShoppable ? UFitOutfitPresentation.unavailable : UFitOutfitPresentation.inspiration),
+                sizes: [], productID: item.product?.id, isRequired: item.isRequired, isShoppable: item.isShoppable)
         }
-
-        return Outfit(
-            id: id,
-            imageName: coverImageUrl.isEmpty ? fallback.imageName : coverImageUrl,
-            creator: fallback.creator,
-            creatorAvatar: fallback.creatorAvatar,
-            price: UFitMoney.format(totalPriceMax, currency: currency),
-            likes: fallback.likes,
-            comments: fallback.comments,
-            title: title,
-            description: description,
-            currency: currency,
-            totalPrice: totalPriceMax,
-            sourceCreatorId: creatorId,
-            sourceOutfitId: id,
-            products: products,
-            pieces: pieces
-        )
+        return Outfit(id: id, imageName: coverImageUrl,
+            creator: author?.name ?? UFitOutfitPresentation.editorial,
+            creatorAvatar: UFitOutfitPresentation.initials(for: author), author: author,
+            price: UFitOutfitPresentation.priceSummary(prices: prices, items: items), title: title, description: description,
+            sourceCreatorId: creatorId, sourceOutfitId: id, products: products, pieces: pieces, photos: images.sorted { $0.position < $1.position }, pins: pins)
     }
 }
 
-private extension UFitOutfitItemDTO {
-    var symbolName: String {
-        switch itemType {
-        case "shoes": "shoeprints.fill"
-        case "bag": "handbag"
-        case "accessory": "sunglasses"
-        case "outerwear": "jacket"
-        case "bottom": "figure.walk"
-        default: "tshirt"
-        }
-    }
-}
-
-extension UFitBrandOrderDTO {
-    func toBrandOrder() -> BrandOrder {
-        BrandOrder(
-            id: orderNumber,
-            customer: sourceCreatorId == nil ? "Direct order" : "Creator sale",
-            items: 1,
-            total: UFitMoney.format(totalAmount, currency: currency),
-            status: OrderStatus(apiStatus: status),
-            date: UFitDate.short(createdAt)
-        )
-    }
-}
-
-enum UFitMoney {
-    static func format(_ amount: Int, currency: String) -> String {
-        let formatter = NumberFormatter()
-        formatter.numberStyle = .currency
-        formatter.currencyCode = currency
-        formatter.maximumFractionDigits = 0
-        return formatter.string(from: NSNumber(value: Double(amount) / 100.0)) ?? "\(currency) \(amount)"
+extension UFitMoney {
+    private static let separator = " + "
+    private static let rangeSeparator = " – "
+    private static let inspiration = String(localized: "Pièces d’inspiration")
+    static func ranges(_ prices: [UFitProductPriceDTO]) -> String {
+        guard !prices.isEmpty else { return inspiration }
+        return prices.map { range in
+            let minimum = format(range.min, currency: range.currency)
+            return range.min == range.max ? minimum : minimum + rangeSeparator + format(range.max, currency: range.currency)
+        }.joined(separator: separator)
     }
 }
 

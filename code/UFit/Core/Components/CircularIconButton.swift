@@ -5,10 +5,10 @@ struct CircularIconButton: View {
     let accessibilityLabel: String
 
     var body: some View {
-        Image(systemName: systemImage)
-            .font(.system(size: 23, weight: .regular))
+        UFitIcon(systemName: systemImage)
+            .font(UFitTypography.icon)
             .foregroundStyle(.white)
-            .frame(width: 50, height: 50)
+            .frame(width: UFitControlSize.circularAction, height: UFitControlSize.circularAction)
             .background(.white.opacity(0.2), in: Circle())
             .accessibilityLabel(accessibilityLabel)
     }

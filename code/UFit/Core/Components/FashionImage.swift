@@ -34,9 +34,9 @@ struct FashionImage: View {
         Rectangle()
             .fill(Color.ufitSecondary)
             .overlay {
-                Image(systemName: "photo")
-                    .font(.system(size: 24))
-                    .foregroundStyle(Color.ufitMuted)
+                UFitIcon(systemName: "photo")
+                    .ufitFont(size: UFitTypography.Size.section)
+                    .foregroundStyle(Color.ufitSecondaryText)
             }
     }
 }

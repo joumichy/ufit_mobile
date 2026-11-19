@@ -2,242 +2,142 @@ import SwiftUI
 
 struct OutfitFeedCard: View {
     let outfit: Outfit
-    let isLiked: Bool
+    let savedState: UFitSavedOutfitState
     let onLike: () -> Void
     let onOutfitTap: () -> Void
-    let onCreatorTap: () -> Void
+    let onAuthorTap: () -> Void
+    var onItemTap: (String) -> Void = {_ in}
+    @Binding var showingPieces: Bool
+    @State private var pendingArticleID: String?
+    @State private var selectedReference: OutfitProduct?
+    @Binding var selectedPhotoID: String?
+    @Environment(\.dynamicTypeSize) private var typeSize
+
+    private enum Copy {
+        static let pieces = String(localized: "Voir les pièces")
+        static let hide = String(localized: "Masquer les pièces")
+        static let empty = String(localized: "Aucune pièce associée")
+        static let piece = String(localized: "Voir la pièce")
+        static let article = String(localized: "Voir l’article")
+        static let close = String(localized: "Fermer la référence")
+        static let closeIcon = "xmark"
+        static let bag = "bag"
+    }
+    private enum Layout {
+        static let spacing: CGFloat = UFitSpace.lg
+        static let captionSpacing: CGFloat = 14
+        static let horizontal: CGFloat = UFitSpace.xl
+        static let bottom: CGFloat = UFitSpace.xxl
+        static let avatar: CGFloat = 44
+        static let title: CGFloat = UFitTypography.Size.title
+        static let initials: CGFloat = UFitTypography.Size.small
+        static let overlayOpacity = 0.72
+        static let avatarOpacity = 0.18
+        static let unavailableOpacity = 0.4; static let availableOpacity = 1.0
+        static let ribbonBottom: CGFloat = 190
+        static let titleLines = 3
+        static let dotsBottom: CGFloat = UFitSpace.xs; static let step = 1
+    }
 
     var body: some View {
         GeometryReader { proxy in
-            ZStack {
-                FashionImage(source: outfit.imageName)
-                    .frame(width: proxy.size.width, height: proxy.size.height)
-                    .clipped()
-
-                LinearGradient(
-                    colors: [.clear, .clear, .black.opacity(0.68)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-
-                OutfitFeedOverlay(
-                    outfit: outfit,
-                    isLiked: isLiked,
-                    onLike: onLike,
-                    onOutfitTap: onOutfitTap,
-                    onCreatorTap: onCreatorTap
-                )
-            }
-        }
-        .clipped()
-    }
-}
-
-private struct OutfitFeedOverlay: View {
-    let outfit: Outfit
-    let isLiked: Bool
-    let onLike: () -> Void
-    let onOutfitTap: () -> Void
-    let onCreatorTap: () -> Void
-
-    var body: some View {
-        HStack(alignment: .bottom, spacing: 16) {
-            OutfitFeedCaption(
-                outfit: outfit,
-                onOutfitTap: onOutfitTap,
-                onCreatorTap: onCreatorTap
-            )
-
-            Spacer(minLength: 8)
-
-            OutfitFeedActions(outfit: outfit, isLiked: isLiked, onLike: onLike)
-        }
-        .padding(.horizontal, 22)
-        .padding(.bottom, 132)
-        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
-    }
-}
-
-private struct OutfitFeedCaption: View {
-    let outfit: Outfit
-    let onOutfitTap: () -> Void
-    let onCreatorTap: () -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Button(action: onCreatorTap) {
-                HStack(spacing: 12) {
-                    CreatorAvatar(initials: outfit.creatorAvatar)
-
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(outfit.creator)
-                            .font(.system(size: 15, weight: .medium))
-                        Text("Creator")
-                            .font(.system(size: 12))
-                            .foregroundStyle(.white.opacity(0.8))
-                    }
+            ZStack(alignment: .bottom) {
+                if outfit.photos.isEmpty {
+                    FashionImage(source: outfit.imageName).frame(width: proxy.size.width, height: proxy.size.height).clipped()
+                } else {
+                    UFitOutfitPhotoPages(photos: outfit.photos, selection: photoSelection, size: proxy.size)
                 }
-            }
-            .buttonStyle(.plain)
-
-            Button(action: onOutfitTap) {
-                Text(outfit.title)
-                    .font(.system(size: 22, weight: .medium))
-                    .multilineTextAlignment(.leading)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Open \(outfit.title)")
-        }
-        .foregroundStyle(.white)
-    }
-}
-
-private struct CreatorAvatar: View {
-    let initials: String
-
-    var body: some View {
-        Text(initials)
-            .font(.system(size: 14, weight: .semibold))
-            .foregroundStyle(.white)
-            .frame(width: 44, height: 44)
-            .background(.white.opacity(0.18), in: Circle())
-            .overlay(Circle().stroke(.white, lineWidth: 2))
-    }
-}
-
-private struct OutfitFeedActions: View {
-    let outfit: Outfit
-    let isLiked: Bool
-    let onLike: () -> Void
-
-    var body: some View {
-        VStack(spacing: 20) {
-            ProductShortcutList(outfitID: outfit.id, products: outfit.products)
-                .id(outfit.id)
-
-            Button(action: onLike) {
-                VStack(spacing: 5) {
-                    CircularIconButton(
-                        systemImage: isLiked ? "heart.fill" : "heart",
-                        accessibilityLabel: "Like outfit"
-                    )
-                    Text("\(outfit.likes + (isLiked ? 1 : 0))")
-                        .font(.system(size: 12, weight: .medium))
-                        .foregroundStyle(.white)
+                LinearGradient(colors: [.clear, .clear, .black.opacity(Layout.overlayOpacity)], startPoint: .top, endPoint: .bottom).allowsHitTesting(false)
+                if outfit.photos.count > Layout.step {
+                    photoIndicators.padding(.bottom, Layout.dotsBottom)
                 }
-            }
-            .buttonStyle(.plain)
-
-            VStack(spacing: 5) {
-                CircularIconButton(systemImage: "bubble.right", accessibilityLabel: "Comments")
-                Text("\(outfit.comments)")
-                    .font(.system(size: 12, weight: .medium))
-                    .foregroundStyle(.white)
-            }
-        }
-    }
-}
-
-private struct ProductShortcutList: View {
-    let outfitID: String
-    let products: [OutfitProduct]
-
-    @State private var isExpanded = false
-    @State private var isContentVisible = false
-    @State private var presentationToken = UUID()
-
-    private var expandedHeight: CGFloat {
-        let iconHeight: CGFloat = 50
-        let spacing: CGFloat = 11
-        let totalHeight = CGFloat(products.count) * iconHeight + CGFloat(max(products.count - 1, 0)) * spacing
-        return min(totalHeight, 320)
-    }
-
-    var body: some View {
-        VStack(spacing: 11) {
-            if isExpanded {
-                ScrollView(.vertical) {
-                    VStack(spacing: 11) {
-                        ForEach(products) { product in
-                            CircularIconButton(systemImage: product.systemImage, accessibilityLabel: product.name)
+                if showingPieces && !outfit.products.isEmpty {
+                    VStack { Spacer(); HStack { Spacer(); ribbon }.padding(.horizontal, Layout.horizontal) }
+                        .padding(.bottom, Layout.ribbonBottom)
+                }
+                Group {
+                    if typeSize.isAccessibilitySize {
+                        VStack(alignment: .leading, spacing: Layout.spacing) {
+                            captionInformation
+                            HStack(spacing: Layout.spacing) { Spacer(minLength: .zero); captionActions }
+                        }
+                    } else {
+                        HStack(alignment: .bottom, spacing: Layout.spacing) {
+                            captionInformation
+                            Spacer(minLength: .zero)
+                            VStack(spacing: Layout.spacing) { captionActions }
                         }
                     }
                 }
-                .scrollIndicators(.hidden)
-                .frame(height: expandedHeight)
-                .opacity(isContentVisible ? 1 : 0)
-                .scaleEffect(isContentVisible ? 1 : 0.96, anchor: .bottom)
-                .accessibilityHidden(!isContentVisible)
+                .foregroundStyle(.white)
+                .padding(.horizontal, Layout.horizontal)
+                .padding(.bottom, UFitSpace.xl)
             }
-
-            Button(action: toggleExpanded) {
-                CircularIconButton(
-                    systemImage: "tshirt",
-                    accessibilityLabel: isExpanded ? "Hide outfit pieces" : "Show outfit pieces"
-                )
-            }
-            .buttonStyle(.plain)
-        }
-        .frame(width: 50)
-        .onChange(of: outfitID) { _, _ in
-            resetPresentation()
+        }.clipped()
+        .ufitSheet(item: $selectedReference, onDismiss: openArticle) { item in
+            UFitContentSizedSheet {
+                VStack(alignment: .leading, spacing: Layout.captionSpacing) {
+                    HStack {
+                        Spacer()
+                        UFitButton { selectedReference = nil } label: { UFitIcon(systemName: Copy.closeIcon).frame(width: Layout.avatar, height: Layout.avatar) }
+                            .accessibilityLabel(Copy.close)
+                    }
+                    UFitOutfitReferenceContent(item: item)
+                    UFitButton { pendingArticleID = item.id; selectedReference = nil } label: { Text(item.productID == nil ? Copy.piece : Copy.article).frame(maxWidth: .infinity) }.ufitButtonStyle(.primary)
+                }
+                .padding(Layout.horizontal)
+            }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk)
         }
     }
 
-    private func toggleExpanded() {
-        if products.isEmpty || isExpanded {
-            collapse()
-        } else {
-            expand()
-        }
+    private var captionInformation: some View {
+        VStack(alignment: .leading, spacing: Layout.captionSpacing) {
+            if outfit.author != nil { UFitButton(action: onAuthorTap) { author }.ufitButtonStyle(.text) }
+            else { author }
+            UFitButton(action: onOutfitTap) {
+                Text(outfit.title).ufitFont(size: Layout.title, weight: .medium).multilineTextAlignment(.leading).lineLimit(Layout.titleLines)
+            }.ufitButtonStyle(.text).accessibilityLabel(outfit.title)
+        }.frame(maxWidth: .infinity, alignment: .leading)
+    }
+    @ViewBuilder private var captionActions: some View {
+        UFitButton { showingPieces.toggle() } label: {
+            CircularIconButton(systemImage: Copy.bag, accessibilityLabel: outfit.products.isEmpty ? Copy.empty : (showingPieces ? Copy.hide : Copy.pieces))
+        }.ufitButtonStyle(.text).disabled(outfit.products.isEmpty)
+            .opacity(outfit.products.isEmpty ? Layout.unavailableOpacity : Layout.availableOpacity)
+        UFitButton(action: onLike) {
+            if savedState.isBusy { UFitLoading().foregroundStyle(.white).frame(width: UFitControlSize.circularAction, height: UFitControlSize.circularAction) }
+            else { CircularIconButton(systemImage: savedState.symbol, accessibilityLabel: savedState.actionLabel) }
+        }.ufitButtonStyle(.text).environment(\.ufitButtonIsBusy, savedState.isBusy).disabled(savedState.isBusy)
+            .accessibilityLabel(savedState.actionLabel)
     }
 
-    private func resetPresentation() {
-        presentationToken = UUID()
-        var transaction = Transaction(animation: nil)
-        transaction.disablesAnimations = true
-        withTransaction(transaction) {
-            isExpanded = false
-            isContentVisible = false
-        }
+    private var selectedPhoto: UFitOutfitGalleryPhoto? {
+        outfit.photos.first(where: { $0.id == selectedPhotoID }) ?? outfit.photos.first
+    }
+    private func openArticle() {
+        guard let id = pendingArticleID else { return }
+        pendingArticleID = nil
+        onItemTap(id)
+    }
+    private var ribbon: some View {
+        UFitOutfitPiecesRibbon(items: outfit.products, onSelect: { selectedReference = $0 })
+    }
+    private var photoSelection: Binding<String?> {
+        Binding(get: { selectedPhoto?.id }, set: { selectedPhotoID = $0 })
+    }
+    private var photoIndicators: some View {
+        UFitPhotoPageControl(count: outfit.photos.count, selection: Binding(get: {
+            outfit.photos.firstIndex(where: { $0.id == selectedPhoto?.id }) ?? .zero
+        }, set: { index in if outfit.photos.indices.contains(index) { selectedPhotoID = outfit.photos[index].id } }), tint: .white)
     }
 
-    private func expand() {
-        let token = UUID()
-        presentationToken = token
-
-        var transaction = Transaction(animation: nil)
-        transaction.disablesAnimations = true
-        withTransaction(transaction) {
-            isExpanded = true
-            isContentVisible = false
-        }
-
-        Task { @MainActor in
-            await Task.yield()
-            guard presentationToken == token, isExpanded else { return }
-            withAnimation(.spring(response: 0.24, dampingFraction: 0.9)) {
-                isContentVisible = true
-            }
-        }
-    }
-
-    private func collapse() {
-        let token = UUID()
-        presentationToken = token
-
-        withAnimation(.easeOut(duration: 0.14)) {
-            isContentVisible = false
-        }
-
-        Task { @MainActor in
-            try? await Task.sleep(nanoseconds: 150_000_000)
-            guard presentationToken == token else { return }
-            var transaction = Transaction(animation: nil)
-            transaction.disablesAnimations = true
-            withTransaction(transaction) {
-                isExpanded = false
-            }
+    private var author: some View {
+        HStack(spacing: Layout.captionSpacing) {
+            Group {
+                if let avatar = outfit.author?.avatarUrl { FashionImage(source: avatar) }
+                else { Text(outfit.creatorAvatar).ufitFont(size: Layout.initials, weight: .semibold).frame(maxWidth: .infinity, maxHeight: .infinity).background(.white.opacity(Layout.avatarOpacity)) }
+            }.frame(width: Layout.avatar, height: Layout.avatar).clipShape(Circle()).accessibilityHidden(true)
+            Text(outfit.creator).font(UFitTypography.body.weight(.medium))
         }
     }
 }

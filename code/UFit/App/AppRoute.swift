@@ -1,0 +1,65 @@
+enum AppRoute {
+    case notification
+    case ownedApplication(UFitOwnedApplicationStore)
+    case feed
+    case search
+    case editorial(UFitEditorialStore)
+    case adminEditorial(UFitEditorialAdministrationStore)
+    case professionalHome
+    case professionalProfile
+    case administratorHome
+    case refundRecoveries(UFitRefundRecoveryFlowStore)
+    case commissionLedger(UFitCommissionLedgerFlowStore)
+    case adminOrders(UFitAdminOrdersFlowStore)
+    case paymentDistribution(UFitDistributionFlowStore)
+    case workspaceDashboard(UFitWorkspaceDashboardStore)
+    case workspaceCommissions(UFitWorkspaceCommissionsStore)
+    case workspaceTransfers(UFitWorkspaceTransfersStore)
+    case brandIntegrations(UFitBrandOutfitIntegrationsStore)
+    case managedProfile(UFitManagedProfileStore)
+    case managedOutfits(UFitManagedOutfitsStore)
+    case managedOutfit(UFitManagedOutfitStore)
+    case outfitForm(UFitOutfitFormStore)
+    case brandCommercePolicy(UFitBrandCommercePolicyStore)
+    case returns(UFitReturnsStore)
+    case returnDetail(UFitReturnDetailStore)
+    case returnCreation(UFitReturnCreationStore, UFitReturnsStore)
+    case brandOrders(UFitBrandOrdersStore)
+    case brandOrder(UFitBrandOrderStore)
+    case catalog(UFitCatalogStore)
+    case catalogProduct(UFitCatalogProductStore)
+    case catalogForm(UFitCatalogFormStore)
+    case catalogStock(UFitCatalogStockStore)
+    case outfit(Outfit, UFitOutfitShoppingStore, String?)
+    case cart
+    case checkout(UFitCheckoutStore)
+    case saved
+    case account
+    case shippingAddresses(UFitShippingAddressBookStore)
+    case notificationPreferences(UFitNotificationPreferencesStore)
+    case stylePreferences
+    case applications
+    case applicationForm(UFitApplicationFormStore)
+    case adminApplications
+    case adminApplication(UFitApplicationReviewStore)
+    case connect(UFitConnectStore)
+    case commissionRules(UFitCommissionRulesStore)
+    case commissionRule(UFitCommissionRuleDetailStore)
+    case commissionRuleForm(UFitCommissionRuleFormStore)
+    case creatorGrades(UFitCreatorGradeAdministrationStore)
+    case creatorGrade(UFitCreatorGradeDetailStore)
+    case creatorGradeForm(UFitCreatorGradeFormStore)
+    case creatorGradeAssignment(UFitCreatorGradeAssignmentDetailStore)
+    case creatorGradeChange(UFitCreatorGradeChangeStore)
+    case adminUsers(UFitUserAdministrationStore)
+    case adminUser(UFitUserAdministrationDetailStore)
+    case userAccessDecision(UFitUserAccessDecisionStore)
+    case orders
+    case order(UFitOrderDetailStore)
+    case publicProfile(UFitPublicProfileStore)
+
+    var isFeed: Bool {
+        if case .feed = self { return true }
+        return false
+    }
+}

@@ -1,0 +1,119 @@
+import SwiftUI
+
+struct UFitOutfitFormContent: View {
+    @Binding var draft: UFitOutfitDraft
+    let tags: [UFitOutfitTag]
+    let isNew: Bool
+    let changesPublishedOutfit: Bool
+    let hasChanges: Bool
+    let isBusy: Bool
+    let errors: [UFitOutfitField: String]
+    let message: String?
+    let onBack: () -> Void
+    let onSave: () -> Void
+    let onReloadTags: () -> Void
+    let onAddPhotos: () -> Void
+    let onRetryPhoto: (UUID) -> Void
+    let onRemovePhoto: (UUID) -> Void
+    let onSelectProduct: () -> Void
+    var renewPhotoSource: ((UUID) async throws -> String)? = nil
+    var cancelsScheduledPublication = false
+    @State private var confirmingDiscard = false
+    @State private var editingPhotoID: UUID?
+    @State private var showingPreview = false
+    private enum Copy {
+        static let new = String(localized: "Nouvelle tenue"); static let edit = String(localized: "Modifier la tenue")
+        static let title = String(localized: "Titre de la tenue"); static let description = String(localized: "Description de la tenue")
+        static let gender = String(localized: "Public (facultatif)"); static let unspecified = String(localized: "Non précisé")
+        static let styles = String(localized: "Styles et occasions (facultatif)"); static let reload = String(localized: "Recharger les styles")
+        static let removeUnavailable = String(localized: "Retirer les styles indisponibles")
+        static let save = String(localized: "Enregistrer le brouillon"); static let saving = String(localized: "Enregistrement de la tenue")
+        static let cancelsSchedule = String(localized: "Enregistrer ces modifications annulera la programmation. La tenue reviendra dans les brouillons. Vous pourrez la publier directement ou choisir une nouvelle date.")
+        static let changesPublication = String(localized: "Ces modifications remettront la tenue en brouillon. Elle restera privée jusqu’à ce que vous la publiiez à nouveau.")
+        static let discardTitle = String(localized: "Abandonner les modifications ?"); static let discard = String(localized: "Abandonner"); static let keep = String(localized: "Continuer la saisie")
+        static let preview = String(localized: "Aperçu client")
+    }
+    private enum Layout {
+        static let page: CGFloat = UFitSpace.xl; static let gap: CGFloat = UFitSpace.md; static let small: CGFloat = UFitSpace.xs; static let touch: CGFloat = UFitControlSize.touch; static let radius: CGFloat = UFitRadius.field
+        static let descriptionMinimum = 4; static let descriptionMaximum = 10
+    }
+    private enum Icon { static let preview = "eye" }
+    private var editingPhotoIndex: Int? { draft.photos.firstIndex { $0.id == editingPhotoID } }
+    var body: some View {
+        ZStack {
+            form.opacity(editingPhotoIndex == nil ? UFitMotion.visibleOpacity : .zero)
+                .accessibilityElement(children: .contain)
+                .accessibilityHidden(editingPhotoIndex != nil).allowsHitTesting(editingPhotoIndex == nil)
+                .disabled(editingPhotoIndex != nil)
+            if let index = editingPhotoIndex {
+                let id = draft.photos[index].id
+                UFitOutfitPinsContent(photo: $draft.photos[index], pieces: draft.pieces, onClose: { editingPhotoID = nil },
+                    renewSource: renewPhotoSource.map { renew in { () async throws -> String in try await renew(id) } })
+                    .environment(\.ufitPrimarySection, false)
+            }
+        }
+    }
+    private var form: some View {
+        VStack(spacing: .zero) {
+            DetailHeader(title: isNew ? Copy.new : Copy.edit, onBack: { if hasChanges { confirmingDiscard = true } else { onBack() } }) {
+                UFitButton { showingPreview = true } label: {
+                    UFitIcon(systemName: Icon.preview).frame(width: Layout.touch, height: Layout.touch)
+                }.ufitButtonStyle(.text).accessibilityLabel(Copy.preview)
+            }.disabled(isBusy)
+            ScrollView {
+                VStack(alignment: .leading, spacing: Layout.page) {
+                    UFitOutfitPhotosContent(photos: $draft.photos, error: errors[.photos], onAdd: onAddPhotos, onRetry: onRetryPhoto, onRemove: onRemovePhoto,
+                        onPins: { editingPhotoID = $0 }, renewPhotoSource: renewPhotoSource)
+                    UFitOutfitPiecesContent(pieces: $draft.pieces, error: errors[.pieces], onSelectProduct: onSelectProduct)
+                    UFitEditorialHeading(title: AuthoringCopy.intention, editorial: false)
+                    UFitTextField(label: Copy.title, text: $draft.title, error: errors[.title])
+                    UFitMultilineField(label: Copy.description, text: $draft.description, error: errors[.description])
+                    VStack(alignment: .leading, spacing: Layout.small) {
+                        Text(Copy.gender).font(UFitTypography.subheadline.weight(.medium))
+                        UFitInlineChoice(title: Copy.gender, selection: $draft.gender, options: [.init(value: nil, title: Copy.unspecified)] + UFitGenderTarget.allCases.map { .init(value: Optional($0), title: $0.label) })
+                    }
+                    UFitDisclosure(Copy.styles) {
+                        VStack(alignment: .leading, spacing: Layout.gap) {
+                            ForEach(UFitOutfitTagType.allCases) { type in
+                                VStack(alignment: .leading, spacing: Layout.small) {
+                                    Text(type.label).font(UFitTypography.headline)
+                                    ForEach(tags.filter { $0.type == type }) { tag in
+                                        UFitToggle(tag.label, isOn: Binding(get: { draft.tagIDs.contains(tag.id) }, set: { selected in
+                                            if selected { draft.tagIDs.insert(tag.id) } else { draft.tagIDs.remove(tag.id) }
+                                        })).frame(minHeight: Layout.touch)
+                                    }
+                                }
+                            }
+                            if !draft.tagIDs.isSubset(of: Set(tags.map(\.id))) { UFitActionButton(title: Copy.removeUnavailable, kind: .secondary) { draft.tagIDs.formIntersection(tags.map(\.id)) } }
+                            UFitActionButton(title: Copy.reload, kind: .secondary, action: onReloadTags)
+                        }.padding(.top, Layout.gap)
+                    }.frame(minHeight: Layout.touch)
+                    if let error = errors[.tags] { UFitFieldError(message: error) }
+                    if cancelsScheduledPublication { Text(Copy.cancelsSchedule).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
+                    else if changesPublishedOutfit { Text(Copy.changesPublication).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
+                }.padding(Layout.page).disabled(isBusy)
+            }.scrollDismissesKeyboard(.interactively)
+        }.safeAreaInset(edge: .bottom, spacing: .zero) {
+            VStack(alignment: .leading, spacing: Layout.small) {
+                if let message { Text(message).font(UFitTypography.callout) }
+                if isBusy { UFitLoading(Copy.saving).frame(maxWidth: .infinity, minHeight: Layout.touch) }
+                else { UFitButton(action: onSave) { Text(Copy.save).frame(maxWidth: .infinity) }.ufitButtonStyle(.primary).disabled(!hasChanges) }
+            }.padding(Layout.gap).background(Color.ufitCanvas).overlay(alignment: .top) { Divider() }
+        }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.ufitCanvas)
+            .onChange(of: draft.pieces.map(\.id)) { _, identities in
+                for index in draft.photos.indices { draft.photos[index].pins.removeAll { !identities.contains($0.pieceID) } }
+            }
+            .ufitSheet(isPresented: $showingPreview) {
+                UFitOutfitAuthoringPreviewContent(draft: draft, onClose: { showingPreview = false }, renewPhotoSource: renewPhotoSource)
+                    .presentationDetents([.large])
+            }
+            .ufitConfirmationDialog(Copy.discardTitle, isPresented: $confirmingDiscard, titleVisibility: .visible) {
+                UFitButton(Copy.discard, role: .destructive, action: onBack)
+                UFitButton(Copy.keep, role: .cancel) {}
+            }
+    }
+}
+
+private enum AuthoringCopy {
+    static let intention = String(localized: "L’intention du look")
+}

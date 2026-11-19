@@ -1,0 +1,9 @@
+{
+  "folders": [
+    { "name": "Ufit · Produit", "path": "." },
+    { "name": "Ufit · Design Lab", "path": "design-lab" }
+  ],
+  "settings": {
+    "files.exclude": { "**/.native-preview": true, "**/.promotion-backups": true }
+  }
+}
