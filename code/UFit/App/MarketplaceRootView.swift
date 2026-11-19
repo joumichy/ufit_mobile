@@ -66,7 +66,7 @@ struct MarketplaceRootView: View {
                 }
             }
         }
-        .preferredColorScheme(usesImmersiveFeedAppearance ? .dark : .light)
+        .preferredColorScheme(session.canAccessApplication ? (usesImmersiveFeedAppearance ? .dark : .light) : nil)
         .task(id: stylePreferences.scope) { await stylePreferences.activate() }
         .task {
             session.deviceNotifications.connect(notifications); session.start(); receiveNotificationTap()

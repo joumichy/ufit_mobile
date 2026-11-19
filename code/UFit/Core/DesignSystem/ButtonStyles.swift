@@ -1,6 +1,6 @@
 import SwiftUI
 
-enum UFitButtonKind: Equatable { case primary, secondary, tertiary, destructive, text }
+enum UFitButtonKind: Equatable { case primary, secondary, tertiary, destructive, text, inversePrimary, inverseSecondary }
 struct UFitButtonStyle: ButtonStyle {
     var kind: UFitButtonKind = .primary
     var compact = false
@@ -22,7 +22,8 @@ private struct UFitButtonVisual: View {
     @Environment(\.ufitButtonIsBusy) private var isBusy
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private var inactive: Bool { !isEnabled && !isBusy }
-    private var outlined: Bool { kind == .secondary || kind == .tertiary || inactive && kind != .text }
+    private var inverse: Bool { kind == .inversePrimary || kind == .inverseSecondary }
+    private var outlined: Bool { kind == .secondary || kind == .tertiary || kind == .inverseSecondary || inactive && kind != .text }
     private var filled: Bool { kind == .primary || kind == .destructive }
     private var ink: Color { kind == .destructive || destructive ? .ufitDanger : .ufitInk }
     private var background: Color {
@@ -31,13 +32,22 @@ private struct UFitButtonVisual: View {
         case .secondary: inactive || configuration.isPressed ? .ufitSecondary : .ufitCanvas
         case .tertiary: configuration.isPressed ? .ufitBorder : .ufitSecondary
         case .text: .clear
+        case .inversePrimary: inactive ? .ufitCanvas.opacity(UFitMotion.disabledOpacity) : .ufitCanvas
+        case .inverseSecondary: configuration.isPressed ? .ufitCanvas.opacity(Media.pressedFillOpacity) : .clear
         }
     }
     private var border: Color {
+        if inverse { return Color.ufitCanvas.opacity(inactive ? UFitMotion.disabledOpacity : UFitMotion.visibleOpacity) }
         if inactive { return .ufitBorder }
         if kind == .destructive || destructive { return .ufitDanger }
         return kind == .secondary ? .ufitActionBorder : .ufitBorder
     }
+    private var labelColor: Color {
+        if kind == .inversePrimary { return .ufitInk }
+        if kind == .inverseSecondary { return Color.ufitCanvas.opacity(inactive ? UFitMotion.disabledOpacity : UFitMotion.visibleOpacity) }
+        return inactive ? .ufitMuted : filled ? .ufitCanvas : ink
+    }
+    private enum Media { static let pressedFillOpacity = 0.14 }
     var body: some View {
         styledLabel
             .padding(.horizontal, kind == .text ? .zero : compact ? UFitSpace.xs : UFitSpace.md)
@@ -52,7 +62,7 @@ private struct UFitButtonVisual: View {
     }
     @ViewBuilder private var styledLabel: some View {
         if kind == .text { if destructive { configuration.label.foregroundStyle(Color.ufitDanger) } else { configuration.label } }
-        else { configuration.label.font(kind == .primary || kind == .destructive ? UFitTypography.actionStrong : UFitTypography.action).foregroundStyle(inactive ? Color.ufitMuted : filled ? Color.ufitCanvas : ink) }
+        else { configuration.label.font(kind == .primary || kind == .destructive || kind == .inversePrimary ? UFitTypography.actionStrong : UFitTypography.action).foregroundStyle(labelColor) }
     }
 }
 

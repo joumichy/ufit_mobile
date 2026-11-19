@@ -6,6 +6,7 @@ import Security
 struct UFitAuthenticationHost: View {
     let session: UFitSessionStore
     @State private var mode = UFitAuthenticationMode.signIn
+    @State private var showsEntry = true
     @State private var name = String()
     @State private var email = String()
     @State private var password = String()
@@ -13,19 +14,39 @@ struct UFitAuthenticationHost: View {
     @State private var appleError: String?
 
     var body: some View {
+        Group {
+            if showsEntry && !session.needsNewPassword {
+                UFitAuthenticationEntryContent(message: appleError ?? session.message,
+                    messageKind: appleError != nil || session.authenticationFailure != nil ? .error : .information,
+                    onSignIn: { open(.signIn) }, onSignUp: { open(.signUp) })
+            } else {
+                form
+            }
+        }
+            .onChange(of: session.needsNewPassword) { _, needed in
+                if needed { mode = .newPassword; showsEntry = false }
+                else if mode == .newPassword { mode = .recovery }
+            }
+            .onChange(of: mode) { _, _ in appleError = nil; appleNonce = nil; session.message = nil; password = String() }
+            .onAppear { if session.needsNewPassword { mode = .newPassword; showsEntry = false } }
+            .onDisappear { if session.authenticationFailure != nil { session.message = nil } }
+    }
+
+    private var form: some View {
         UFitAuthenticationView(mode: $mode, name: $name, email: $email, password: $password,
             isBusy: session.isBusy, message: appleError ?? session.message,
             messageKind: appleError != nil || session.authenticationFailure != nil ? .error : .information,
             onSubmit: { Task { await submit() } },
             onAppleRequest: prepareApple, onAppleComplete: completeApple,
-            onCancelRecovery: { Task { await session.cancelPasswordRecovery() } })
-            .onChange(of: session.needsNewPassword) { _, needed in
-                if needed { mode = .newPassword }
-                else if mode == .newPassword { mode = .recovery }
-            }
-            .onChange(of: mode) { _, _ in appleError = nil; appleNonce = nil; session.message = nil; password = String() }
-            .onAppear { if session.needsNewPassword { mode = .newPassword } }
-            .onDisappear { if session.authenticationFailure != nil { session.message = nil } }
+            onCancelRecovery: { Task { await session.cancelPasswordRecovery() } },
+            onBackToEntry: {
+                password = String(); appleError = nil; appleNonce = nil; session.message = nil
+                showsEntry = true
+            })
+    }
+    private func open(_ destination: UFitAuthenticationMode) {
+        mode = destination
+        showsEntry = false
     }
 
     private func submit() async {

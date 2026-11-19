@@ -13,10 +13,10 @@ struct UFitSessionGateContent: View {
     var body: some View {
         Group {
             if session.isRestoring || session.isHandlingAuthenticationCallback {
-                UFitLoading(Copy.loading)
+                UFitLoading(Copy.loading).preferredColorScheme(.light)
             } else if session.isSignedIn && !session.isBusy && !session.needsNewPassword {
                 // The SDK identity can change just before its auth event removes the old profile.
-                if session.isLoadingProfile || session.user != nil { UFitLoading(Copy.loading) }
+                if session.isLoadingProfile || session.user != nil { UFitLoading(Copy.loading).preferredColorScheme(.light) }
                 else {
                     VStack(spacing: UFitSpace.lg) {
                         UFitEmptyState(title: Copy.unavailable, message: session.message ?? Copy.profileFailed,
@@ -25,7 +25,7 @@ struct UFitSessionGateContent: View {
                         UFitActionButton(title: Copy.changeAccount, kind: .secondary) {
                             Task { await session.signOut() }
                         }.padding(.horizontal, UFitSpace.xl)
-                    }.padding(.horizontal, UFitSpace.page)
+                    }.padding(.horizontal, UFitSpace.page).preferredColorScheme(.light)
                 }
             } else { UFitAuthenticationHost(session: session) }
         }.frame(maxWidth: .infinity, maxHeight: .infinity)

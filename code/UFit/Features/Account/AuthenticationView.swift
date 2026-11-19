@@ -13,9 +13,9 @@ struct UFitAuthenticationView: View {
     let onAppleRequest: (ASAuthorizationAppleIDRequest) -> Void
     let onAppleComplete: (Result<ASAuthorization, Error>) -> Void
     let onCancelRecovery: () -> Void
+    let onBackToEntry: () -> Void
 
     private enum Copy {
-        static let brand = "UFIT"
         static let name = String(localized: "Nom")
         static let email = String(localized: "Adresse e-mail")
         #if DEBUG
@@ -34,8 +34,6 @@ struct UFitAuthenticationView: View {
         static let page: CGFloat = UFitSpace.page
         static let spacing: CGFloat = UFitSpace.lg
         static let titleSize: CGFloat = UFitTypography.Size.display
-        static let logoSize: CGFloat = UFitTypography.Size.section
-        static let tracking: CGFloat = 7
         static let border: CGFloat = UFitSpace.hairline
     }
 
@@ -62,10 +60,10 @@ struct UFitAuthenticationView: View {
 
     var body: some View {
         VStack(spacing: .zero) {
-        if mode != .signIn { DetailHeader(onBack: back).disabled(isBusy) }
+        DetailHeader(onBack: back).disabled(isBusy)
         ScrollView {
             VStack(alignment: .leading, spacing: Layout.spacing) {
-                Text(Copy.brand).ufitFont(size: Layout.logoSize, weight: .semibold).tracking(Layout.tracking)
+                UFitWordmark()
                 Text(mode.title)
                     .ufitFont(size: Layout.titleSize, weight: .regular, design: .serif)
                     .accessibilityAddTraits(.isHeader)
@@ -135,9 +133,11 @@ struct UFitAuthenticationView: View {
         .scrollDismissesKeyboard(.interactively)
         .id(mode)
         }.frame(maxWidth: .infinity, maxHeight: .infinity).background(Color.ufitCanvas)
+            .preferredColorScheme(.light)
     }
     private func back() {
         if mode == .newPassword { onCancelRecovery() }
+        else if mode == .signIn || mode == .signUp { onBackToEntry() }
         else { mode = .signIn }
     }
     private func fieldLabel(_ label: String) -> some View {
