@@ -3,9 +3,8 @@ import Foundation
 enum UFitCheckoutStep: Hashable { case address, review, recovery, confirming, paid }
 
 enum UFitCheckoutAvailabilityCopy {
-    static let unavailable = String(localized: "Cette sélection ne peut pas être achetée pour le moment.")
-    static let recheck = String(localized: "Vérifier la disponibilité")
-    static let failed = String(localized: "La disponibilité de votre sélection n’a pas pu être vérifiée. Réessayez.")
+    static let unavailable = String(localized: "Le paiement est temporairement indisponible pour cette sélection.")
+    static let failed = String(localized: "Votre commande n’a pas pu être préparée. Réessayez.")
 }
 
 enum UFitCheckoutRecoveryCopy {

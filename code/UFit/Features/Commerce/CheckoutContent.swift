@@ -26,6 +26,10 @@ struct UFitCheckoutContent: View {
     var savedAddressID: String? = nil
     var onEditSavedAddress: () -> Void = {}
     var isLoadingAddress = false
+    private enum Copy {
+        static let continueCheckout = String(localized: "Continuer")
+        static let preparingPayment = String(localized: "Préparation du paiement")
+    }
     private enum Layout { static let spacing: CGFloat = UFitSpace.xl; static let fieldSpacing: CGFloat = UFitSpace.md; static let bottom: CGFloat = 110; static let fieldHeight: CGFloat = UFitControlSize.input }
     private struct ScrollIdentity: Hashable { let step: UFitCheckoutStep; let addressID: String? }
     private var resumesPayment: Bool { payment?.state.canResume == true }
@@ -33,7 +37,7 @@ struct UFitCheckoutContent: View {
         VStack(spacing: .zero) {
             DetailHeader(title: String(localized: "Livraison et paiement"), onBack: onBack)
                 .disabled(isBusy)
-            if step == .address || step == .review, let message {
+            if step == .address, let message {
                 Group {
                     if requiresNewReview { UFitNotice(message: message) }
                     else { UFitNotice(message: message, kind: .error) }
@@ -74,14 +78,13 @@ struct UFitCheckoutContent: View {
             if let addressOptions { addressOptions }
             Text(String(localized: "Les frais et les conditions de la marque seront affichés avant paiement."))
                 .font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText)
-            UFitActionButton(title: String(localized: "Vérifier ma commande"), isBusy: isBusy,
+            UFitActionButton(title: Copy.continueCheckout, isBusy: isBusy,
                 disabled: !destinations.contains(where: { $0.id == address.country }), action: onReview)
         }.disabled(isBusy)
     }
 
     @ViewBuilder private var review: some View {
         if let summary {
-            if !purchaseAvailable { UFitNotice(message: UFitCheckoutAvailabilityCopy.unavailable) }
             Text(String(localized: "Votre commande")).font(UFitTypography.title2.weight(.semibold))
             ForEach(lines) { line in
                 HStack(alignment: .top, spacing: Layout.fieldSpacing) {
@@ -122,15 +125,16 @@ struct UFitCheckoutContent: View {
     }
 
     @ViewBuilder private func paymentAction(total: String) -> some View {
-        if !purchaseAvailable {
-            UFitActionButton(title: UFitCheckoutAvailabilityCopy.recheck, isBusy: isBusy, action: onReview)
-        } else if resumesPayment {
-            VStack(alignment: .leading, spacing: UFitSpace.sm) {
-                Text(UFitCustomerPaymentCopy.methodChoice).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText)
-                UFitActionButton(title: UFitCustomerPaymentCopy.chooseMethod, isBusy: isBusy, action: onPay)
+        let title = resumesPayment ? UFitCustomerPaymentCopy.chooseMethod : String(localized: "Payer \(total)")
+        VStack(alignment: .leading, spacing: Layout.fieldSpacing) {
+            if let message {
+                UFitNotice(message: message, kind: .error)
             }
-        } else {
-            UFitActionButton(title: String(localized: "Payer \(total)"), isBusy: isBusy, action: onPay)
+            if resumesPayment {
+                Text(UFitCustomerPaymentCopy.methodChoice).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText)
+            }
+            UFitActionButton(title: isBusy ? Copy.preparingPayment : title, isBusy: isBusy,
+                disabled: !purchaseAvailable, action: onPay)
         }
     }
 

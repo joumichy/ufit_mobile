@@ -146,13 +146,14 @@ final class UFitCheckoutStore {
             let result = try await client.reviewCheckout(cart: activeCart, country: address.country)
             guard isCurrentAccount else { return }
             quote = result.quote; purchaseAvailable = result.available; paymentSheet = nil; step = .review
+            if !result.available { message = UFitCheckoutAvailabilityCopy.unavailable }
             if saveAddress, selectedAddressID == nil {
                 await addressBook.loadCountries()
                 guard isCurrentAccount else { return }
                 let saved = await addressBook.save(address: address, id: nil, makeDefault: makeAddressDefault)
                 guard isCurrentAccount else { return }
                 if saved { saveAddress = false }
-                else { message = String(localized: "L’enregistrement de cette adresse reste à vérifier depuis Mon compte.") }
+                else if result.available { message = String(localized: "L’enregistrement de cette adresse reste à vérifier depuis Mon compte.") }
             }
         } catch {
             if isCurrentAccount {
