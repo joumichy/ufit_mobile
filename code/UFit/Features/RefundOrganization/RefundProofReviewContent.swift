@@ -29,7 +29,7 @@ struct UFitRefundProofReviewContent: View {
                     } else {
                         VStack(alignment: .leading, spacing: UFitSpace.xs) {
                             Text(UFitRefundReviewCopy.decision).font(UFitTypography.subheadline.weight(.semibold))
-                            UFitSelection(UFitRefundReviewCopy.decision, selection: $store.decision, options: [
+                            UFitInlineChoice(title: UFitRefundReviewCopy.decision, selection: $store.decision, options: [
                                 .init(value: .some(.reject), title: UFitRefundReviewCopy.reject), .init(value: .some(.confirm), title: UFitRefundReviewCopy.confirm)
                             ]).disabled(locked)
                             if let error = store.decisionError {UFitFieldError(message: error)}

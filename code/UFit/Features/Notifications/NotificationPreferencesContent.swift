@@ -28,10 +28,6 @@ struct UFitNotificationPreferencesContent: View {
             DetailHeader(title: Copy.title, onBack: { if hasChanges { confirmingDiscard = true } else { onBack() } }) {
                 if hasLoaded && !requiresReload {
                     if isLoading { UFitLoading().frame(width: UFitControlSize.touch, height: UFitControlSize.touch) }
-                    else {
-                        UFitButton(action: onReload) { UFitIcon(systemName: Copy.refreshIcon).frame(width: UFitControlSize.touch, height: UFitControlSize.touch) }
-                            .accessibilityLabel(Copy.refresh)
-                    }
                 }
             }.disabled(isSaving)
             ScrollView {
@@ -62,7 +58,7 @@ struct UFitNotificationPreferencesContent: View {
                         UFitEmptyState(title: Copy.unavailable, message: message, symbol: Copy.bell, actionTitle: Copy.retry, action: onReload)
                     }
                 }.padding(UFitSpace.xl).frame(maxWidth: .infinity, alignment: .leading)
-            }
+            }.ufitRefreshable(isEnabled: !busy, title: Copy.refresh) { onReload() }
         }.safeAreaInset(edge: .bottom, spacing: .zero) {
             if hasLoaded && allowsEditing {
                 UFitActionButton(title: requiresReload ? Copy.refresh : Copy.save, isBusy: busy,

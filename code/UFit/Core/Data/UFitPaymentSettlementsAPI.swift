@@ -66,7 +66,7 @@ extension UFitAPIClient {
     func synchronizePaymentSettlement(paymentID: String, orderID: String) async throws -> UFitPaymentSettlementDocument {
         struct Request: Encodable {}
         let document: UFitPaymentSettlementDocument = try await send(UFitPaymentSettlementHTTP.post,
-            path: UFitPaymentSettlementHTTP.path(paymentID, suffix: UFitPaymentSettlementHTTP.synchronize), body: Request(), requiresAuth: true)
+            path: UFitPaymentSettlementHTTP.path(paymentID, suffix: UFitPaymentSettlementHTTP.synchronize), body: Request(), requiresAuth: true, publicOutfitsChange: false)
         try document.validate(paymentID: paymentID, orderID: orderID); return document
     }
 }

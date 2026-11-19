@@ -80,7 +80,7 @@ extension UFitAPIClient {
     func reviewCheckout(cart: UFitCartDTO, country: String) async throws -> UFitCheckoutReviewDTO {
         struct Destination: Encodable { let country: String }
         let result: UFitCheckoutReviewDTO = try await send(UFitCheckoutHTTP.post, path: UFitCheckoutHTTP.reviewRoute,
-            body: Destination(country: country), requiresAuth: true)
+            body: Destination(country: country), requiresAuth: true, publicOutfitsChange: false)
         try result.validate(cart: cart, country: country)
         return result
     }

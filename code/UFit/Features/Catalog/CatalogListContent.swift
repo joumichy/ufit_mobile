@@ -31,13 +31,12 @@ struct UFitCatalogListContent: View {
         static let page: CGFloat = UFitSpace.xl; static let gap: CGFloat = UFitSpace.md; static let small: CGFloat = UFitSpace.xs; static let title: CGFloat = UFitTypography.Size.editorial
         static let touch: CGFloat = UFitControlSize.touch; static let bottom: CGFloat = 110; static let imageWidth: CGFloat = 88; static let imageHeight: CGFloat = 112; static let radius: CGFloat = UFitRadius.field
     }
-    private enum Icon { static let refresh = "arrow.clockwise"; static let create = "plus"; static let photo = "photo"; static let chevron = "chevron.right" }
+    private enum Icon { static let create = "plus"; static let photo = "photo"; static let chevron = "chevron.right" }
     var body: some View {
         VStack(spacing: .zero) {
             DetailHeader(onBack: onBack) {
                 HStack {
                     if isLoading && hasLoaded { UFitLoading().frame(width: Layout.touch, height: Layout.touch) }
-                    else if message == nil { UFitButton { Task { await onRefresh() } } label: { UFitIcon(systemName: Icon.refresh).frame(width: Layout.touch, height: Layout.touch) }.accessibilityLabel(Copy.refresh).disabled(isLoading) }
                     if access == .member && (!rows.isEmpty || selectedStatus != nil) { UFitButton(action: onCreate) { UFitIcon(systemName: Icon.create).frame(width: Layout.touch, height: Layout.touch) }.accessibilityLabel(Copy.create) }
                 }
             }
@@ -82,7 +81,7 @@ struct UFitCatalogListContent: View {
                         else { UFitActionButton(title: Copy.more, kind: .secondary) { Task { await onMore() } } }
                     }
                 }.padding(Layout.page).padding(.bottom, UFitSpace.xl).frame(maxWidth: .infinity, alignment: .leading)
-            }.ufitRefreshable { await onRefresh() }
+            }.ufitRefreshable(isEnabled: !isLoading, title: Copy.refresh) { await onRefresh() }
         }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.ufitCanvas)
     }
 }

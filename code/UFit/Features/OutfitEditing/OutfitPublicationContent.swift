@@ -81,13 +81,15 @@ struct UFitOutfitPublicationHost: View {
     }
     private var context: some View {
         HStack(alignment: .center, spacing: UFitSpace.md) {
-            if let source = store.outfit.document.images.first?.displayUrl {
-                FashionImage(source: source).frame(width: Layout.coverWidth, height: Layout.coverHeight)
-                    .clipped().clipShape(RoundedRectangle(cornerRadius: UFitRadius.small)).accessibilityHidden(true)
+            if let image = store.outfit.document.images.first {
+                UFitPinnedPhotoContent(source: image.displayUrl, pins: [], contentMode: .fit, surface: .neutral, onPin: { _ in },
+                    renewSource: { try await store.outfit.renewPhotoSource(image.id) }, showsRetryLabel: false)
+                    .frame(width: Layout.coverWidth, height: Layout.coverHeight)
+                    .clipShape(RoundedRectangle(cornerRadius: UFitRadius.small))
             }
             VStack(alignment: .leading, spacing: UFitSpace.xs) {
                 Text(Copy.context).font(UFitTypography.caption).tracking(Layout.tracking).foregroundStyle(Color.ufitSecondaryText)
-                Text(store.outfit.document.title).ufitFont(size: UFitTypography.Size.title, design: .serif)
+                Text(store.outfit.document.title).font(UFitTypography.headline)
                     .lineLimit(Layout.titleLines).fixedSize(horizontal: false, vertical: true)
                     .accessibilityLabel(store.outfit.document.title)
             }

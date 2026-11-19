@@ -29,9 +29,7 @@ private struct UFitEditorialListContent: View {
     let onBack: () -> Void
     var body: some View {
         VStack(spacing: .zero) {
-            DetailHeader(onBack: onBack) {
-                EditorialRefresh(isLoading: store.isLoading) { Task { await store.load() } }
-            }
+            DetailHeader(onBack: onBack)
             if !store.collections.isEmpty, let message = store.message {
                 EditorialRefreshFailure(message: message, actionTitle: UFitEditorialCopy.retry, action: refresh)
             }
@@ -45,7 +43,7 @@ private struct UFitEditorialListContent: View {
                                 actionTitle: UFitEditorialCopy.retry, action: refresh)
                         } else {
                             UFitEmptyState(title: UFitEditorialCopy.empty, symbol: UFitEditorialCopy.icon,
-                                actionTitle: UFitEditorialCopy.refresh, action: refresh)
+                                actionTitle: UFitEditorialCopy.backToSearch, action: onBack)
                         }
                     } else {
                         if store.isLoading { UFitLoading(UFitEditorialCopy.loading) }
@@ -71,6 +69,7 @@ private struct UFitEditorialListContent: View {
                     }
                 }.padding(.vertical, UFitSpace.page)
             }.padding(.horizontal, UFitSpace.page).scrollPosition(id: $store.visibleCollectionID, anchor: .top)
+                .ufitRefreshable(isEnabled: !store.isLoading, title: UFitEditorialCopy.refresh) { await store.load() }
         }.foregroundStyle(Color.ufitInk).background(Color.ufitCanvas).task { if !store.hasLoaded { await store.load() } }
     }
     private func refresh() { Task { await store.load() } }
@@ -82,9 +81,7 @@ private struct UFitEditorialCollectionContent: View {
     let onOpen: (UFitEditorialEntry) -> Void
     var body: some View {
         VStack(spacing: .zero) {
-            DetailHeader(title: UFitEditorialCopy.title, onBack: onBack) {
-                EditorialRefresh(isLoading: store.isLoading) { Task { await store.load() } }
-            }
+            DetailHeader(title: UFitEditorialCopy.title, onBack: onBack)
             if store.collection != nil, let message = store.message {
                 EditorialRefreshFailure(message: message, actionTitle: UFitEditorialCopy.refresh, action: refresh)
             }
@@ -128,6 +125,7 @@ private struct UFitEditorialCollectionContent: View {
                     }
                 }.padding(.vertical, UFitSpace.page)
             }.padding(.horizontal, UFitSpace.page).scrollPosition(id: $store.visibleEntryID, anchor: .top)
+                .ufitRefreshable(isEnabled: !store.isLoading, title: UFitEditorialCopy.refresh) { await store.load() }
         }.foregroundStyle(Color.ufitInk).background(Color.ufitCanvas).task { if !store.hasLoaded { await store.load() } }
             .onDisappear { store.cancelOpening() }
     }
@@ -152,15 +150,6 @@ private struct EditorialCover: View {
             if let url { FashionImage(source: url).clipped() }
             else { UFitIcon(systemName: UFitEditorialCopy.photo).foregroundStyle(Color.ufitSecondaryText).accessibilityHidden(true) }
         }.clipped().accessibilityHidden(true)
-    }
-}
-private struct EditorialRefresh: View {
-    let isLoading: Bool
-    let action: () -> Void
-    var body: some View {
-        UFitButton(action: action) { if isLoading { UFitLoading() } else { UFitIcon(systemName: UFitEditorialCopy.refreshIcon) } }
-            .ufitButtonStyle(.text).frame(minWidth: UFitControlSize.touch, minHeight: UFitControlSize.touch)
-            .disabled(isLoading).accessibilityLabel(UFitEditorialCopy.refresh)
     }
 }
 private struct EditorialMore: View {

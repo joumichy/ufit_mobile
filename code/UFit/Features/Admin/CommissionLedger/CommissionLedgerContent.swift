@@ -23,13 +23,7 @@ struct UFitCommissionLedgerContent: View {
   let onMore: () -> Void
   var body: some View {
     VStack(spacing: .zero) {
-      DetailHeader(title: UFitCommissionLedgerCopy.title, onBack: onBack) {
-        if !isLoading {
-          UFitButton(action: onRefresh) {
-            UFitIcon(systemName: UFitCommissionLedgerCopy.refreshIcon)
-          }.accessibilityLabel(UFitCommissionLedgerCopy.refresh)
-        }
-      }
+      DetailHeader(title: UFitCommissionLedgerCopy.title, onBack: onBack)
       ScrollView {
         VStack(alignment: .leading, spacing: UFitSpace.lg) {
           UFitSearchField(query: $search, prompt: UFitCommissionLedgerCopy.search).onSubmit(
@@ -105,6 +99,7 @@ struct UFitCommissionLedgerContent: View {
         }.padding(.vertical, UFitSpace.page).frame(maxWidth: .infinity, alignment: .leading)
       }.padding(.horizontal, UFitSpace.page).scrollPosition(id: $visibleRowID, anchor: .top)
         .scrollDismissesKeyboard(.interactively)
+        .ufitRefreshable(isEnabled: !isLoading, title: UFitCommissionLedgerCopy.refresh) { onRefresh() }
     }.ufitButtonStyle(.text).foregroundStyle(Color.ufitInk).background(Color.ufitCanvas)
   }
   @ViewBuilder private var feedback: some View {
@@ -173,13 +168,7 @@ struct UFitCommissionLedgerDetailContent: View {
   }
   var body: some View {
     VStack(spacing: .zero) {
-      DetailHeader(title: UFitCommissionLedgerCopy.detail, onBack: onBack) {
-        if !isLoading {
-          UFitButton(action: onRefresh) {
-            UFitIcon(systemName: UFitCommissionLedgerCopy.refreshIcon)
-          }.accessibilityLabel(UFitCommissionLedgerCopy.refresh)
-        }
-      }
+      DetailHeader(title: UFitCommissionLedgerCopy.detail, onBack: onBack)
       ScrollView {
         VStack(alignment: .leading, spacing: UFitSpace.lg) {
           if let message {
@@ -241,7 +230,7 @@ struct UFitCommissionLedgerDetailContent: View {
               actionTitle: Copy.back, action: onBack)
           }
         }.padding(UFitSpace.page).frame(maxWidth: .infinity, alignment: .leading)
-      }
+      }.ufitRefreshable(isEnabled: !isLoading, title: UFitCommissionLedgerCopy.refresh) { onRefresh() }
     }.ufitButtonStyle(.text).foregroundStyle(Color.ufitInk).background(Color.ufitCanvas)
   }
 }
@@ -262,13 +251,7 @@ struct UFitCommissionRelatedReturnsContent: View {
   let onOpen: (UFitCommissionRelatedReturn) -> Void
   var body: some View {
     VStack(spacing: .zero) {
-      DetailHeader(title: UFitCommissionLedgerCopy.returns, onBack: onBack) {
-        if !isLoading {
-          UFitButton(action: onRefresh) {
-            UFitIcon(systemName: UFitCommissionLedgerCopy.refreshIcon)
-          }.accessibilityLabel(UFitCommissionLedgerCopy.refreshReturns)
-        }
-      }
+      DetailHeader(title: UFitCommissionLedgerCopy.returns, onBack: onBack)
       ScrollView {
         VStack(alignment: .leading, spacing: UFitSpace.lg) {
           if !messageAtEnd || rows.isEmpty { feedback }
@@ -320,6 +303,7 @@ struct UFitCommissionRelatedReturnsContent: View {
           }
         }.padding(.vertical, UFitSpace.page).frame(maxWidth: .infinity, alignment: .leading)
       }.padding(.horizontal, UFitSpace.page).scrollPosition(id: $visibleRowID, anchor: .top)
+        .ufitRefreshable(isEnabled: !isLoading, title: UFitCommissionLedgerCopy.refreshReturns) { onRefresh() }
     }.ufitButtonStyle(.text).foregroundStyle(Color.ufitInk).background(Color.ufitCanvas)
   }
   @ViewBuilder private var feedback: some View {

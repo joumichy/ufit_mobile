@@ -50,8 +50,8 @@ struct UFitCatalogFormHost: View {
                 UFitCatalogProductFormContent(draft: $store.draft, isNew: store.isNew, changesPublishedProduct: store.original?.product.status == .active,
                     currencies: store.currencies, errors: store.errors, hasChanges: store.hasChanges, isBusy: store.isBusy, message: store.message,
                     onBack: onBack, onSave: { Task { if let product = await store.save() { onSaved(product) } } },
-                    onReloadCurrencies: { Task { await store.prepare() } }, onAddPhotos: { selectedPhotos = []; showingPhotos = true },
-                    onRetryPhoto: store.retryPhoto, onRemovePhoto: store.removePhoto)
+                    onReloadCurrencies: { Task { await store.prepare(reloadMetadata: true) } }, onAddPhotos: { selectedPhotos = []; showingPhotos = true },
+                    onRetryPhoto: store.retryPhoto, onRemovePhoto: store.removePhoto, renewPhotoSource: store.renewPhotoSource)
             }
         }
         .ufitPhotosPicker(isPresented: $showingPhotos, selection: $selectedPhotos,

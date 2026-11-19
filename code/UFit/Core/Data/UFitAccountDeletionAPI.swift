@@ -15,7 +15,7 @@ extension UFitAPIClient {
         try request.validate()
         let receipt: UFitAccountDeletionReceipt = try await send(UFitAccountDeletionHTTP.put,
             path: UFitAccountDeletionHTTP.root + UFitAccountDeletionHTTP.separator + request.id,
-            body: Confirmation(), requiresAuth: true, headers: [UFitAccountDeletionHTTP.proofHeader: request.proof])
+            body: Confirmation(), requiresAuth: true, headers: [UFitAccountDeletionHTTP.proofHeader: request.proof], publicOutfitsChange: true)
         try receipt.validate(requestID: request.id); return receipt
     }
 }

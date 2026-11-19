@@ -3,110 +3,88 @@ import Observation
 
 @MainActor @Observable
 final class UFitAccountDeletionStore {
-    private(set) var request: UFitAccountDeletionRequest?
     private(set) var isBusy = false
-    private(set) var isSending = false
-    private var failure: String?
-    private var absenceConfirmed = false
-    private(set) var storageFailed = false
+    private(set) var message: String?
+    private var request: UFitAccountDeletionRequest?
     @ObservationIgnored private let session: UFitSessionStore
     @ObservationIgnored private let vault = UFitAccountDeletionKeychain()
     @ObservationIgnored private var restored = false
-    var canResubmit: Bool { absenceConfirmed && matchesAccount }
-    var message: String? {
-        if absenceConfirmed {
-            if session.isRestoring { return nil }
-            return matchesAccount ? UFitAccountDeletionCopy.unavailable : UFitAccountDeletionCopy.signIn
-        }
-        return failure
-    }
-    var hasRequest: Bool { request != nil || storageFailed }
-    var receipt: UFitAccountDeletionReceipt? { request?.receipt }
-    var isCompleted: Bool { receipt?.phase == .completed }
     var showsBrandConsequences: Bool { session.user?.isBrandMember == true }
-    var canConfirm: Bool { !storageFailed && !isBusy && (request == nil || canResubmit) && matchesAccount }
-    private var matchesAccount: Bool {
-        guard session.isSignedIn, let user = session.user, let subject = session.accountDeletionSubject else { return false }
-        guard let request else { return true }
-        return request.userID == user.id && request.authSubject == subject.uuidString.lowercased()
-    }
+    var showsCreatorConsequences: Bool { session.user?.isCreator == true }
+    var canConfirm: Bool { !isBusy && session.isSignedIn && session.user != nil && session.accountDeletionSubject != nil }
     init(session: UFitSessionStore) { self.session = session }
+
     func restore() async {
         guard !restored else { return }; restored = true
         do { request = try vault.read() }
-        catch { storageFailed = true; failure = error.localizedDescription; return }
-        await reconcileSession()
-        if request != nil { await refresh() }
+        catch { return }
+        // Recovery is internal: a lost acknowledgement never creates a tracking journey.
+        if let command = request, command.receipt == nil,
+           let receipt = try? await session.api.accountDeletionReceipt(command) {
+            try? await accept(receipt)
+        } else { await reconcileSession() }
     }
+
     func reconcileSession() async {
-        if let request, request.receipt != nil, let subject = UUID(uuidString: request.authSubject) {
-            do {
-                try UFitShippingAddressJournal(userID: request.userID, endpoint: session.api.configuration.baseURL).clear()
-                try UFitCheckoutJournal(userID: request.userID, endpoint: session.api.configuration.baseURL).resolve()
-            }
-            catch { failure = UFitAccountDeletionCopy.localDataRemoval }
-            await session.closeDeletedAccount(subject: subject)
-        }
-    }
-    func confirm() async {
-        guard canConfirm, let userID = session.user?.id, let subject = session.accountDeletionSubject else { return }
-        isBusy = true; isSending = true; failure = nil; absenceConfirmed = false
-        defer { isBusy = false; isSending = false }
+        guard let current = request, current.receipt != nil,
+              let subject = UUID(uuidString: current.authSubject) else { return }
+        var cleaned = false
         do {
-            let command = try request ?? UFitAccountDeletionRequest.create(userID: userID, authSubject: subject)
-            // Save BEFORE dispatch: a lost response or process termination keeps its capability.
-            try vault.save(command); request = command
-            do { try await accept(session.api.requestAccountDeletion(command)) }
-            catch {
-                let submissionError = error
-                if let current = try? await session.api.accountDeletionReceipt(command) { try await accept(current); return }
-                if case UFitAPIError.requestFailed(_, _, let code) = submissionError,
-                   code == UFitAccountDeletionCopy.administratorCode || code == UFitAccountDeletionCopy.authorityCode {
-                    // These explicit server refusals happen before the local account is closed.
-                    try vault.clear(); request = nil
-                    failure = code == UFitAccountDeletionCopy.administratorCode ? UFitAccountDeletionCopy.administrator : UFitAccountDeletionCopy.authority
-                } else { failure = UFitAccountDeletionCopy.uncertainDetail }
-            }
-        } catch { failure = error.localizedDescription }
+            try UFitShippingAddressJournal(userID: current.userID, endpoint: session.api.configuration.baseURL).clear()
+            try UFitCheckoutJournal(userID: current.userID, endpoint: session.api.configuration.baseURL).resolve()
+            cleaned = true
+        } catch { /* Keep the private recovery record for the next lifecycle retry. */ }
+        // A local cleanup failure must never keep a deleted account signed in.
+        await session.closeDeletedAccount(subject: subject)
+        guard cleaned, request?.id == current.id else { return }
+        do { try vault.clear(); request = nil }
+        catch { /* The accepted request remains private and is retried automatically. */ }
     }
-    func refresh() async {
-        guard !isBusy else { return }
-        if storageFailed {
-            do { request = try vault.read(); storageFailed = false }
-            catch { failure = error.localizedDescription; return }
-        }
-        guard let command = request else { return }
-        isBusy = true; failure = nil; absenceConfirmed = false
+
+    func confirm() async -> Bool {
+        guard canConfirm, let userID = session.user?.id, let subject = session.accountDeletionSubject else { return false }
+        isBusy = true; message = nil
         defer { isBusy = false }
         do {
-            if let result = try await session.api.accountDeletionReceipt(command) { try await accept(result) }
-            else { absenceConfirmed = true }
-        } catch { failure = receipt == nil ? UFitAccountDeletionCopy.uncertainDetail : error.localizedDescription }
+            if let current = request, current.userID != userID || current.authSubject != subject.uuidString.lowercased() {
+                if let receipt = try await session.api.accountDeletionReceipt(current) { try await accept(receipt) }
+                else { try vault.clear(); request = nil }
+                guard request == nil else { message = UFitAccountDeletionCopy.authority; return false }
+            }
+            let client = try await session.accountDeletionClient(userID: userID, subject: subject)
+            guard session.user?.id == userID, session.accountDeletionSubject == subject, session.isSignedIn else { return false }
+            let command = try request ?? UFitAccountDeletionRequest.create(userID: userID, authSubject: subject)
+            // Persist only for idempotent recovery if the response or process is lost.
+            try vault.save(command); request = command
+            do { try await accept(client.requestAccountDeletion(command)); return true }
+            catch {
+                let submissionError = error
+                if let current = try? await session.api.accountDeletionReceipt(command) {
+                    try await accept(current); return true
+                }
+                if case UFitAPIError.requestFailed(_, _, let code) = submissionError,
+                   code == UFitAccountDeletionCopy.administratorCode || code == UFitAccountDeletionCopy.authorityCode {
+                    try vault.clear(); request = nil
+                    message = code == UFitAccountDeletionCopy.administratorCode ? UFitAccountDeletionCopy.administrator : UFitAccountDeletionCopy.authority
+                } else { message = UFitAccountDeletionCopy.uncertainDetail }
+            }
+        } catch is CancellationError { return false }
+        catch { message = error.localizedDescription }
+        return false
     }
+
     private func accept(_ receipt: UFitAccountDeletionReceipt) async throws {
         guard var current = request else { throw UFitAccountDeletionFailure.receipt }
         try receipt.validate(requestID: current.id)
-        // An older or malformed response must not roll back a confirmed completion.
         if let previous = current.receipt {
             guard previous.requestedAt == receipt.requestedAt,
                   previous.phase != .completed || previous.completedAt == receipt.completedAt && receipt.phase == .completed,
                   previous.phase != .revoking || receipt.phase != .purging else { throw UFitAccountDeletionFailure.receipt }
         }
-        current.receipt = receipt; request = current; absenceConfirmed = false
-        do { try vault.save(current) }
-        catch { await reconcileSession(); throw error }
-        failure = nil; await reconcileSession()
-    }
-    func finish() -> Bool {
-        guard isCompleted, !isBusy, let current = request else { return false }
-        do {
-            try UFitShippingAddressJournal(userID: current.userID, endpoint: session.api.configuration.baseURL).clear()
-            try UFitCheckoutJournal(userID: current.userID, endpoint: session.api.configuration.baseURL).resolve()
-        }
-        catch { failure = UFitAccountDeletionCopy.localDataRemoval; return false }
-        do {
-            try vault.clear(); request = nil; failure = nil; return true
-        }
-        catch { failure = error.localizedDescription; return false }
+        current.receipt = receipt; request = current
+        // The server has already closed and anonymized the business account atomically.
+        // Media cleanup and identity-provider revocation continue without user action.
+        try? vault.save(current)
+        await reconcileSession()
     }
 }

@@ -21,17 +21,13 @@ struct UFitBrandOutfitIntegrationsHost: View {
         static func open(_ title: String) -> String { String(localized: "Voir la tenue \(title)") }
         static func author(_ name: String) -> String { String(localized: "Par \(name)") }
     }
-    private enum Icon { static let refresh = "arrow.clockwise"; static let failure = "wifi.exclamationmark"; static let access = "lock"; static let empty = "square.stack"; static let next = "arrow.up.right" }
+    private enum Icon { static let failure = "wifi.exclamationmark"; static let access = "lock"; static let empty = "square.stack"; static let next = "arrow.up.right" }
     private enum Layout { static let cover: CGFloat = 260; static let state: CGFloat = 240 }
     private enum Anchor { static let nextPage = "brand-integrations-next-page" }
     var body: some View {
         VStack(spacing: .zero) {
             DetailHeader(title: Copy.title, onBack: onBack) {
-                UFitButton { Task { await store.load() } } label: {
-                    if store.operation == .refreshing { UFitLoading() }
-                    else { UFitIcon(systemName: Icon.refresh) }
-                }.frame(width: UFitControlSize.touch, height: UFitControlSize.touch)
-                    .accessibilityLabel(Copy.refresh).disabled(store.isBusy || store.accessRevoked || !store.canRead)
+                if store.operation == .refreshing { UFitLoading() }
             }
             if !store.entries.isEmpty, !store.failureAtEnd, let message = store.message {
                 VStack(spacing: UFitSpace.sm) {
@@ -77,6 +73,7 @@ struct UFitBrandOutfitIntegrationsHost: View {
                     }.id(Anchor.nextPage)
                 }.padding(.vertical, UFitSpace.page)
             }.padding(.horizontal, UFitSpace.page).scrollPosition(id: $store.visibleEntryID, anchor: .top)
+                .ufitRefreshable(isEnabled: !store.isBusy && !store.accessRevoked && store.canRead, title: Copy.refresh) { await store.load() }
                 .onChange(of: store.failureAtEnd) { _, failed in
                     if failed { scroll.scrollTo(Anchor.nextPage, anchor: .bottom) }
                 }

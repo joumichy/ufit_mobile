@@ -27,16 +27,20 @@ struct UFitReturnDetailContent: View {
         static let page: CGFloat = UFitSpace.xl; static let gap: CGFloat = UFitSpace.md; static let small: CGFloat = UFitSpace.xs; static let touch: CGFloat = UFitControlSize.touch
         static let singlePiece = 1; static let disabledOpacity = 0.4; static let enabledOpacity = 1.0
     }
-    private enum Icon { static let refresh = "arrow.clockwise"; static let unavailable = "shippingbox" }
+    private enum Icon { static let unavailable = "shippingbox" }
     private var locked: Bool { isLoading || activeAction != nil }
     private var primary: UFitReturnCommand? { detail?.commands.first { $0.action.isPrimary } }
     var body: some View {
         VStack(spacing: .zero) {
             DetailHeader(title: Copy.title, onBack: onBack) {
                 if isLoading && detail != nil { UFitLoading().frame(width: Layout.touch, height: Layout.touch) }
-                else if !isLoading { UFitButton(action: onRefresh) { UFitIcon(systemName: Icon.refresh).frame(width: Layout.touch, height: Layout.touch) }.accessibilityLabel(Copy.refresh) }
             }.disabled(activeAction != nil)
-            if let message { Text(message).font(UFitTypography.callout).padding(.horizontal, Layout.page).padding(.top, Layout.gap) }
+            if let message {
+                VStack(alignment: .leading, spacing: Layout.small) {
+                    Text(message).font(UFitTypography.callout)
+                    if detail != nil { UFitActionButton(title: Copy.refresh, kind: .secondary, disabled: locked, action: onRefresh) }
+                }.padding(.horizontal, Layout.page).padding(.top, Layout.gap)
+            }
             ScrollView {
                 VStack(alignment: .leading, spacing: Layout.page) {
                     if let detail {
@@ -82,7 +86,7 @@ struct UFitReturnDetailContent: View {
                     } else if isLoading { UFitLoading(Copy.loading).frame(maxWidth: .infinity) }
                     else { UFitEmptyState(title: Copy.unavailable, symbol: Icon.unavailable); UFitActionButton(title: Copy.retry, kind: .secondary, action: onRefresh) }
                 }.padding(Layout.page).frame(maxWidth: .infinity, alignment: .leading)
-            }
+            }.ufitRefreshable(isEnabled: !locked, title: Copy.refresh) { onRefresh() }
         }.safeAreaInset(edge: .bottom, spacing: .zero) {
             if let primary { action(primary, primary: true).padding(Layout.gap).background(Color.ufitCanvas).overlay(alignment: .top) { Divider() } }
         }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.ufitCanvas)

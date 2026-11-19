@@ -22,12 +22,12 @@ private struct UFitButtonVisual: View {
     @Environment(\.ufitButtonIsBusy) private var isBusy
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     private var inactive: Bool { !isEnabled && !isBusy }
-    private var outlined: Bool { kind == .secondary || kind == .tertiary }
+    private var outlined: Bool { kind == .secondary || kind == .tertiary || inactive && kind != .text }
     private var filled: Bool { kind == .primary || kind == .destructive }
     private var ink: Color { kind == .destructive || destructive ? .ufitDanger : .ufitInk }
     private var background: Color {
         switch kind {
-        case .primary, .destructive: ink
+        case .primary, .destructive: inactive ? .ufitSecondary : ink
         case .secondary: inactive || configuration.isPressed ? .ufitSecondary : .ufitCanvas
         case .tertiary: configuration.isPressed ? .ufitBorder : .ufitSecondary
         case .text: .clear
@@ -35,29 +35,31 @@ private struct UFitButtonVisual: View {
     }
     private var border: Color {
         if inactive { return .ufitBorder }
-        if destructive { return .ufitDanger }
+        if kind == .destructive || destructive { return .ufitDanger }
         return kind == .secondary ? .ufitActionBorder : .ufitBorder
     }
     var body: some View {
         styledLabel
-            .padding(.horizontal, kind == .text ? .zero : compact ? UFitSpace.sm : UFitSpace.lg)
+            .padding(.horizontal, kind == .text ? .zero : compact ? UFitSpace.xs : UFitSpace.md)
             .padding(.vertical, kind == .text ? .zero : UFitSpace.xs)
-            .frame(minWidth: UFitControlSize.touch, minHeight: kind == .text || compact ? UFitControlSize.touch : UFitControlSize.input)
+            .frame(minWidth: UFitControlSize.touch, minHeight: UFitControlSize.action)
             .background(background, in: RoundedRectangle(cornerRadius: UFitRadius.action))
-            .overlay { if outlined { RoundedRectangle(cornerRadius: UFitRadius.action).strokeBorder(border, lineWidth: UFitSpace.hairline) } }
-            .opacity(inactive && !outlined ? UFitMotion.disabledOpacity : configuration.isPressed && !outlined ? UFitMotion.pressedOpacity : UFitMotion.visibleOpacity)
-            .scaleEffect(configuration.isPressed && !reduceMotion ? UFitMotion.pressedScale : UFitMotion.restingScale)
+            .overlay { if outlined { RoundedRectangle(cornerRadius: UFitRadius.action).strokeBorder(border, lineWidth: UFitStroke.control) } }
+            .frame(minHeight: UFitControlSize.touch)
+            .contentShape(Rectangle())
+            .opacity(inactive && kind == .text ? UFitMotion.disabledOpacity : configuration.isPressed && !outlined ? UFitMotion.pressedOpacity : UFitMotion.visibleOpacity)
             .animation(reduceMotion ? nil : .easeOut(duration: UFitMotion.feedback), value: configuration.isPressed)
     }
     @ViewBuilder private var styledLabel: some View {
         if kind == .text { if destructive { configuration.label.foregroundStyle(Color.ufitDanger) } else { configuration.label } }
-        else { configuration.label.font(compact ? UFitTypography.subheadline.weight(kind == .tertiary ? .medium : .semibold) : UFitTypography.body.weight(kind == .tertiary ? .medium : .semibold)).foregroundStyle(filled ? Color.ufitCanvas : inactive ? Color.ufitMuted : ink) }
+        else { configuration.label.font(kind == .primary || kind == .destructive ? UFitTypography.actionStrong : UFitTypography.action).foregroundStyle(inactive ? Color.ufitMuted : filled ? Color.ufitCanvas : ink) }
     }
 }
 
 private struct UFitButtonKindKey: EnvironmentKey { static let defaultValue = UFitButtonKind.text }
 private struct UFitButtonBusyKey: EnvironmentKey { static let defaultValue = false }
 private struct UFitCompactButtonKey: EnvironmentKey { static let defaultValue = false }
+private struct UFitButtonFillsWidthKey: EnvironmentKey { static let defaultValue = false }
 extension EnvironmentValues {
     var ufitButtonIsBusy: Bool {
         get { self[UFitButtonBusyKey.self] }
@@ -70,6 +72,10 @@ extension EnvironmentValues {
     var ufitCompactButton: Bool {
         get { self[UFitCompactButtonKey.self] }
         set { self[UFitCompactButtonKey.self] = newValue }
+    }
+    var ufitButtonFillsWidth: Bool {
+        get { self[UFitButtonFillsWidthKey.self] }
+        set { self[UFitButtonFillsWidthKey.self] = newValue }
     }
 }
 extension View {

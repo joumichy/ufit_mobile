@@ -28,7 +28,7 @@ struct UFitInput: View {
     let allowsKeyboardDismissal: Bool
     @FocusState private var focused: Bool
     @Environment(\.isEnabled) private var enabled
-    private enum Layout { static let focusedBorder: CGFloat = 2; static let lines = 4...10 }
+    private enum Layout { static let lines = 4...10 }
     private enum Copy { static let dismissKeyboard = String(localized: "Terminer la saisie") }
     private enum Icon { static let dismissKeyboard = "keyboard.chevron.compact.down" }
     init(_ label: String, text: Binding<String>, error: String? = nil, isSecure: Bool = false, axis: Axis = .horizontal,
@@ -64,7 +64,7 @@ struct UFitInput: View {
             .focused($focused).padding(.horizontal, UFitSpace.md).padding(.vertical, UFitSpace.sm)
             .frame(minHeight: UFitControlSize.input, alignment: .topLeading)
             .background(enabled ? Color.ufitCanvas : Color.ufitSecondary, in: RoundedRectangle(cornerRadius: UFitRadius.field))
-            .overlay { RoundedRectangle(cornerRadius: UFitRadius.field).stroke(error != nil ? Color.ufitDanger : focused ? Color.ufitInk : Color.ufitBorder, lineWidth: focused ? Layout.focusedBorder : UFitSpace.hairline) }
+            .overlay { RoundedRectangle(cornerRadius: UFitRadius.field).stroke(error != nil ? Color.ufitDanger : focused ? Color.ufitInk : Color.ufitBorder, lineWidth: focused ? UFitStroke.focused : UFitStroke.control) }
             .accessibilityLabel(label).accessibilityHint(error ?? String())
     }
 }

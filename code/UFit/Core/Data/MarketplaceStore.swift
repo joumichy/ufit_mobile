@@ -28,9 +28,13 @@ final class MarketplaceStore {
     @ObservationIgnored private let session: UFitSessionStore?
     @ObservationIgnored private var accountGeneration = UUID()
     @ObservationIgnored private var detailedOutfits = [String: Outfit]()
+    @ObservationIgnored private var detailedOutfitsGeneration: UUID?
+    @ObservationIgnored private var detailedOutfitReads = [String: Date]()
     @ObservationIgnored private var nextFeedCursor: String?
     @ObservationIgnored private var consumedFeedCursors = Set<String>()
     @ObservationIgnored private var feedGeneration = UUID()
+    @ObservationIgnored private var feedDataGeneration: UUID?
+    @ObservationIgnored private var feedReceivedAt: Date?
     @ObservationIgnored private var savedGeneration = UUID()
     @ObservationIgnored private var nextSavedCursor: String?
     @ObservationIgnored private var consumedSavedCursors = Set<String>()
@@ -40,6 +44,13 @@ final class MarketplaceStore {
     private enum FeedPaging {
         static let prefetchDistance = 3
         static let unavailable = String(localized: "La suite des tenues n’a pas pu être chargée. Les tenues déjà affichées restent disponibles.")
+        static let changed = String(localized: "Les tenues ont changé. Actualisez pour les retrouver.")
+        static let snapshotAttempts = 2
+        static let snapshotLifetime: TimeInterval = 30
+    }
+    private enum FeedReadFailure: LocalizedError {
+        case changed
+        var errorDescription: String? { FeedPaging.changed }
     }
 
     init(client: UFitAPIClient, session: UFitSessionStore? = nil, fallbackOutfits: [Outfit] = []) {
@@ -63,8 +74,15 @@ final class MarketplaceStore {
     }
 
     func loadFeedIfNeeded() async {
-        guard !hasLoadedFeed else { return }
+        let current = await client.publicOutfitsGeneration()
+        if hasLoadedFeed, feedDataGeneration == current, isFresh(feedReceivedAt) { return }
         await refreshFeed()
+    }
+
+    private func isFresh(_ receivedAt: Date?) -> Bool {
+        guard let receivedAt else { return false }
+        let age = Date().timeIntervalSince(receivedAt)
+        return age >= .zero && age < FeedPaging.snapshotLifetime
     }
 
     func refreshFeed() async {
@@ -73,13 +91,15 @@ final class MarketplaceStore {
         isLoadingFeed = true; isLoadingMoreFeed = false; feedErrorMessage = nil; feedMoreError = nil
         defer { if feedGeneration == request { isLoadingFeed = false } }
         do {
-            let response = try await client.fetchOutfitFeed()
+            let (response, dataGeneration, receivedAt) = try await currentFeedSnapshot()
             guard feedGeneration == request else { return }
             let remoteOutfits = response.items.map { $0.toOutfit() }
-            feedErrorMessage = nil
+            feedErrorMessage = nil; feedMoreError = nil
             outfits = remoteOutfits
             nextFeedCursor = response.nextCursor; consumedFeedCursors = []
             hasLoadedFeed = true
+            feedDataGeneration = dataGeneration; feedReceivedAt = receivedAt
+            detailedOutfits = [:]; detailedOutfitReads = [:]; detailedOutfitsGeneration = dataGeneration
             if let visibleFeedOutfitID, !remoteOutfits.contains(where: { $0.id == visibleFeedOutfitID }) { self.visibleFeedOutfitID = nil }
             await loadSavedStates(ids: remoteOutfits.map(\.id), force: true)
         } catch is CancellationError {
@@ -88,20 +108,42 @@ final class MarketplaceStore {
         }
     }
 
+    private func currentFeedSnapshot() async throws -> (UFitFeedResponseDTO, UUID, Date) {
+        for _ in .zero..<FeedPaging.snapshotAttempts {
+            let context = await client.publicOutfitsGeneration()
+            let page = try await client.fetchOutfitFeed()
+            let receivedAt = Date()
+            if await client.publicOutfitsGeneration() == context { return (page, context, receivedAt) }
+        }
+        throw FeedReadFailure.changed
+    }
+
     func loadMoreFeedIfNeeded(near id: String) async {
-        guard feedMoreError == nil, let index = outfits.firstIndex(where: { $0.id == id }),
+        guard !isLoadingFeed, !isLoadingMoreFeed, nextFeedCursor != nil,
+              feedMoreError == nil, let index = outfits.firstIndex(where: { $0.id == id }),
               index >= outfits.count - FeedPaging.prefetchDistance else { return }
         await loadMoreFeed()
+    }
+
+    func retryMoreFeed() async {
+        let current = await client.publicOutfitsGeneration()
+        if !hasLoadedFeed || feedDataGeneration != current { await refreshFeed() }
+        else { await loadMoreFeed() }
     }
 
     func loadMoreFeed() async {
         guard !isLoadingFeed, !isLoadingMoreFeed, feedErrorMessage == nil, let cursor = nextFeedCursor else { return }
         let request = feedGeneration
+        let dataGeneration = await client.publicOutfitsGeneration()
+        guard feedGeneration == request, !isLoadingFeed, !isLoadingMoreFeed else { return }
+        guard feedDataGeneration == dataGeneration else { feedMoreError = FeedPaging.changed; return }
         isLoadingMoreFeed = true; feedMoreError = nil
         defer { if feedGeneration == request { isLoadingMoreFeed = false } }
         do {
             let page = try await client.fetchOutfitFeed(cursor: cursor)
+            let current = await client.publicOutfitsGeneration()
             guard feedGeneration == request else { return }
+            guard current == dataGeneration else { hasLoadedFeed = false; feedMoreError = FeedPaging.changed; return }
             guard !consumedFeedCursors.contains(cursor), Set(outfits.map(\.id)).isDisjoint(with: page.items.map(\.id)) else {
                 throw UFitPublicProfileContractError.outfits
             }
@@ -115,14 +157,19 @@ final class MarketplaceStore {
     }
 
     func detail(for outfit: Outfit) async -> Outfit {
-        if let detailed = detailedOutfits[outfit.id] {
+        let context = await client.publicOutfitsGeneration()
+        if detailedOutfitsGeneration != context { detailedOutfits = [:]; detailedOutfitReads = [:]; detailedOutfitsGeneration = context }
+        if let detailed = detailedOutfits[outfit.id], isFresh(detailedOutfitReads[outfit.id]) {
             return detailed
         }
 
         do {
             let dto = try await client.fetchOutfitDetail(id: outfit.id)
+            let receivedAt = Date()
+            guard await client.publicOutfitsGeneration() == context else { throw FeedReadFailure.changed }
             let detailed = dto.toOutfit()
             detailedOutfits[outfit.id] = detailed
+            detailedOutfitReads[outfit.id] = receivedAt
             if let index = outfits.firstIndex(where: { $0.id == outfit.id }) {
                 outfits[index] = detailed
             }

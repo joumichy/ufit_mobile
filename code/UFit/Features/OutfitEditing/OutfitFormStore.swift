@@ -44,14 +44,14 @@ final class UFitOutfitFormStore {
             return before != after
         } catch { return true }
     }
-    func prepare() async {
+    func prepare(reloadMetadata: Bool = false) async {
         guard !isLoading, !isBusy, collection.isCurrentAccount else { return }
         isLoading = true; message = nil
         defer { isLoading = false }
         do {
-            async let registry = collection.client.fetchOutfitMetadata()
+            async let registry = collection.client.fetchOutfitMetadata(reload: reloadMetadata)
             let fresh: UFitManagedOutfit?
-            if let original, !hasPrepared { fresh = try await collection.client.fetchManagedOutfit(id: original.id, scope: scope) }
+            if let original, !hasPrepared { fresh = try await collection.resolveDocument(original) }
             else { fresh = original }
             let result = try await registry
             guard collection.isCurrentAccount else { return }

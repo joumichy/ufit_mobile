@@ -7,7 +7,9 @@ enum UFitTypography {
     static let title = Font.title
     static let title2 = Font.title2
     static let title3 = Font.title3
-    static let headline = Font.headline
+    static let headline = Font.system(.body, weight: .medium)
+    static let action = Font.system(.subheadline, weight: .regular)
+    static let actionStrong = Font.system(.subheadline, weight: .medium)
     static let subheadline = Font.subheadline
     static let body = Font.body
     static let callout = Font.callout

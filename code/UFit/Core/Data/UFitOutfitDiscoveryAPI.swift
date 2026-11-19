@@ -48,11 +48,11 @@ struct UFitOutfitDiscoveryOptions: Decodable {
     }
 }
 extension UFitAPIClient {
-    func fetchOutfitDiscoveryOptions() async throws -> UFitOutfitDiscoveryOptions {
+    func fetchOutfitDiscoveryOptions(reload: Bool = false) async throws -> UFitOutfitDiscoveryOptions {
         do {
-            let options: UFitOutfitDiscoveryOptions = try await send(UFitOutfitDiscoveryHTTP.get, path: UFitOutfitDiscoveryHTTP.options)
-            try options.validate()
-            return options
+            return try await fetchReference(path: UFitOutfitDiscoveryHTTP.options, requiresAuth: false, reload: reload) { (options: UFitOutfitDiscoveryOptions) in
+                try options.validate()
+            }
         } catch is DecodingError { throw UFitPublicProfileContractError.outfits }
     }
 }

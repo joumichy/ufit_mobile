@@ -56,7 +56,7 @@ extension UFitAPIClient {
         }
         let result: UFitManagedOutfit = try await send(UFitOutfitEditingHTTP.patch,
             path: UFitOutfitEditingHTTP.base + revision.id + UFitPublicationHTTP.publication,
-            body: Body(expectedVersion: revision.version, scheduledFor: date.map(UFitPublicationDate.encode), timeZone: timeZone), requiresAuth: true)
+            body: Body(expectedVersion: revision.version, scheduledFor: date.map(UFitPublicationDate.encode), timeZone: timeZone), requiresAuth: true, publicOutfitsChange: true)
         try result.validate(id: revision.id)
         return result
     }

@@ -46,12 +46,12 @@ final class UFitCatalogFormStore {
             return before != after
         } catch { return true }
     }
-    func prepare() async {
+    func prepare(reloadMetadata: Bool = false) async {
         guard !isLoading, !isBusy, catalog.isCurrentAccount else { return }
         isLoading = true; message = nil
         defer { isLoading = false }
         do {
-            async let currenciesRequest = catalog.client.fetchCatalogCurrencies()
+            async let currenciesRequest = catalog.client.fetchCatalogCurrencies(reload: reloadMetadata)
             let fresh: UFitManagedProduct?
             if let original, !hasPrepared { fresh = try await catalog.client.fetchManagedProduct(id: original.id, brandID: catalog.brandID) }
             else { fresh = original }
@@ -131,6 +131,13 @@ final class UFitCatalogFormStore {
         if isNew { try journal.resolve(); creationAttempt = .idle }
         catalog.receive(result)
         return result
+    }
+    func renewPhotoSource(_ id: UUID) async throws -> String {
+        guard catalog.isCurrentAccount, let brandID = catalog.brandID,
+              let photo = draft.photos.first(where: { $0.id == id }), let url = photo.url else { throw CancellationError() }
+        let refreshed = try await catalog.client.fetchOwnedProductPhoto(brandID: brandID, url: url)
+        guard catalog.isCurrentAccount, draft.photos.contains(where: { $0.id == id && $0.url == url }) else { throw CancellationError() }
+        return refreshed.displayUrl
     }
     func addPhoto(loader: @escaping () async throws -> Data) {
         guard !isBusy, catalog.isCurrentAccount else { return }

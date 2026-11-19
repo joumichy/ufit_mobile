@@ -13,6 +13,7 @@ struct UFitVariantChoice: Identifiable {
 }
 struct UFitShoppingPiece: Identifiable {
     let id: String
+    let itemType: UFitOutfitItemType?
     let name: String
     let brand: String?
     let brandID: String?

@@ -69,7 +69,7 @@ extension UFitAPIClient {
     func setCreatorFollow(id: String, following: Bool) async throws -> Bool {
         guard UUID(uuidString: id) != nil else { throw UFitPublicProfileContractError.relationship }
         do {
-            let value: UFitCreatorFollowDTO = try await send(following ? PublicProfileHTTP.put : PublicProfileHTTP.delete, path: PublicProfileHTTP.follows + id, requiresAuth: true)
+            let value: UFitCreatorFollowDTO = try await send(following ? PublicProfileHTTP.put : PublicProfileHTTP.delete, path: PublicProfileHTTP.follows + id, requiresAuth: true, publicOutfitsChange: false)
             guard value.following == following else { throw UFitPublicProfileContractError.relationship }
             return value.following
         } catch is DecodingError { throw UFitPublicProfileContractError.relationship }

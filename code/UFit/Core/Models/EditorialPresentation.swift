@@ -7,6 +7,7 @@ enum UFitEditorialCopy {
     static let loading = String(localized: "Chargement des sélections")
     static let loadingCollection = String(localized: "Chargement de la sélection")
     static let empty = String(localized: "Les prochaines sélections arrivent")
+    static let backToSearch = String(localized: "Rechercher une tenue")
     static let failed = String(localized: "Sélections indisponibles")
     static let loadFailed = String(localized: "Les sélections n’ont pas pu être chargées. Réessayez.")
     static let collectionFailedTitle = String(localized: "Sélection indisponible")

@@ -51,12 +51,10 @@ struct UFitWorkspaceDashboardContent: View {
         static let singleColumn = [GridItem(.flexible(), alignment: .topLeading)]
         static let columns = [GridItem(.flexible(), alignment: .topLeading), GridItem(.flexible(), alignment: .topLeading)]
     }
-    private enum Icon { static let refresh = "arrow.clockwise"; static let commissions = "list.bullet.rectangle" }
+    private enum Icon { static let commissions = "list.bullet.rectangle" }
     var body: some View {
         VStack(spacing: .zero) {
-            DetailHeader(title: sectionTitle, onBack: onBack) {
-                if !isLoading { UFitButton(action: onRefresh) { UFitIcon(systemName: Icon.refresh).frame(width: Layout.touch, height: Layout.touch) }.accessibilityLabel(Copy.refresh) }
-            }
+            DetailHeader(title: sectionTitle, onBack: onBack)
             ScrollView {
                 VStack(alignment: .leading, spacing: Layout.page) {
                     if let message {
@@ -80,7 +78,7 @@ struct UFitWorkspaceDashboardContent: View {
                         UFitExperienceActionRow(title: UFitWorkspaceTransfersCopy.title, systemImage: UFitWorkspaceTransfersCopy.historyIcon, action: onTransfers)
                     } else if isLoading || message == nil { UFitLoading(Copy.loading).frame(maxWidth: .infinity) }
                 }.padding(Layout.page).padding(.bottom, UFitSpace.xl).frame(maxWidth: .infinity, alignment: .leading)
-            }
+            }.ufitRefreshable(isEnabled: !isLoading, title: Copy.refresh) { onRefresh() }
         }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.ufitCanvas)
     }
     private func activity(_ rows: [UFitWorkspaceActivityFigure]) -> some View {

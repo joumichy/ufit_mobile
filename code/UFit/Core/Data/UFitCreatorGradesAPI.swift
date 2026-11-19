@@ -46,7 +46,7 @@ extension UFitAPIClient {
         guard UFitCreatorGradeContract.code(code), code != UFitCreatorGradeContract.initialCode else { throw UFitCreatorGradeFailure.input }
         try configuration.validate()
         let result: UFitCreatorGradeDTO = try await send(CreatorGradesHTTP.post, path: CreatorGradesHTTP.definitions,
-            body: CreatorGradeCreation(code: code, configuration: configuration), requiresAuth: true)
+            body: CreatorGradeCreation(code: code, configuration: configuration), requiresAuth: true, publicOutfitsChange: false)
         guard result.code == code, result.matches(configuration), result.version == UFitCreatorGradeContract.initialVersion,
               result.updatedAt != nil, result.assignedCreators == .zero else { throw UFitCreatorGradeFailure.document }; return result
     }
@@ -54,7 +54,7 @@ extension UFitAPIClient {
         try configuration.validate()
         guard current.version < UFitCreatorGradeContract.maximumInteger, !current.isInitial || configuration.assignable else { throw UFitCreatorGradeFailure.input }
         let result: UFitCreatorGradeDTO = try await send(CreatorGradesHTTP.post, path: CreatorGradesHTTP.definitions + CreatorGradesHTTP.separator + current.code + CreatorGradesHTTP.revisions,
-            body: CreatorGradeRevision(expectedVersion: current.version, configuration: configuration), requiresAuth: true)
+            body: CreatorGradeRevision(expectedVersion: current.version, configuration: configuration), requiresAuth: true, publicOutfitsChange: false)
         guard result.code == current.code, result.matches(configuration), result.version == current.version + UFitCreatorGradeContract.versionStep,
               result.revisionId != current.revisionId else { throw UFitCreatorGradeFailure.document }; return result
     }
@@ -81,7 +81,7 @@ extension UFitAPIClient {
               current.version < UFitCreatorGradeContract.maximumInteger, UFitCreatorGradeContract.text(reason, maximum: UFitCreatorGradeContract.reasonLimit) else { throw UFitCreatorGradeFailure.input }
         let result: UFitCreatorGradeChangeResultDTO = try await send(CreatorGradesHTTP.post,
             path: CreatorGradesHTTP.assignments + CreatorGradesHTTP.separator + current.creatorId + CreatorGradesHTTP.changes,
-            body: CreatorGradeChange(gradeCode: gradeCode, expectedVersion: current.version, reason: reason), requiresAuth: true)
+            body: CreatorGradeChange(gradeCode: gradeCode, expectedVersion: current.version, reason: reason), requiresAuth: true, publicOutfitsChange: false)
         guard result.assignment.creatorId == current.creatorId, result.assignment.gradeCode == gradeCode,
               result.assignment.version == current.version + UFitCreatorGradeContract.versionStep, result.change.fromGradeCode == current.gradeCode,
               result.change.source == .administration, result.change.changedByUserId == actorID, result.change.reason == reason else { throw UFitCreatorGradeFailure.document }; return result

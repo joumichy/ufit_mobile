@@ -32,16 +32,20 @@ struct UFitCatalogProductContent: View {
         static let emptyVariants = String(localized: "Aucune variante."); static let loading = String(localized: "Chargement de la fiche")
     }
     private enum Layout { static let page: CGFloat = UFitSpace.xl; static let gap: CGFloat = UFitSpace.md; static let small: CGFloat = UFitSpace.xs; static let title: CGFloat = UFitTypography.Size.title; static let image: CGFloat = 240; static let touch: CGFloat = UFitControlSize.touch; static let editor: CGFloat = 130; static let bottom: CGFloat = 110; static let radius: CGFloat = UFitRadius.field; static let thumbnail: CGFloat = 64; static let border: CGFloat = UFitSpace.hairline }
-    private enum Icon { static let photo = "photo"; static let refresh = "arrow.clockwise" }
+    private enum Icon { static let photo = "photo" }
     var body: some View {
         VStack(spacing: .zero) {
             DetailHeader(title: Copy.title, onBack: onBack) {
                 HStack {
                     if isLoading || isMutatingProduct { UFitLoading().frame(minWidth: Layout.touch, minHeight: Layout.touch) }
-                    else { UFitButton(action: onRefresh) { UFitIcon(systemName: Icon.refresh).frame(width: Layout.touch, height: Layout.touch) }.accessibilityLabel(Copy.refresh) }
                 }
             }.disabled(isMutatingProduct)
-            if let message { Text(message).font(UFitTypography.callout).padding(Layout.gap).frame(maxWidth: .infinity, alignment: .leading) }
+            if let message {
+                VStack(alignment: .leading, spacing: Layout.small) {
+                    Text(message).font(UFitTypography.callout)
+                    if product != nil { UFitActionButton(title: Copy.refresh, kind: .secondary, disabled: isLoading || isMutatingProduct, action: onRefresh) }
+                }.padding(Layout.gap).frame(maxWidth: .infinity, alignment: .leading)
+            }
             ScrollView {
                 if let product {
                     VStack(alignment: .leading, spacing: Layout.page) {
@@ -66,7 +70,7 @@ struct UFitCatalogProductContent: View {
                     }.padding(Layout.page).padding(.bottom, UFitSpace.xl).frame(maxWidth: .infinity, alignment: .leading)
                 } else if isLoading { UFitLoading(Copy.loading).padding(Layout.page) }
                 else { UFitActionButton(title: Copy.retry, kind: .secondary, action: onRefresh).padding(Layout.page) }
-            }
+            }.ufitRefreshable(isEnabled: !isLoading && !isMutatingProduct, title: Copy.refresh) { onRefresh() }
         }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.ufitCanvas)
             .ufitConfirmationDialog(Copy.archiveTitle, isPresented: $confirmingArchive, titleVisibility: .visible) {
                 UFitButton(Copy.archive, role: .destructive) { if let revision = archiveRevision { onArchive(revision) } }

@@ -53,28 +53,30 @@ struct MarketplaceRootView: View {
 
     var body: some View {
         ZStack {
-            if showOnboarding {
-                UFitOnboardingHost(styles: stylePreferences, onComplete: completeOnboarding)
-            } else {
-                routedContent.environment(\.ufitPrimarySection, routeHistory.isEmpty)
-                    .safeAreaInset(edge: .bottom, spacing: .zero) {
-                        if !hidesTabBar { BottomNavBar(activeTab: activeTab, experience: experience.kind, cartCount: cart.count, onSelect: selectTab) }
-                    }
-                .background(Color.ufitBackground)
+            // Keep local drafts and one-shot entry gates mounted during authentication.
+            Group {
+                if showOnboarding {
+                    UFitOnboardingHost(styles: stylePreferences, onComplete: completeOnboarding)
+                } else {
+                    routedContent.environment(\.ufitPrimarySection, routeHistory.isEmpty)
+                        .safeAreaInset(edge: .bottom, spacing: .zero) {
+                            if !hidesTabBar { BottomNavBar(activeTab: activeTab, experience: experience.kind, cartCount: cart.count, onSelect: selectTab) }
+                        }
+                    .background(Color.ufitBackground)
+                }
+            }.opacity(showAuthentication ? .zero : UFitMotion.visibleOpacity)
+                .accessibilityHidden(showAuthentication).allowsHitTesting(!showAuthentication)
+                .disabled(showAuthentication)
+            if showAuthentication {
+                UFitAuthenticationHost(session: session, onBrowse: dismissAuthentication)
+                    .environment(\.ufitPrimarySection, false)
             }
         }
         .preferredColorScheme(usesImmersiveFeedAppearance ? .dark : .light)
         .task(id: stylePreferences.scope) { await stylePreferences.activate() }
-        .safeAreaInset(edge: .top, spacing: .zero) {
-            if accountDeletion.hasRequest && !showAccountDeletion {
-                UFitButton(UFitAccountDeletionCopy.follow) { showAccountDeletion = true }
-                    .ufitButtonStyle(.secondary).padding(UFitSpace.sm).background(Color.ufitCanvas)
-            }
-        }
         .task {
             session.deviceNotifications.connect(notifications); session.start(); receiveNotificationTap()
             await accountDeletion.restore()
-            if accountDeletion.hasRequest { showAccountDeletion = true }
             if notificationOpening.hasPending { beginNotificationOpening() }
         }
         .onChange(of: notifications.pendingNotificationID) { _, _ in receiveNotificationTap() }
@@ -87,6 +89,7 @@ struct MarketplaceRootView: View {
             if !StripeAPI.handleURLCallback(with: url), UFitAuthenticationCallback.purpose(url) != nil { Task { await session.handle(url) } }
         }
         .onChange(of: session.user?.id) { previousUserID, userID in
+            showAccountDeletion = false
             Task { await accountDeletion.reconcileSession() }
             notificationOpening.accountChanged(previous: previousUserID, current: userID)
             store.clearAccountData()
@@ -118,8 +121,12 @@ struct MarketplaceRootView: View {
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
                 Task {
+                    await accountDeletion.reconcileSession()
                     await session.deviceNotifications.refresh()
                     if session.user != nil { await experience.load() }
+                    if scenePhase == .active, isFeedVisible {
+                        await store.loadFeedIfNeeded()
+                    }
                 }
             }
         }
@@ -134,20 +141,16 @@ struct MarketplaceRootView: View {
                 if case .publicProfile(let profile) = activeRoute { Task { await profile.loadFollow(refreshProfile: true) } }
             }
         }
-        .ufitSheet(isPresented: $showAuthentication) {
-            UFitAuthenticationHost(session: session, onBrowse: dismissAuthentication)
-        }
         .ufitSheet(isPresented: $showExperienceChooser, onDismiss: experience.dismissChoiceRequest) { experienceChooser }
         .ufitSheet(isPresented: $showAccountDeletion) {
             UFitAccountDeletionContent(store: accountDeletion, onClose: { showAccountDeletion = false })
         }
     }
 
-    private var usesImmersiveFeedAppearance: Bool {
-        guard !showOnboarding, !store.outfits.isEmpty, !showAuthentication,
-              !showExperienceChooser, !accountDeletion.hasRequest, case .feed = activeRoute else { return false }
-        return true
+    private var isFeedVisible: Bool {
+        !showOnboarding && !showAuthentication && !showExperienceChooser && !showAccountDeletion && activeRoute.isFeed
     }
+    private var usesImmersiveFeedAppearance: Bool { isFeedVisible && !store.outfits.isEmpty }
 
     @ViewBuilder
     private var routedContent: some View {

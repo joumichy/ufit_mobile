@@ -15,10 +15,7 @@ struct UFitCreatorGradeAssignmentDetailContent: View {
     let onMore: () -> Void
     var body: some View {
         VStack(spacing: .zero) {
-            DetailHeader(title: CreatorGradePresentationCopy.assignments, onBack: onBack) {
-                UFitButton(action: onRefresh) { UFitIcon(systemName: CreatorGradePresentationCopy.refreshSymbol) }
-                    .disabled(isLoading).accessibilityLabel(UFitCreatorGradeAdminCopy.refresh)
-            }
+            DetailHeader(title: CreatorGradePresentationCopy.assignments, onBack: onBack)
             ScrollView {
                 VStack(alignment: .leading, spacing: UFitSpace.xl) {
                     UFitCreatorGradeAssignmentFacts(assignment: assignment)
@@ -54,7 +51,7 @@ struct UFitCreatorGradeAssignmentDetailContent: View {
                         if hasMore { UFitActionButton(title: UFitCreatorGradeAdminCopy.more, kind: .secondary, disabled: isLoading, action: onMore) }
                     }
                 }.padding(UFitSpace.page).frame(maxWidth: .infinity, alignment: .leading)
-            }
+            }.ufitRefreshable(isEnabled: !isLoading, title: UFitCreatorGradeAdminCopy.refresh) { onRefresh() }
         }.ufitButtonStyle(.text).foregroundStyle(Color.ufitInk).background(Color.ufitCanvas)
     }
     private func historyGrade(_ title: String, code: String, label: String?) -> some View {

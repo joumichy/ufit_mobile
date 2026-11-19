@@ -84,9 +84,10 @@ struct UFitOutfitMetadata: Codable {
     }
 }
 extension UFitAPIClient {
-    func fetchOutfitMetadata() async throws -> UFitOutfitMetadata {
-        let result: UFitOutfitMetadata = try await send(UFitOutfitEditingHTTP.get, path: UFitOutfitEditingHTTP.metadata, requiresAuth: true)
-        try result.validate(); return result
+    func fetchOutfitMetadata(reload: Bool = false) async throws -> UFitOutfitMetadata {
+        try await fetchReference(path: UFitOutfitEditingHTTP.metadata, reload: reload) { (result: UFitOutfitMetadata) in
+            try result.validate()
+        }
     }
     func fetchManagedOutfits(scope: UFitOutfitScope?, status: UFitOutfitStatus?, cursor: String?) async throws -> UFitManagedOutfitPage {
         var query = [URLQueryItem(name: UFitOutfitEditingHTTP.limit, value: String(UFitOutfitEditingHTTP.pageLimit))]
@@ -110,13 +111,13 @@ extension UFitAPIClient {
     }
     func writeOutfit(_ request: UFitOutfitWriteRequest, editingID: String?, scope: UFitOutfitScope) async throws -> UFitManagedOutfit {
         let result: UFitManagedOutfit = try await send(editingID == nil ? UFitOutfitEditingHTTP.post : UFitOutfitEditingHTTP.put,
-            path: editingID.map { UFitOutfitEditingHTTP.base + $0 } ?? UFitOutfitEditingHTTP.collection, body: request, requiresAuth: true)
+            path: editingID.map { UFitOutfitEditingHTTP.base + $0 } ?? UFitOutfitEditingHTTP.collection, body: request, requiresAuth: true, publicOutfitsChange: editingID != nil)
         try result.validate(id: editingID, scope: scope); return result
     }
     func mutateOutfit(_ revision: UFitOutfitRevision, action: UFitOutfitAction) async throws -> UFitManagedOutfit {
         struct Body: Encodable { let expectedVersion: Int }
         let result: UFitManagedOutfit = try await send(UFitOutfitEditingHTTP.patch, path: UFitOutfitEditingHTTP.base + revision.id + UFitOutfitEditingHTTP.separator + action.rawValue,
-            body: Body(expectedVersion: revision.version), requiresAuth: true)
+            body: Body(expectedVersion: revision.version), requiresAuth: true, publicOutfitsChange: true)
         try result.validate(id: revision.id); return result
     }
 }

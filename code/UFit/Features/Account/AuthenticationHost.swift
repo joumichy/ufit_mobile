@@ -31,7 +31,6 @@ struct UFitAuthenticationHost: View {
             .onChange(of: mode) { _, _ in appleError = nil; appleNonce = nil; session.message = nil; password = String() }
             .onAppear { if session.needsNewPassword { mode = .newPassword } }
             .onDisappear { if session.authenticationFailure != nil { session.message = nil } }
-            .interactiveDismissDisabled(session.isBusy || session.needsNewPassword)
             .task {
                 if session.isSignedIn && session.user == nil { await session.reloadProfile() }
             }

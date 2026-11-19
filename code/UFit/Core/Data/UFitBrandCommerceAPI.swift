@@ -38,9 +38,10 @@ struct UFitManagedBrandCommercePolicy: Decodable {
     }
 }
 extension UFitAPIClient {
-    func fetchBrandCommerceMetadata() async throws -> UFitBrandCommerceMetadata {
-        let result: UFitBrandCommerceMetadata = try await send(UFitBrandCommerceHTTP.get, path: UFitBrandCommerceHTTP.metadata, requiresAuth: true)
-        try result.validate(); return result
+    func fetchBrandCommerceMetadata(reload: Bool = false) async throws -> UFitBrandCommerceMetadata {
+        try await fetchReference(path: UFitBrandCommerceHTTP.metadata, reload: reload) { (result: UFitBrandCommerceMetadata) in
+            try result.validate()
+        }
     }
     func fetchManagedBrandCommercePolicy(brandID: String) async throws -> UFitManagedBrandCommercePolicy {
         let result: UFitManagedBrandCommercePolicy = try await send(UFitBrandCommerceHTTP.get, path: UFitBrandCommerceHTTP.root + brandID + UFitBrandCommerceHTTP.suffix, requiresAuth: true)
@@ -49,7 +50,7 @@ extension UFitAPIClient {
     func saveBrandCommercePolicy(brandID: String, version: Int, policy: UFitBrandCommercePolicy) async throws -> UFitManagedBrandCommercePolicy {
         struct Body: Encodable { let expectedVersion: Int; let policy: UFitBrandCommercePolicy }
         let result: UFitManagedBrandCommercePolicy = try await send(UFitBrandCommerceHTTP.put, path: UFitBrandCommerceHTTP.root + brandID + UFitBrandCommerceHTTP.suffix,
-            body: Body(expectedVersion: version, policy: policy), requiresAuth: true)
+            body: Body(expectedVersion: version, policy: policy), requiresAuth: true, publicOutfitsChange: false)
         try result.validate(brandID: brandID)
         guard version < UFitBrandCommerceInput.maximumVersion, result.version == version + UFitBrandCommerceInput.versionStep, result.policy != nil else { throw UFitBrandCommerceContractError.document }
         return result

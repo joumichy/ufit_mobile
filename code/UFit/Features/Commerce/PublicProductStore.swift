@@ -29,7 +29,7 @@ final class UFitPublicProductStore {
     var piece: UFitShoppingPiece? {
         guard let product else { return nil }
         let variant = product.variants.first { $0.id == selectedVariantID }
-        return .init(id: product.id, name: product.name, brand: brand?.brandName, brandID: product.brandId,
+        return .init(id: product.id, itemType: nil, name: product.name, brand: brand?.brandName, brandID: product.brandId,
             image: product.images.sorted { $0.position < $1.position }.first?.url,
             price: variant.map { UFitMoney.format($0.price, currency: product.price.currency) } ?? UFitMoney.ranges([product.price]),
             note: nil, variants: product.variants.map { variant in

@@ -7,7 +7,6 @@ struct UFitOutfitAuthoringPreviewContent: View {
     @State private var selectedPhotoID: UUID?
     @State private var showingPieces = false
     @State private var selectedReference: OutfitProduct?
-    @Environment(\.dynamicTypeSize) private var typeSize
     private enum Copy {
         static let title = String(localized: "Aperçu client")
         static let empty = String(localized: "Ajoutez une photo pour prévisualiser la tenue.")
@@ -18,7 +17,7 @@ struct UFitOutfitAuthoringPreviewContent: View {
         static let inspiration = String(localized: "Inspiration · non vendue sur Ufit")
         static let availability = String(localized: "La disponibilité sera vérifiée avant l’achat.")
         static let unnamed = String(localized: "Pièce d’inspiration à nommer")
-        static let returnToPreview = String(localized: "Retour à l’aperçu")
+        static let closeReference = String(localized: "Fermer la référence")
         static let reference = String(localized: "Référence")
         static let bag = "bag"
         static let photo = "photo"
@@ -30,7 +29,9 @@ struct UFitOutfitAuthoringPreviewContent: View {
         static let gradientOpacity = 0.55
         static let unavailableOpacity = 0.4
         static let availableOpacity = 1.0
+        static let referenceHeightRatio = 0.75
     }
+    private enum Icon { static let close = "xmark" }
     private var products: [OutfitProduct] {
         draft.pieces.map { piece in
             let name = UFitOutfitInput.trimmed(piece.title)
@@ -53,7 +54,7 @@ struct UFitOutfitAuthoringPreviewContent: View {
                     ZStack(alignment: .bottomTrailing) {
                         UFitOutfitDraftPhotoPages(photos: draft.photos, selection: photoSelection, renewSource: renewPhotoSource)
                         LinearGradient(colors: [.clear, .black.opacity(Layout.gradientOpacity)], startPoint: .center, endPoint: .bottom).allowsHitTesting(false)
-                        if showingPieces {
+                        if showingPieces && selectedReference == nil {
                             UFitOutfitPiecesRibbon(items: products, onSelect: { selectedReference = $0 },
                                 maximumHeight: max(Layout.minimumRibbon, geometry.size.height - Layout.ribbonBottom - UFitSpace.xl))
                                 .padding(.trailing, UFitSpace.xl).padding(.bottom, Layout.ribbonBottom)
@@ -74,22 +75,32 @@ struct UFitOutfitAuthoringPreviewContent: View {
                                 }), tint: .white)
                             }
                         }.padding(.bottom, UFitSpace.md)
+                            .accessibilityHidden(selectedReference != nil).allowsHitTesting(selectedReference == nil)
+                        if let item = selectedReference {
+                            ViewThatFits(in: .vertical) {
+                                reference(item).fixedSize(horizontal: false, vertical: true)
+                                    .background(Color.ufitCanvas, in: RoundedRectangle(cornerRadius: UFitRadius.card))
+                                ScrollView { reference(item) }.scrollBounceBehavior(.basedOnSize)
+                                    .background(Color.ufitCanvas, in: RoundedRectangle(cornerRadius: UFitRadius.card))
+                            }.frame(maxHeight: geometry.size.height * Layout.referenceHeightRatio, alignment: .bottom)
+                                .padding(UFitSpace.md)
+                        }
                     }.clipped()
                 }
             }
         }.foregroundStyle(Color.ufitInk).background(Color.ufitCanvas)
-            .ufitSheet(item: $selectedReference) { item in
-                VStack(alignment: .leading, spacing: UFitSpace.lg) {
-                    UFitSheetHeader(title: Copy.reference, onClose: { selectedReference = nil })
-                    ScrollView {
-                        VStack(alignment: .leading, spacing: UFitSpace.lg) {
-                            UFitOutfitReferenceContent(item: item)
-                            Text(item.productID == nil ? Copy.inspiration : Copy.availability)
-                                .font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText)
-                            UFitButton(Copy.returnToPreview) { selectedReference = nil }.ufitButtonStyle(.secondary)
-                        }.padding(UFitSpace.page)
-                    }
-                }.presentationDetents(typeSize.isAccessibilitySize ? [.large] : [.medium, .large])
+    }
+    private func reference(_ item: OutfitProduct) -> some View {
+        VStack(alignment: .leading, spacing: UFitSpace.md) {
+            HStack {
+                Text(Copy.reference).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText)
+                Spacer(minLength: UFitSpace.xs)
+                UFitButton { selectedReference = nil } label: { UFitIcon(systemName: Icon.close) }
+                    .ufitButtonStyle(.text).accessibilityLabel(Copy.closeReference)
             }
+            UFitOutfitReferenceContent(item: item)
+            Text(item.productID == nil ? Copy.inspiration : Copy.availability)
+                .font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText)
+        }.padding(UFitSpace.md).accessibilityElement(children: .contain)
     }
 }

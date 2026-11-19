@@ -62,9 +62,10 @@ struct UFitOutfitItemTypePalette: View {
                                                 Text(type.label).font(UFitTypography.caption).multilineTextAlignment(.center)
                                                     .fixedSize(horizontal: false, vertical: true)
                                             }.padding(UFitSpace.sm).frame(maxWidth: .infinity, minHeight: Layout.height)
-                                                .foregroundStyle(selection == type ? Color.ufitCanvas : Color.ufitInk)
-                                                .background(selection == type ? Color.ufitInk : Color.ufitCanvas, in: RoundedRectangle(cornerRadius: UFitRadius.field))
-                                                .overlay { RoundedRectangle(cornerRadius: UFitRadius.field).stroke(selection == type ? Color.ufitInk : Color.ufitBorder, lineWidth: UFitSpace.hairline) }
+                                                .foregroundStyle(Color.ufitInk)
+                                                .background(selection == type ? Color.ufitSecondary : Color.ufitCanvas, in: RoundedRectangle(cornerRadius: UFitRadius.field))
+                                                .overlay { RoundedRectangle(cornerRadius: UFitRadius.field).stroke(selection == type ? Color.ufitInk : Color.ufitBorder,
+                                                    lineWidth: selection == type ? UFitStroke.selected : UFitStroke.control) }
                                         }.ufitButtonStyle(.text).accessibilityLabel(type.label)
                                             .accessibilityAddTraits(selection == type ? .isSelected : [])
                                     }

@@ -19,15 +19,11 @@ struct UFitPublicationCalendarHost: View {
         static let loading = String(localized: "Chargement du calendrier")
         static let overdue = String(localized: "Publication en attente. Vérifiez le profil et la disponibilité des pièces si le retard persiste.")
     }
-    private enum Icon { static let refresh = "arrow.clockwise"; static let next = "chevron.right" }
+    private enum Icon { static let next = "chevron.right" }
     private enum Layout { static let imageWidth: CGFloat = 60; static let imageHeight: CGFloat = 78 }
     var body: some View {
         VStack(spacing: .zero) {
-            DetailHeader(onBack: onBack) {
-                UFitButton { Task { await store.load() } } label: {
-                    UFitIcon(systemName: Icon.refresh).frame(width: UFitControlSize.touch, height: UFitControlSize.touch)
-                }.accessibilityLabel(Copy.refresh).disabled(store.isLoading || store.isLoadingMore || !store.canRead)
-            }
+            DetailHeader(onBack: onBack)
             ScrollView {
                 VStack(alignment: .leading, spacing: UFitSpace.xl) {
                     VStack(alignment: .leading, spacing: UFitSpace.sm) {
@@ -71,7 +67,7 @@ struct UFitPublicationCalendarHost: View {
                         }
                     }
                 }.padding(UFitSpace.xl)
-            }.ufitRefreshable { await store.load() }
+            }.ufitRefreshable(isEnabled: !store.isLoading && !store.isLoadingMore && store.canRead, title: Copy.refresh) { await store.load() }
         }.background(Color.ufitCanvas).foregroundStyle(Color.ufitInk)
             .task { await store.load() }.onDisappear { store.cancel() }
     }

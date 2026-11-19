@@ -11,11 +11,14 @@ final class UFitOutfitShoppingStore {
     var pendingReplacementItemID: String?
     @ObservationIgnored private let client: UFitAPIClient
     @ObservationIgnored private var products = [String: UFitPublicProductDTO]()
-    @ObservationIgnored private var brands = [String: UFitPublicBrandDTO]()
     private var issues = [String: String]()
     private var selections = [String: String]()
     private var quantities = [String: Int]()
-    private enum Defaults { static let quantity = 1; static let none = String(); static let separator = " · " }
+    private enum Defaults { static let quantity = 1; static let none = String(); static let separator = " · "; static let concurrentProducts = 4 }
+    private enum ProductRead {
+        case loaded(UFitPublicProductDTO)
+        case failed(itemID: String, message: String)
+    }
     private enum Copy {
         static let standard = String(localized: "Standard")
         static let inspiration = String(localized: "Pièce d’inspiration")
@@ -32,8 +35,8 @@ final class UFitOutfitShoppingStore {
             let price = product.map { value in
                 variant.map { UFitMoney.format($0.price * (quantities[item.id] ?? Defaults.quantity), currency: value.price.currency) } ?? UFitMoney.ranges([value.price])
             } ?? (item.isShoppable ? Copy.unavailable : Copy.inspiration)
-            return UFitShoppingPiece(id: item.id, name: product?.name ?? item.label,
-                brand: product.flatMap { brands[$0.brandId]?.brandName }, brandID: product?.brandId, image: product?.images.sorted { $0.position < $1.position }.first?.url,
+            return UFitShoppingPiece(id: item.id, itemType: item.itemType, name: product?.name ?? item.label,
+                brand: item.product?.brandName, brandID: item.product?.brandId, image: product?.images.sorted { $0.position < $1.position }.first?.url,
                 price: price, note: item.stylingNote, variants: (product?.variants ?? []).map { value in
                     let options = [value.size, value.color].compactMap { $0 }.filter { !$0.isEmpty }
                     return UFitVariantChoice(id: value.id, label: options.isEmpty ? Copy.standard : options.joined(separator: Defaults.separator), isAvailable: value.stockQuantity > .zero)
@@ -43,23 +46,43 @@ final class UFitOutfitShoppingStore {
         }
     }
 
-    func load(id: String) async {
+    func load(id: String, focusedItemID: String? = nil) async {
         guard !isLoading else { return }
         isLoading = true
         message = nil
         defer { isLoading = false }
         do {
-            detail = try await client.fetchOutfitDetail(id: id)
-            products = [:]; brands = [:]; issues = [:]
-            for item in detail!.items where item.isShoppable {
-                guard let productID = item.product?.id, products[productID] == nil else { continue }
-                do {
-                    let product = try await client.fetchPublicProduct(id: productID)
-                    if brands[product.brandId] == nil { brands[product.brandId] = try await client.fetchPublicBrand(id: product.brandId) }
-                    products[productID] = product
-                } catch { issues[item.id] = error.localizedDescription }
+            let document = try await client.fetchOutfitDetail(id: id)
+            detail = document
+            products = [:]; issues = [:]
+            let requested = document.items.filter { $0.isShoppable && (focusedItemID == nil || $0.id == focusedItemID) }
+            let client = self.client
+            await withTaskGroup(of: ProductRead.self) { group in
+                var remaining = requested.makeIterator()
+                func enqueue(_ item: UFitOutfitItemDTO) {
+                    group.addTask {
+                        do {
+                            guard let reference = item.product else { throw UFitOutfitContractError.document }
+                            let product = try await client.fetchPublicProduct(id: reference.id)
+                            guard product.id == reference.id, product.brandId == reference.brandId else { throw UFitOutfitContractError.document }
+                            return .loaded(product)
+                        } catch { return .failed(itemID: item.id, message: error.localizedDescription) }
+                    }
+                }
+                for _ in .zero..<min(Defaults.concurrentProducts, requested.count) {
+                    if let item = remaining.next() { enqueue(item) }
+                }
+                for await result in group {
+                    if !Task.isCancelled {
+                        switch result {
+                        case .loaded(let product): products[product.id] = product
+                        case .failed(let itemID, let message): issues[itemID] = message
+                        }
+                    }
+                    if !Task.isCancelled, let item = remaining.next() { enqueue(item) }
+                }
             }
-        } catch { message = error.localizedDescription }
+        } catch is CancellationError {} catch { message = error.localizedDescription }
     }
 
     func choose(itemID: String, variantID: String) {

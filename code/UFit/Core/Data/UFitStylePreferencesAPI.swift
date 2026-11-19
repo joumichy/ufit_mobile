@@ -90,7 +90,7 @@ extension UFitAPIClient {
     func saveStylePreferences(_ command: UFitStylePreferencesCommand) async throws -> UFitStylePreferencesReceipt {
         try command.validate(userID: command.userID)
         let receipt: UFitStylePreferencesReceipt = try await send(UFitStylePreferencesHTTP.put,
-            path: UFitStylePreferencesHTTP.root + command.userID, body: command.input, requiresAuth: true)
+            path: UFitStylePreferencesHTTP.root + command.userID, body: command.input, requiresAuth: true, publicOutfitsChange: false)
         try receipt.validate(command)
         return receipt
     }

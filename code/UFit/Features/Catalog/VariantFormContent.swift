@@ -33,7 +33,7 @@ struct UFitCatalogVariantFormContent: View {
                     if draft.serverID != nil {
                         VStack(alignment: .leading, spacing: Layout.small) {
                             Text(Copy.status).font(UFitTypography.subheadline.weight(.medium))
-                            UFitSelection(Copy.status, selection: $draft.status, options: UFitCatalogVariantStatus.allCases.map { .init(value: $0, title: $0.label) }).frame(minHeight: Layout.touch)
+                            UFitInlineChoice(title: Copy.status, selection: $draft.status, options: UFitCatalogVariantStatus.allCases.map { .init(value: $0, title: $0.label) })
                         }
                     }
                     UFitButton(action: onSave) { Text(Copy.save).frame(maxWidth: .infinity) }.ufitButtonStyle(.primary)

@@ -1,12 +1,14 @@
 import Foundation
 
 enum UFitOutfitSearchCopy {
-    static let title = String(localized: "Trouver une tenue")
+    static let title = String(localized: "Rechercher")
     static let prompt = String(localized: "Tenue, créateur, marque ou pièce")
     static let scope = String(localized: "Rechercher dans")
     static let filters = String(localized: "Affiner")
     static let apply = String(localized: "Voir les tenues")
     static let reset = String(localized: "Effacer les filtres")
+    static let resetShort = String(localized: "Effacer")
+    static let allFilterValues = String(localized: "Tout")
     static let clear = String(localized: "Effacer les critères")
     static let allStyles = String(localized: "Tous les styles")
     static let allOccasions = String(localized: "Toutes les occasions")
@@ -30,5 +32,5 @@ enum UFitOutfitSearchCopy {
     static let loadingMore = String(localized: "Chargement de la suite")
     static let moreFailed = String(localized: "La suite n’a pas pu être chargée. Les tenues déjà affichées restent disponibles.")
     static let searchIcon = "magnifyingglass", errorIcon = "wifi.exclamationmark", filterIcon = "slider.horizontal.3"
-    static let refreshIcon = "arrow.clockwise", moreAnchor = "outfit-search-more"
+    static let moreAnchor = "outfit-search-more"
 }

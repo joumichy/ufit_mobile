@@ -43,7 +43,6 @@ struct UFitPublicProductContent: View {
                             else { UFitPurchaseOptions(piece: piece, disabled: store.isLoading,
                                 onSelect: store.choose, onQuantity: store.setQuantity, onAdd: add) }
                             Text(product.description).font(UFitTypography.body).fixedSize(horizontal: false, vertical: true)
-                            UFitButton(UFitPublicProductCopy.refresh, action: refresh).ufitButtonStyle(.text).disabled(store.isLoading || store.isAdding)
                         }.padding(.horizontal, UFitSpace.page)
                     } else if store.isLoading || store.loadError == nil {
                         UFitLoading(UFitPublicProductCopy.loading).frame(maxWidth: .infinity).padding(UFitSpace.page)
@@ -52,7 +51,7 @@ struct UFitPublicProductContent: View {
                             actionTitle: UFitFeedbackCopy.retry, action: refresh).padding(UFitSpace.page)
                     }
                 }.padding(.bottom, UFitSpace.xl)
-            }
+            }.ufitRefreshable(isEnabled: !store.isLoading && !store.isAdding, title: UFitPublicProductCopy.refresh) { await store.load() }
         }.foregroundStyle(Color.ufitInk).background(Color.ufitCanvas).task {
             if !store.hasLoaded { await store.load() }
             store.reconcileCart(cart)

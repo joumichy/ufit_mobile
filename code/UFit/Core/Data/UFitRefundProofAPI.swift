@@ -89,7 +89,7 @@ extension UFitAPIClient {
         let fields = [(UFitRefundProofContract.command, String(decoding: command, as: UTF8.self))]
         let name = UFitRefundProofContract.filename + (request.file.contentType == UFitRefundProofContract.pdf ? FileExtension.pdf : FileExtension.jpeg)
         let body = UFitMultipartEncoding.file(fields: fields, bytes: request.file.bytes, name: name, mime: request.file.contentType)
-        let result: UFitRefundProofReceiptDTO = try await send(UFitRefundOrganizationHTTP.post, path: proofPath(reference), multipart: body, requiresAuth: true)
+        let result: UFitRefundProofReceiptDTO = try await send(UFitRefundOrganizationHTTP.post, path: proofPath(reference), multipart: body, requiresAuth: true, publicOutfitsChange: false)
         try result.validate(request); return result
     }
     func refundProofReceipt(reference: UFitRefundRecoveryReference, request: UFitRefundProofRequest) async throws -> UFitRefundProofReceiptDTO {

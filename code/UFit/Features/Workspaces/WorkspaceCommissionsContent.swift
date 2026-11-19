@@ -34,12 +34,9 @@ struct UFitWorkspaceCommissionsContent: View {
         static let page: CGFloat = UFitSpace.xl; static let gap: CGFloat = UFitSpace.md; static let small: CGFloat = UFitSpace.xs
         static let touch: CGFloat = UFitControlSize.touch; static let bottom: CGFloat = 32
     }
-    private enum Icon { static let refresh = "arrow.clockwise" }
     var body: some View {
         VStack(spacing: .zero) {
-            DetailHeader(title: Copy.title, onBack: onBack) {
-                if !isLoading { UFitButton(action: onRefresh) { UFitIcon(systemName: Icon.refresh).frame(width: Layout.touch, height: Layout.touch) }.accessibilityLabel(Copy.refresh) }
-            }
+            DetailHeader(title: Copy.title, onBack: onBack)
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: Layout.page) {
                     Text(name).font(UFitTypography.title.weight(.medium))
@@ -86,7 +83,7 @@ struct UFitWorkspaceCommissionsContent: View {
                     if isLoading || (!hasLoaded && message == nil) { UFitLoading(Copy.loading).frame(maxWidth: .infinity) }
                     else if hasMore && message == nil { UFitActionButton(title: Copy.more, kind: .secondary, action: onMore) }
                 }.padding(Layout.page).padding(.bottom, UFitSpace.xl).frame(maxWidth: .infinity, alignment: .leading)
-            }
+            }.ufitRefreshable(isEnabled: !isLoading, title: Copy.refresh) { onRefresh() }
         }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.ufitCanvas)
     }
     private func row(_ label: String, _ value: String) -> some View {

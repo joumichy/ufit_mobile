@@ -26,6 +26,11 @@ struct UFitAccountView: View {
         static let orders = String(localized: "Mes commandes")
         static let ordersIcon = "bag"
         static let notificationsIcon = "bell"
+        static let shipping = String(localized: "Mes adresses")
+        static let shippingIcon = "mappin.and.ellipse"
+        static let purchases = String(localized: "Mes achats")
+        static let preferences = String(localized: "Préférences")
+        static let spaces = String(localized: "Mes espaces")
         static let title = String(localized: "Mon compte")
         static let edit = String(localized: "Modifier mon profil")
         static let name = String(localized: "Nom affiché")
@@ -49,7 +54,7 @@ struct UFitAccountView: View {
             if let onBack { DetailHeader(title: Copy.title, onBack: onBack) }
             ScrollView {
             VStack(alignment: .leading, spacing: Layout.spacing) {
-                if onBack == nil { Text(Copy.title).ufitFont(size: Layout.title, weight: .regular, design: .serif) }
+                if onBack == nil { Text(Copy.title).ufitFont(size: Layout.title, weight: .regular, design: .serif).accessibilityAddTraits(.isHeader) }
                 if let photoHeader { photoHeader }
                 else { HStack(spacing: Layout.spacing) {
                     UFitIcon(systemName: Copy.person).ufitFont(size: Layout.portrait, weight: .ultraLight)
@@ -66,16 +71,31 @@ struct UFitAccountView: View {
                         UFitActionButton(title: Copy.cancel, kind: .secondary, disabled: isBusy) { editing = false }
                     }
                 } else {
-                    UFitActionButton(title: Copy.edit, kind: .secondary, disabled: isBusy) { editedName = name; editing = true }
+                    UFitButton(Copy.edit) { editedName = name; editing = true }.ufitButtonStyle(.secondary, compact: true).disabled(isBusy)
                 }
                 if let message { Text(message).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
+                if onOrders != nil || onShippingAddresses != nil {
+                    section(Copy.purchases) {
+                        if let onOrders { UFitExperienceActionRow(title: Copy.orders, systemImage: Copy.ordersIcon, action: onOrders) }
+                        if onOrders != nil && onShippingAddresses != nil { Divider() }
+                        if let onShippingAddresses { UFitExperienceActionRow(title: Copy.shipping, systemImage: Copy.shippingIcon, action: onShippingAddresses) }
+                    }
+                }
+                if onNotifications != nil || onStyles != nil {
+                    section(Copy.preferences) {
+                        if let onNotifications { UFitExperienceActionRow(title: UFitNotificationPreferencesCopy.title, systemImage: Copy.notificationsIcon, action: onNotifications) }
+                        if onNotifications != nil && onStyles != nil { Divider() }
+                        if let onStyles { UFitExperienceActionRow(title: UFitStylePreferencesCopy.title, systemImage: UFitStylePreferencesCopy.icon, action: onStyles) }
+                    }
+                }
+                if onApplications != nil || onChooseExperience != nil {
+                    section(Copy.spaces) {
+                        if let onApplications { UFitExperienceActionRow(title: Copy.applications, systemImage: Copy.applicationsIcon, action: onApplications) }
+                        if onApplications != nil && onChooseExperience != nil { Divider() }
+                        if let onChooseExperience { UFitExperienceActionRow(title: Copy.choose, systemImage: Copy.chooseIcon, action: onChooseExperience) }
+                    }
+                }
                 Divider()
-                if let onOrders { UFitButton(action: onOrders) { Label(Copy.orders, systemImage: Copy.ordersIcon) }.frame(minHeight: Layout.touch) }
-                if let onShippingAddresses { UFitButton(action: onShippingAddresses) { Label(String(localized: "Mes adresses"), systemImage: "mappin.and.ellipse") }.frame(minHeight: Layout.touch) }
-                if let onApplications { UFitButton(action: onApplications) { Label(Copy.applications, systemImage: Copy.applicationsIcon) }.frame(minHeight: Layout.touch) }
-                if let onNotifications { UFitButton(action: onNotifications) { Label(UFitNotificationPreferencesCopy.title, systemImage: Copy.notificationsIcon) }.frame(minHeight: Layout.touch) }
-                if let onStyles { UFitButton(action: onStyles) { Label(UFitStylePreferencesCopy.title, systemImage: UFitStylePreferencesCopy.icon) }.frame(minHeight: Layout.touch) }
-                if let onChooseExperience { UFitButton(action: onChooseExperience) { Label(Copy.choose, systemImage: Copy.chooseIcon) }.frame(minHeight: Layout.touch) }
                 UFitActionButton(title: Copy.signOut, kind: .secondary, disabled: isBusy, action: onSignOut)
                 if let onDeleteAccount {
                     Divider()
@@ -85,10 +105,17 @@ struct UFitAccountView: View {
             .padding(Layout.spacing)
             .padding(.bottom, UFitSpace.xl)
             .frame(maxWidth: .infinity, alignment: .leading)
-        }
+        }.clipped()
         }
         .foregroundStyle(Color.ufitInk).background(Color.ufitCanvas)
         .ufitButtonStyle(.text)
         .onChange(of: name) { _, _ in editing = false }
+    }
+    private func section<Content: View>(_ title: String, @ViewBuilder content: () -> Content) -> some View {
+        VStack(alignment: .leading, spacing: UFitSpace.xs) {
+            Text(title).font(UFitTypography.subheadline.weight(.medium)).foregroundStyle(Color.ufitSecondaryText)
+                .accessibilityAddTraits(.isHeader)
+            VStack(spacing: .zero, content: content)
+        }
     }
 }

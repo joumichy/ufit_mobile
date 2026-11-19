@@ -22,7 +22,7 @@ extension UFitAPIClient {
     func resumePaymentDisbursements(reference: UFitPaymentSettlementDocument, brandID: String) async throws -> UFitPaymentDisbursementDocument {
         struct Request: Encodable {}
         let document: UFitPaymentDisbursementDocument = try await send(UFitPaymentDisbursementHTTP.post,
-            path: UFitPaymentDisbursementHTTP.path(reference.payment.id, suffix: UFitPaymentDisbursementHTTP.resume), body: Request(), requiresAuth: true)
+            path: UFitPaymentDisbursementHTTP.path(reference.payment.id, suffix: UFitPaymentDisbursementHTTP.resume), body: Request(), requiresAuth: true, publicOutfitsChange: false)
         try document.validate(reference: reference, brandID: brandID); return document
     }
 }

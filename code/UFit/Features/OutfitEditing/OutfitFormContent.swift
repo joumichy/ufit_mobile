@@ -37,21 +37,40 @@ struct UFitOutfitFormContent: View {
         static let page: CGFloat = UFitSpace.xl; static let gap: CGFloat = UFitSpace.md; static let small: CGFloat = UFitSpace.xs; static let touch: CGFloat = UFitControlSize.touch; static let radius: CGFloat = UFitRadius.field
         static let descriptionMinimum = 4; static let descriptionMaximum = 10
     }
+    private enum Icon { static let preview = "eye" }
+    private var editingPhotoIndex: Int? { draft.photos.firstIndex { $0.id == editingPhotoID } }
     var body: some View {
+        ZStack {
+            form.opacity(editingPhotoIndex == nil ? UFitMotion.visibleOpacity : .zero)
+                .accessibilityElement(children: .contain)
+                .accessibilityHidden(editingPhotoIndex != nil).allowsHitTesting(editingPhotoIndex == nil)
+                .disabled(editingPhotoIndex != nil)
+            if let index = editingPhotoIndex {
+                let id = draft.photos[index].id
+                UFitOutfitPinsContent(photo: $draft.photos[index], pieces: draft.pieces, onClose: { editingPhotoID = nil },
+                    renewSource: renewPhotoSource.map { renew in { () async throws -> String in try await renew(id) } })
+                    .environment(\.ufitPrimarySection, false)
+            }
+        }
+    }
+    private var form: some View {
         VStack(spacing: .zero) {
             DetailHeader(title: isNew ? Copy.new : Copy.edit, onBack: { if hasChanges { confirmingDiscard = true } else { onBack() } }) {
-                UFitButton(Copy.preview) { showingPreview = true }.ufitButtonStyle(.secondary, compact: true)
+                UFitButton { showingPreview = true } label: {
+                    UFitIcon(systemName: Icon.preview).frame(width: Layout.touch, height: Layout.touch)
+                }.ufitButtonStyle(.text).accessibilityLabel(Copy.preview)
             }.disabled(isBusy)
             ScrollView {
                 VStack(alignment: .leading, spacing: Layout.page) {
-                    UFitOutfitPhotosContent(photos: $draft.photos, error: errors[.photos], onAdd: onAddPhotos, onRetry: onRetryPhoto, onRemove: onRemovePhoto, onPins: { editingPhotoID = $0 })
+                    UFitOutfitPhotosContent(photos: $draft.photos, error: errors[.photos], onAdd: onAddPhotos, onRetry: onRetryPhoto, onRemove: onRemovePhoto,
+                        onPins: { editingPhotoID = $0 }, renewPhotoSource: renewPhotoSource)
                     UFitOutfitPiecesContent(pieces: $draft.pieces, error: errors[.pieces], onSelectProduct: onSelectProduct)
                     UFitEditorialHeading(title: AuthoringCopy.intention, editorial: false)
                     UFitTextField(label: Copy.title, text: $draft.title, error: errors[.title])
                     UFitMultilineField(label: Copy.description, text: $draft.description, error: errors[.description])
                     VStack(alignment: .leading, spacing: Layout.small) {
                         Text(Copy.gender).font(UFitTypography.subheadline.weight(.medium))
-                        UFitSelection(Copy.gender, selection: $draft.gender, options: [.init(value: nil, title: Copy.unspecified)] + UFitGenderTarget.allCases.map { .init(value: Optional($0), title: $0.label) }).frame(minHeight: Layout.touch)
+                        UFitInlineChoice(title: Copy.gender, selection: $draft.gender, options: [.init(value: nil, title: Copy.unspecified)] + UFitGenderTarget.allCases.map { .init(value: Optional($0), title: $0.label) })
                     }
                     UFitDisclosure(Copy.styles) {
                         VStack(alignment: .leading, spacing: Layout.gap) {
@@ -83,12 +102,6 @@ struct UFitOutfitFormContent: View {
         }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.ufitCanvas)
             .onChange(of: draft.pieces.map(\.id)) { _, identities in
                 for index in draft.photos.indices { draft.photos[index].pins.removeAll { !identities.contains($0.pieceID) } }
-            }
-            .ufitSheet(isPresented: Binding(get: { editingPhotoID != nil }, set: { if !$0 { editingPhotoID = nil } })) {
-                if let id = editingPhotoID, let index = draft.photos.firstIndex(where: { $0.id == id }) {
-                    UFitOutfitPinsContent(photo: $draft.photos[index], pieces: draft.pieces, onClose: { editingPhotoID = nil },
-                        renewSource: renewPhotoSource.map { renew in { () async throws -> String in try await renew(id) } })
-                }
             }
             .ufitSheet(isPresented: $showingPreview) {
                 UFitOutfitAuthoringPreviewContent(draft: draft, onClose: { showingPreview = false }, renewPhotoSource: renewPhotoSource)

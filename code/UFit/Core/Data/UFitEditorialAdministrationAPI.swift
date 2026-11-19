@@ -29,11 +29,11 @@ extension UFitAPIClient {
         if let fields = command.fields {
             value = try await send(command.kind == .create ? UFitEditorialAdminHTTP.post : UFitEditorialAdminHTTP.put,
                 path: UFitEditorialHTTP.root + (command.collectionID.map { UFitEditorialHTTP.slash + $0 } ?? String()),
-                body: EditorialWrite(requestId: command.requestID, expectedVersion: command.expectedVersion, fields: fields), requiresAuth: true)
+                body: EditorialWrite(requestId: command.requestID, expectedVersion: command.expectedVersion, fields: fields), requiresAuth: true, publicOutfitsChange: false)
         } else {
             guard let id = command.collectionID else { throw UFitEditorialFailure.contract }
             value = try await send(UFitEditorialAdminHTTP.patch, path: UFitEditorialHTTP.root + UFitEditorialHTTP.slash + id + UFitEditorialHTTP.slash + command.kind.rawValue,
-                body: EditorialTransition(requestId: command.requestID, expectedVersion: command.expectedVersion), requiresAuth: true)
+                body: EditorialTransition(requestId: command.requestID, expectedVersion: command.expectedVersion), requiresAuth: true, publicOutfitsChange: false)
         }
         try value.validate(command); return value
     }

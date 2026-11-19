@@ -20,16 +20,20 @@ struct UFitBrandOrderContent: View {
         static let page: CGFloat = UFitSpace.xl; static let gap: CGFloat = UFitSpace.md; static let small: CGFloat = UFitSpace.xs; static let touch: CGFloat = UFitControlSize.touch
         static let disabledOpacity = 0.4; static let enabledOpacity = 1.0
     }
-    private enum Icon { static let refresh = "arrow.clockwise"; static let unavailable = "bag" }
+    private enum Icon { static let unavailable = "bag" }
     private var recordLocked: Bool { isLoading || activeAction != nil }
     private var primary: UFitShipmentCommand? { order?.commands.first(where: { $0.action.isPrimary }) }
     var body: some View {
         VStack(spacing: .zero) {
             DetailHeader(title: Copy.title, onBack: onBack) {
                 if isLoading && order != nil { UFitLoading().frame(width: Layout.touch, height: Layout.touch) }
-                else if !isLoading { UFitButton(action: onRefresh) { UFitIcon(systemName: Icon.refresh).frame(width: Layout.touch, height: Layout.touch) }.accessibilityLabel(Copy.refresh) }
             }.disabled(activeAction != nil)
-            if let message { Text(message).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText).padding(.horizontal, Layout.page).padding(.top, Layout.gap) }
+            if let message {
+                VStack(alignment: .leading, spacing: Layout.small) {
+                    Text(message).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText)
+                    if order != nil { UFitActionButton(title: Copy.refresh, kind: .secondary, disabled: recordLocked, action: onRefresh) }
+                }.padding(.horizontal, Layout.page).padding(.top, Layout.gap)
+            }
             ScrollView {
                 VStack(alignment: .leading, spacing: Layout.page) {
                     if let order {
@@ -53,7 +57,7 @@ struct UFitBrandOrderContent: View {
                         UFitActionButton(title: Copy.retry, kind: .secondary, action: onRefresh)
                     }
                 }.padding(Layout.page).frame(maxWidth: .infinity, alignment: .leading)
-            }
+            }.ufitRefreshable(isEnabled: !recordLocked, title: Copy.refresh) { onRefresh() }
         }.safeAreaInset(edge: .bottom, spacing: .zero) {
             if let primary { action(primary, primary: true).padding(Layout.gap).background(Color.ufitCanvas).overlay(alignment: .top) { Divider() } }
         }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.ufitCanvas)

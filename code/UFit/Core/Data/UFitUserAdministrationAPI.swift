@@ -55,7 +55,7 @@ extension UFitAPIClient {
         guard current.version < UFitUserAdministrationContract.maximumVersion, UFitUserAdministrationContract.reason(reason),
               (status == .active && current.actions.activate) || (status == .suspended && current.actions.suspend) else { throw UFitUserAdministrationFailure.input }
         let result: UFitAdministeredUserDTO = try await send(UserAdministrationHTTP.post, path: UserAdministrationHTTP.user(current.id) + UserAdministrationHTTP.statusChange,
-            body: UserStatusChange(expectedVersion: current.version, status: status, reason: reason), requiresAuth: true)
+            body: UserStatusChange(expectedVersion: current.version, status: status, reason: reason), requiresAuth: true, publicOutfitsChange: true)
         guard result.id == current.id, result.version == current.version + UFitUserAdministrationContract.versionStep,
               result.status == status, result.roleCodes == current.roleCodes else { throw UFitUserAdministrationFailure.document }
         return result
@@ -64,7 +64,7 @@ extension UFitAPIClient {
         guard current.version < UFitUserAdministrationContract.maximumVersion, UFitUserAdministrationContract.reason(reason),
               enabled ? current.actions.grantAdmin : current.actions.revokeAdmin else { throw UFitUserAdministrationFailure.input }
         let result: UFitAdministeredUserDTO = try await send(UserAdministrationHTTP.post, path: UserAdministrationHTTP.user(current.id) + UserAdministrationHTTP.adminAccess,
-            body: UserAdminAccessChange(expectedVersion: current.version, enabled: enabled, reason: reason), requiresAuth: true)
+            body: UserAdminAccessChange(expectedVersion: current.version, enabled: enabled, reason: reason), requiresAuth: true, publicOutfitsChange: false)
         var roles = current.roleCodes
         if enabled { roles.insert(UFitUserRole.admin.rawValue) } else { roles.remove(UFitUserRole.admin.rawValue) }
         guard result.id == current.id, result.version == current.version + UFitUserAdministrationContract.versionStep,

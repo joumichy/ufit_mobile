@@ -33,7 +33,7 @@ struct UFitBrandShippingRateContent: View {
     }
     var body: some View {
         VStack(spacing: .zero) {
-            UFitSheetHeader(title: isNew ? Copy.new : Copy.edit, onClose: { if draft == original { onClose() } else { confirmingDiscard = true } })
+            DetailHeader(title: isNew ? Copy.new : Copy.edit, onBack: { if draft == original { onClose() } else { confirmingDiscard = true } })
             ScrollView {
                 VStack(alignment: .leading, spacing: Layout.page) {
                     choice(Copy.country, value: countries.first(where: { $0.id == draft.country })?.name ?? Copy.chooseCountry,
@@ -54,7 +54,6 @@ struct UFitBrandShippingRateContent: View {
                     } label: { Text(Copy.save).frame(maxWidth: .infinity) }.ufitButtonStyle(.primary).padding(Layout.gap).background(Color.ufitCanvas)
                 }
         }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.ufitCanvas)
-            .interactiveDismissDisabled(draft != original)
             .onChange(of: draft) { _, _ in errors = [:] }
             .ufitSheet(item: $selection) { picker in
                 switch picker {

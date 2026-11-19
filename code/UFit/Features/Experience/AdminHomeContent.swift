@@ -29,7 +29,7 @@ struct UFitAdminHomeContent: View {
     private enum Layout { static let page: CGFloat = UFitSpace.xl; static let gap: CGFloat = UFitSpace.md; static let bottom: CGFloat = 110; static let touch: CGFloat = UFitControlSize.touch }
     var body: some View {
         VStack(spacing: .zero) {
-            UFitExperienceHeader(title: Copy.title, name: Copy.context, kind: .administrator, onChooseExperience: onChooseExperience, onRefresh: message == nil ? onRefresh : nil, isLoading: isLoading)
+            UFitExperienceHeader(title: Copy.title, name: Copy.context, kind: .administrator, onChooseExperience: onChooseExperience, isLoading: isLoading)
             ScrollView {
                 VStack(alignment: .leading, spacing: Layout.gap) {
                     if isLoading { UFitLoading(Copy.loading) }
@@ -80,7 +80,7 @@ struct UFitAdminHomeContent: View {
                     Divider()
                     UFitExperienceActionRow(title: UFitCreatorGradeAdminCopy.title, systemImage: GradeIcon.grades, action: onGrades)
                 }.padding(.horizontal, Layout.page).padding(.bottom, UFitSpace.xl)
-            }
+            }.ufitRefreshable(isEnabled: !isLoading) { onRefresh() }
         }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.ufitCanvas)
     }
 }

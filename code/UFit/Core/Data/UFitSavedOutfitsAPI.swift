@@ -61,7 +61,7 @@ extension UFitAPIClient {
         guard UUID(uuidString: id) != nil else { throw UFitSavedOutfitContractError.state }
         do {
             let result: UFitSavedActionDTO = try await send(saved ? UFitSavedOutfitsHTTP.put : UFitSavedOutfitsHTTP.delete,
-                path: UFitSavedOutfitsHTTP.root + UFitSavedOutfitsHTTP.separator + id, requiresAuth: true)
+                path: UFitSavedOutfitsHTTP.root + UFitSavedOutfitsHTTP.separator + id, requiresAuth: true, publicOutfitsChange: false)
             guard result.saved == saved else { throw UFitSavedOutfitContractError.state }
         } catch is DecodingError { throw UFitSavedOutfitContractError.state }
     }

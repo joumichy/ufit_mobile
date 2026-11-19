@@ -57,4 +57,9 @@ enum AppRoute {
     case orders
     case order(UFitOrderDetailStore)
     case publicProfile(UFitPublicProfileStore)
+
+    var isFeed: Bool {
+        if case .feed = self { return true }
+        return false
+    }
 }

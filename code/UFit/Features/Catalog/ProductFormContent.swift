@@ -15,6 +15,7 @@ struct UFitCatalogProductFormContent: View {
     let onAddPhotos: () -> Void
     let onRetryPhoto: (UUID) -> Void
     let onRemovePhoto: (UUID) -> Void
+    var renewPhotoSource: ((UUID) async throws -> String)? = nil
     @State private var confirmingDiscard = false
     @State private var showingCurrencies = false
     @State private var editingVariant: UFitCatalogVariantDraft?
@@ -41,13 +42,14 @@ struct UFitCatalogProductFormContent: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: Layout.page) {
                     UFitEditorialHeading(title: ProductDesignCopy.identity, editorial: false)
-                    UFitCatalogPhotosContent(photos: $draft.photos, error: errors[.photos], onAdd: onAddPhotos, onRetry: onRetryPhoto, onRemove: onRemovePhoto)
+                    UFitCatalogPhotosContent(photos: $draft.photos, error: errors[.photos], onAdd: onAddPhotos, onRetry: onRetryPhoto,
+                        onRemove: onRemovePhoto, renewPhotoSource: renewPhotoSource)
                     UFitTextField(label: Copy.name, text: $draft.name, error: errors[.name])
                     UFitMultilineField(label: Copy.description, text: $draft.description, error: errors[.description])
                     UFitTextField(label: Copy.category, text: $draft.category, error: errors[.category])
                     VStack(alignment: .leading, spacing: Layout.small) {
                         Text(Copy.gender).font(UFitTypography.subheadline.weight(.medium))
-                        UFitSelection(Copy.gender, selection: $draft.gender, options: [.init(value: nil, title: Copy.unspecified)] + UFitGenderTarget.allCases.map { .init(value: Optional($0), title: $0.label) }).frame(minHeight: Layout.touch)
+                        UFitInlineChoice(title: Copy.gender, selection: $draft.gender, options: [.init(value: nil, title: Copy.unspecified)] + UFitGenderTarget.allCases.map { .init(value: Optional($0), title: $0.label) })
                     }
                     UFitEditorialHeading(title: ProductDesignCopy.offer, editorial: false)
                     VStack(alignment: .leading, spacing: Layout.small) {

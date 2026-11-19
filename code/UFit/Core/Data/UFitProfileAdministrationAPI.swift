@@ -43,7 +43,7 @@ extension UFitAPIClient {
         guard current.allows(status), current.version < UFitUserAdministrationContract.maximumVersion, UFitUserAdministrationContract.reason(reason) else { throw UFitUserAdministrationFailure.input }
         let result: UFitAdministeredProfileDTO = try await send(ProfileAdministrationHTTP.post,
             path: ProfileAdministrationHTTP.path(userID: userID, kind: current.kind, profileID: current.id) + ProfileAdministrationHTTP.status,
-            body: ProfileStatusCommand(expectedVersion: current.version, status: status, reason: reason), requiresAuth: true)
+            body: ProfileStatusCommand(expectedVersion: current.version, status: status, reason: reason), requiresAuth: true, publicOutfitsChange: true)
         guard result.id == current.id, result.kind == current.kind, result.status == status,
               result.version == current.version + UFitUserAdministrationContract.versionStep else { throw UFitUserAdministrationFailure.document }
         return result

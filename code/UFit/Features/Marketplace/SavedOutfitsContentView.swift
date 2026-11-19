@@ -22,7 +22,6 @@ struct SavedOutfitsContentView: View {
         static let retry = String(localized: "Réessayer")
         static let unavailableIcon = "wifi.exclamationmark"
         static let refresh = String(localized: "Actualiser les favoris")
-        static let refreshIcon = "arrow.clockwise"
         static let more = String(localized: "Voir la suite")
         static let retryMore = String(localized: "Réessayer la suite")
         static let loadingMore = String(localized: "Chargement de la suite")
@@ -37,12 +36,9 @@ struct SavedOutfitsContentView: View {
         VStack(spacing: .zero) {
             HStack(spacing: .zero) {
                 RootScreenHeader(title: Copy.title)
-                if isAuthenticated, !outfits.isEmpty || (hasLoaded && !isLoading && message == nil) {
-                    UFitButton(action: refresh) {
-                        if isLoading { UFitLoading() }
-                        else { UFitIcon(systemName: Copy.refreshIcon) }
-                    }.ufitButtonStyle(.text).frame(minWidth: UFitControlSize.touch, minHeight: UFitControlSize.touch)
-                        .padding(.trailing, UFitSpace.page).disabled(isLoading).accessibilityLabel(Copy.refresh)
+                if isAuthenticated && isLoading && !outfits.isEmpty {
+                    UFitLoading().frame(width: UFitControlSize.touch, height: UFitControlSize.touch)
+                        .padding(.trailing, UFitSpace.page)
                 }
             }
             GeometryReader { viewport in
@@ -80,7 +76,8 @@ struct SavedOutfitsContentView: View {
                                 }.id(Anchor.more)
                             }
                         }.padding(UFitSpace.page).frame(minHeight: viewport.size.height, alignment: outfits.isEmpty ? .center : .topLeading)
-                    }.scrollPosition(id: $visibleOutfitID).scrollIndicators(.hidden).ufitRefreshable { if isAuthenticated { await onRefresh() } }
+                    }.scrollPosition(id: $visibleOutfitID).scrollIndicators(.hidden)
+                        .ufitRefreshable(isEnabled: isAuthenticated && !isLoading, title: Copy.refresh) { if isAuthenticated { await onRefresh() } }
                         .onChange(of: moreError) { _, failure in
                             // The error adds height below the pressed button; keep its retry in view.
                             if failure != nil { scroll.scrollTo(Anchor.more, anchor: .bottom) }

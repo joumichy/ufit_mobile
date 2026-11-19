@@ -34,13 +34,13 @@ extension UFitAPIClient {
     }
     func setCartQuantity(itemID: String, quantity: Int) async throws -> UFitCartDTO {
         struct Quantity: Encodable { let quantity: Int }
-        return try await send(CommerceHTTP.patch, path: CommerceHTTP.items + itemID, body: Quantity(quantity: quantity), requiresAuth: true)
+        return try await send(CommerceHTTP.patch, path: CommerceHTTP.items + itemID, body: Quantity(quantity: quantity), requiresAuth: true, publicOutfitsChange: false)
     }
     func removeCartItem(id: String) async throws -> UFitCartDTO {
-        try await send(CommerceHTTP.delete, path: CommerceHTTP.items + id, requiresAuth: true)
+        try await send(CommerceHTTP.delete, path: CommerceHTTP.items + id, requiresAuth: true, publicOutfitsChange: false)
     }
     func clearCart() async throws -> UFitCartEnvelope {
-        try await send(CommerceHTTP.delete, path: CommerceHTTP.cart, requiresAuth: true)
+        try await send(CommerceHTTP.delete, path: CommerceHTTP.cart, requiresAuth: true, publicOutfitsChange: false)
     }
     func fetchOrders(cursor: String? = nil) async throws -> UFitOrdersPageDTO {
         var query = [URLQueryItem(name: CommerceHTTP.limit, value: String(CommerceHTTP.defaultLimit))]
@@ -50,7 +50,7 @@ extension UFitAPIClient {
         return result
     }
     func cancelOrder(id: String) async throws -> UFitOrderDTO {
-        let result: UFitOrderDTO = try await send("POST", path: CommerceHTTP.orders + "/" + id + "/cancel", requiresAuth: true)
+        let result: UFitOrderDTO = try await send("POST", path: CommerceHTTP.orders + "/" + id + "/cancel", requiresAuth: true, publicOutfitsChange: false)
         try result.cancellation?.validateSettlement(amount: result.totalAmount, currency: result.currency); return result
     }
     func fetchOrder(id: String) async throws -> UFitOrderDTO {

@@ -8,7 +8,7 @@ struct UFitRefundProofUploadContent: View {
     private var locked: Bool {store.isBusy || store.pending != nil || store.localFailed}
     var body: some View {
         VStack(spacing: .zero) {
-            UFitSheetHeader(title: store.pending == nil ? UFitRefundProofCopy.title : UFitRefundOrganizationCopy.pendingTitle, onClose: requestClose).disabled(store.isBusy)
+            DetailHeader(title: store.pending == nil ? UFitRefundProofCopy.title : UFitRefundOrganizationCopy.pendingTitle, onBack: requestClose).disabled(store.isBusy)
             ScrollView {
                 VStack(alignment: .leading, spacing: UFitSpace.lg) {
                     Text(store.amount).font(UFitTypography.editorialTitle)

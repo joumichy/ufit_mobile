@@ -21,7 +21,9 @@ extension Color {
 
 /// Photo fitting keeps a deliberate surface and readable loading/retry controls.
 enum UFitPhotoSurface {
-    case dark, canvas
-    var background: Color { self == .dark ? .black : .ufitCanvas }
+    case dark, canvas, neutral
+    var background: Color {
+        switch self { case .dark: .black; case .canvas: .ufitCanvas; case .neutral: .ufitSecondary }
+    }
     var foreground: Color { self == .dark ? .white : .ufitInk }
 }

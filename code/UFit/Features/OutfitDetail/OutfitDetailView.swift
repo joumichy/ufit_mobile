@@ -24,11 +24,11 @@ struct OutfitDetailView: View {
             prices: shopping.detail.map { UFitOutfitPresentation.priceSummary(prices: $0.prices, items: $0.items) } ?? outfit.price,
             pieces: shopping.pieces, cartCount: cart.count, isLoading: shopping.isLoading,
             message: shopping.message, onBack: onBack, onAuthor: { if let author = presentedAuthor { onAuthor(author) } }, onBrand: onBrand, onCart: onCart,
-            onRetry: { Task { await shopping.load(id: outfit.id) } },
+            onRetry: { Task { await shopping.load(id: outfit.id, focusedItemID: focusedItemID) } },
             onSelect: shopping.choose, onQuantity: shopping.setQuantity,
             onAdd: { id in add(id: id) }, focusedItemID: focusedItemID)
             .task(id: outfit.id) {
-                if shopping.detail == nil { await shopping.load(id: outfit.id) }
+                if shopping.detail == nil { await shopping.load(id: outfit.id, focusedItemID: focusedItemID) }
                 if session.user != nil { await cart.load() }
             }
             .ufitConfirmationDialog(Copy.replace, isPresented: Binding(get: { shopping.pendingReplacementItemID != nil }, set: { if !$0 { shopping.pendingReplacementItemID = nil } }), titleVisibility: .visible) {

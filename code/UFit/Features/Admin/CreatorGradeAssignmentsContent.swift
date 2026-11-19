@@ -16,10 +16,7 @@ struct UFitCreatorGradeAssignmentsContent: View {
     let onMore: () -> Void
     var body: some View {
         VStack(spacing: .zero) {
-            DetailHeader(title: UFitCreatorGradeAdminCopy.title, onBack: onBack) {
-                UFitButton(action: onSearch) { UFitIcon(systemName: CreatorGradePresentationCopy.refreshSymbol) }
-                    .disabled(isLoading).accessibilityLabel(UFitCreatorGradeAdminCopy.refresh)
-            }
+            DetailHeader(title: UFitCreatorGradeAdminCopy.title, onBack: onBack)
             ScrollView {
                 VStack(alignment: .leading, spacing: UFitSpace.xl) {
                     UFitChoiceBar(title: CreatorGradePresentationCopy.section,
@@ -58,6 +55,7 @@ struct UFitCreatorGradeAssignmentsContent: View {
                     }
                 }.padding(UFitSpace.page).frame(maxWidth: .infinity, alignment: .leading)
             }.scrollDismissesKeyboard(.interactively)
+                .ufitRefreshable(isEnabled: !isLoading, title: UFitCreatorGradeAdminCopy.refresh) { onSearch() }
         }.ufitButtonStyle(.text).foregroundStyle(Color.ufitInk).background(Color.ufitCanvas)
     }
     @ViewBuilder private var empty: some View {

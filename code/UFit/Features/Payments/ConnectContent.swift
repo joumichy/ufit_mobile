@@ -24,7 +24,6 @@ struct UFitConnectContent: View {
         static let failed = String(localized: "Espaces de vente indisponibles")
         static let retry = String(localized: "Réessayer")
         static let failureIcon = "wifi.exclamationmark"
-        static let refreshIcon = "arrow.clockwise"
         static let empty = String(localized: "Aucun espace de vente")
         static let icon = "creditcard"
         static let test = String(localized: "Mode test")
@@ -54,10 +53,6 @@ struct UFitConnectContent: View {
         VStack(spacing: .zero) {
             DetailHeader(title: Copy.title, onBack: onBack) {
                 if isBusy { UFitLoading().frame(minWidth: Layout.touch, minHeight: Layout.touch) }
-                else if !profiles.isEmpty {
-                    UFitButton(action: onRefresh) { UFitIcon(systemName: Copy.refreshIcon).frame(width: Layout.touch, height: Layout.touch) }
-                        .accessibilityLabel(Copy.refresh).disabled(loadingProfiles)
-                }
             }
             GeometryReader { viewport in
                 ScrollView {
@@ -97,7 +92,7 @@ struct UFitConnectContent: View {
                             }
                         }
                     }.padding(Layout.spacing).frame(minHeight: viewport.size.height, alignment: profiles.isEmpty ? .center : .topLeading)
-                }
+                }.ufitRefreshable(isEnabled: !loadingProfiles && !isBusy, title: Copy.refresh) { onRefresh() }
             }
         }.foregroundStyle(Color.ufitInk).background(Color.ufitCanvas)
     }

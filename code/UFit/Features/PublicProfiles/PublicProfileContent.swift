@@ -30,16 +30,18 @@ struct UFitPublicProfileContent: View {
         static let avatar: CGFloat = 80; static let title: CGFloat = UFitTypography.Size.editorial; static let tileAspect: CGFloat = 0.75; static let bottom: CGFloat = 112
         static let initial: CGFloat = UFitTypography.Size.section; static let columns = [GridItem(.flexible(), spacing: gap), GridItem(.flexible(), spacing: gap)]
     }
-    private enum Icon { static let refresh = "arrow.clockwise"; static let grade = "medal"; static let link = "arrow.up.right" }
+    private enum Icon { static let grade = "medal"; static let link = "arrow.up.right" }
     var body: some View {
         VStack(spacing: .zero) {
             DetailHeader(title: Copy.title, onBack: onBack) {
                 if isLoading { UFitLoading().frame(width: Layout.touch, height: Layout.touch) }
-                else { UFitButton { Task { await onRefresh() } } label: { UFitIcon(systemName: Icon.refresh).frame(width: Layout.touch, height: Layout.touch) }.accessibilityLabel(Copy.refresh) }
             }
             ScrollView {
                 VStack(alignment: .leading, spacing: Layout.page) {
-                    if let message { Text(message).font(UFitTypography.callout) }
+                    if let message {
+                        Text(message).font(UFitTypography.callout)
+                        if profile != nil { UFitActionButton(title: Copy.retry, kind: .secondary, disabled: isLoading) { Task { await onRefresh() } } }
+                    }
                     if let profile {
                         header(profile)
                         follow
@@ -78,7 +80,7 @@ struct UFitPublicProfileContent: View {
                     } else if isLoading { UFitLoading(Copy.loading).frame(maxWidth: .infinity) }
                     else { UFitButton { Task { await onRefresh() } } label: { Text(Copy.retry).frame(maxWidth: .infinity) }.ufitButtonStyle(.primary) }
                 }.padding(Layout.page).padding(.bottom, UFitSpace.xl)
-            }.ufitRefreshable { await onRefresh() }
+            }.ufitRefreshable(isEnabled: !isLoading, title: Copy.refresh) { await onRefresh() }
         }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.ufitCanvas)
     }
     private func header(_ profile: UFitPublicProfilePresentation) -> some View {

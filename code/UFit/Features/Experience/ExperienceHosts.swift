@@ -11,7 +11,7 @@ struct UFitCreatorStudioHost: View {
         UFitCreatorStudioContent(workspace: workspace, document: store.document, isLoading: store.isLoading, message: store.message,
             onRefresh: { Task { await store.load() } }, onCreate: onCreate, onOutfits: onOutfits,
             onPublicProfile: onPublicProfile, onChooseExperience: onChooseExperience)
-            .task { await store.load() }.onDisappear { store.cancelLoading() }
+            .task { await store.loadIfNeeded() }.onDisappear { store.cancelLoading() }
     }
 }
 struct UFitBrandActivityHost: View {
@@ -27,7 +27,7 @@ struct UFitBrandActivityHost: View {
         UFitBrandActivityContent(workspace: workspace, document: store.document, isLoading: store.isLoading, message: store.message,
             onRefresh: { Task { await store.load() } }, onAddProduct: onAddProduct, onCatalog: onCatalog, onOrders: onOrders,
             onReturns: onReturns, onSales: onSales, onChooseExperience: onChooseExperience)
-            .task { await store.load() }.onDisappear { store.cancelLoading() }
+            .task { await store.loadIfNeeded() }.onDisappear { store.cancelLoading() }
     }
 }
 struct UFitAdminActivityHost: View {

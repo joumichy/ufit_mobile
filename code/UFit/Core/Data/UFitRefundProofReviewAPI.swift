@@ -59,7 +59,7 @@ struct UFitRefundProofPageDTO: Decodable {
 extension UFitAPIClient {
     func reviewRefundProof(reference: UFitRefundRecoveryReference, request: UFitRefundProofReviewRequest) async throws -> UFitRefundProofReviewResultDTO {
         try request.validate()
-        let result: UFitRefundProofReviewResultDTO = try await send(UFitRefundOrganizationHTTP.post, path: reviewPath(reference), body: request, requiresAuth: true)
+        let result: UFitRefundProofReviewResultDTO = try await send(UFitRefundOrganizationHTTP.post, path: reviewPath(reference), body: request, requiresAuth: true, publicOutfitsChange: false)
         try result.validate(reference: reference, request: request); return result
     }
     func refundProofReviewReceipt(reference: UFitRefundRecoveryReference, request: UFitRefundProofReviewRequest) async throws -> UFitRefundProofReviewResultDTO {

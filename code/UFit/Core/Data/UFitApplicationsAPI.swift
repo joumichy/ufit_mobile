@@ -31,11 +31,12 @@ private struct BrandApplicationSubmission: Encodable {
     let expectedVersion: Int?
 }
 extension UFitAPIClient {
-    func fetchApplicationCountries() async throws -> [String] {
+    func fetchApplicationCountries(reload: Bool = false) async throws -> [String] {
         struct Reference: Decodable { let countries: [String] }
-        let result: Reference = try await send(ApplicationHTTP.get, path: ApplicationHTTP.countries, requiresAuth: true)
-        guard !result.countries.isEmpty, Set(result.countries).count == result.countries.count,
-              result.countries.allSatisfy({ $0.range(of: ApplicationHTTP.countryPattern, options: .regularExpression) != nil }) else { throw ApplicationContractError.countries }
+        let result: Reference = try await fetchReference(path: ApplicationHTTP.countries, reload: reload) { (result: Reference) in
+            guard !result.countries.isEmpty, Set(result.countries).count == result.countries.count,
+                  result.countries.allSatisfy({ $0.range(of: ApplicationHTTP.countryPattern, options: .regularExpression) != nil }) else { throw ApplicationContractError.countries }
+        }
         return result.countries
     }
     func fetchApplications() async throws -> UFitCurrentApplications {
@@ -53,10 +54,10 @@ extension UFitAPIClient {
         switch kind {
         case .creator:
             result = try await send(method, path: path, body: CreatorApplicationSubmission(displayName: value(.name), email: value(.email), motivation: value(.motivation), portfolioUrl: optional(.portfolio), audienceSummary: optional(.audience),
-                dossier: UFitCreatorApplicationDossier(instagramUrl: value(.instagram), tiktokUrl: optional(.tiktok), dominantStyle: value(.style), brandsWorn: value(.brandsWorn), outfitExampleUrls: UFitApplicationField.examples.map(value)), expectedVersion: correcting?.metadata.version), requiresAuth: true)
+                dossier: UFitCreatorApplicationDossier(instagramUrl: value(.instagram), tiktokUrl: optional(.tiktok), dominantStyle: value(.style), brandsWorn: value(.brandsWorn), outfitExampleUrls: UFitApplicationField.examples.map(value)), expectedVersion: correcting?.metadata.version), requiresAuth: true, publicOutfitsChange: false)
         case .brand:
             result = try await send(method, path: path, body: BrandApplicationSubmission(brandName: value(.name), email: value(.email), websiteUrl: value(.website), productCategory: value(.category), positioning: value(.positioning),
-                dossier: UFitBrandApplicationDossier(instagramUrl: value(.instagram), country: value(.country), priceRange: value(.priceRange), lookbookUrl: value(.lookbook), shippingCapabilities: value(.shipping), returnPolicy: value(.returns), commissionProposal: optional(.commission)), expectedVersion: correcting?.metadata.version), requiresAuth: true)
+                dossier: UFitBrandApplicationDossier(instagramUrl: value(.instagram), country: value(.country), priceRange: value(.priceRange), lookbookUrl: value(.lookbook), shippingCapabilities: value(.shipping), returnPolicy: value(.returns), commissionProposal: optional(.commission)), expectedVersion: correcting?.metadata.version), requiresAuth: true, publicOutfitsChange: false)
         }
         try validateApplication(result, kind: kind, id: correcting?.id)
         return result
@@ -83,7 +84,7 @@ extension UFitAPIClient {
         struct Decision: Encodable { let decision: UFitApplicationDecision; let expectedVersion: Int; let notes: String? }
         let result: UFitApplicationDocument = try await send(ApplicationHTTP.post,
             path: ApplicationHTTP.admin + application.metadata.type.rawValue + ApplicationHTTP.separator + application.id + ApplicationHTTP.reviews,
-            body: Decision(decision: decision, expectedVersion: application.metadata.version, notes: notes), requiresAuth: true)
+            body: Decision(decision: decision, expectedVersion: application.metadata.version, notes: notes), requiresAuth: true, publicOutfitsChange: true)
         try validateApplication(result, kind: application.metadata.type, id: application.id)
         return result
     }

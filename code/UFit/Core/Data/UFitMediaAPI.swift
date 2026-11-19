@@ -26,7 +26,7 @@ extension UFitAPIClient {
         let result: UFitUploadedProductPhoto
         do {
             result = try await send(UFitProductPhotoContract.post, path: UFitProductPhotoContract.upload,
-                multipart: UFitMultipartEncoding.image(fields: [(UFitProductPhotoContract.brand, brandID), (UFitProductPhotoContract.request, requestID.uuidString)], jpeg: jpeg), requiresAuth: true)
+                multipart: UFitMultipartEncoding.image(fields: [(UFitProductPhotoContract.brand, brandID), (UFitProductPhotoContract.request, requestID.uuidString)], jpeg: jpeg), requiresAuth: true, publicOutfitsChange: false)
         } catch let UFitAPIError.requestFailed(status, _, _) where status == UFitProductPhotoContract.tooLargeStatus { throw UFitPhotoError.tooLarge }
         try validateProductPhoto(result, brandID: brandID)
         return result

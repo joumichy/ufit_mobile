@@ -41,15 +41,47 @@ final class UFitWorkspaceDashboardStore {
     @ObservationIgnored private let userID: String
     @ObservationIgnored private var generation = UUID()
     @ObservationIgnored private var revenueGeneration = UUID()
+    @ObservationIgnored private var loadedAt: Date?
+    @ObservationIgnored private var loadedDataGeneration: UUID?
+    @ObservationIgnored private var revenueLoadedAt: Date?
+    @ObservationIgnored private var revenueDataGeneration: UUID?
+    @ObservationIgnored private var loadedRevenuePeriod: UFitRevenuePeriod?
+    private enum Reuse { static let lifetime: TimeInterval = 30 }
+    private enum SnapshotFailure: LocalizedError {
+        case changed
+        var errorDescription: String? { String(localized: "Les données ont changé. Actualisez pour les relire.") }
+    }
     var isCurrentAccount: Bool { session.user?.id == userID }
     func revokeFinancialAccess(_ error: Error) {
         cancelLoading(); document = nil; revenue = nil
+        loadedAt = nil; revenueLoadedAt = nil; loadedDataGeneration = nil; revenueDataGeneration = nil
         message = WorkspaceFinanceResponse.message(error); revenueMessage = message
     }
     init(workspace: UFitWorkspaceReference, session: UFitSessionStore, userID: String) {
         self.workspace = workspace; self.session = session; self.userID = userID
     }
     func cancelLoading() { generation = UUID(); isLoading = false; revenueGeneration = UUID(); isRevenueLoading = false }
+    func loadIfNeeded() async {
+        if document != nil, message == nil, await canReuse(loadedAt, dataGeneration: loadedDataGeneration) { return }
+        await load()
+    }
+    func prepare() async {
+        async let dashboard: Void = loadIfNeeded()
+        async let chart: Void = loadRevenueIfNeeded()
+        _ = await (dashboard, chart)
+    }
+    private func loadRevenueIfNeeded() async {
+        if revenue != nil, revenueMessage == nil, loadedRevenuePeriod == revenuePeriod,
+           await canReuse(revenueLoadedAt, dataGeneration: revenueDataGeneration) { return }
+        await loadRevenue()
+    }
+    private func canReuse(_ date: Date?, dataGeneration: UUID?) async -> Bool {
+        guard isCurrentAccount, let date, let dataGeneration else { return false }
+        let age = Date().timeIntervalSince(date)
+        guard age >= .zero, age < Reuse.lifetime else { return false }
+        let current = await session.api.dataGeneration()
+        return isCurrentAccount && current == dataGeneration
+    }
     func changeRevenuePeriod() async {
         revenueGeneration = UUID(); isRevenueLoading = false
         await loadRevenue()
@@ -61,9 +93,12 @@ final class UFitWorkspaceDashboardStore {
         isRevenueLoading = true; revenue = nil; revenueMessage = nil
         defer { if revenueGeneration == request { isRevenueLoading = false } }
         do {
+            let dataGeneration = await session.api.dataGeneration()
             let result = try await session.api.fetchWorkspaceRevenue(workspace, period: period)
+            let current = await session.api.dataGeneration()
             guard revenueGeneration == request, isCurrentAccount, period == revenuePeriod else { return }
-            revenue = result
+            guard current == dataGeneration else { throw SnapshotFailure.changed }
+            revenue = result; revenueLoadedAt = Date(); revenueDataGeneration = dataGeneration; loadedRevenuePeriod = period
         } catch {
             guard revenueGeneration == request, isCurrentAccount else { return }
             revenueMessage = WorkspaceFinanceResponse.message(error)
@@ -84,9 +119,12 @@ final class UFitWorkspaceDashboardStore {
         isLoading = true; message = nil; document = nil
         defer { if generation == request { isLoading = false } }
         do {
+            let dataGeneration = await session.api.dataGeneration()
             let result = try await session.api.fetchWorkspaceDashboard(workspace, userID: userID)
+            let current = await session.api.dataGeneration()
             guard generation == request, isCurrentAccount else { return }
-            document = result.presentation
+            guard current == dataGeneration else { throw SnapshotFailure.changed }
+            document = result.presentation; loadedAt = Date(); loadedDataGeneration = dataGeneration
         } catch { if generation == request && isCurrentAccount { document = nil; message = WorkspaceFinanceResponse.message(error) } }
     }
 }

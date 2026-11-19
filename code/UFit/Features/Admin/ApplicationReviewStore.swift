@@ -30,7 +30,7 @@ final class UFitApplicationReviewStore {
         do {
             let document = try await client.fetchAdminApplication(kind: kind, id: id)
             guard session.user?.id == userID else { return }
-            application = document; notes = String(); requiresRefresh = false
+            application = document; requiresRefresh = false
         } catch { if session.user?.id == userID { message = error.localizedDescription } }
     }
     func decide(_ decision: UFitApplicationDecision) async {

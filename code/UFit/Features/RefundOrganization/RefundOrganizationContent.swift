@@ -26,7 +26,7 @@ struct UFitRefundOrganizationContent: View {
     var body: some View {
         VStack(spacing: .zero) {
             if isSheet {UFitSheetHeader(title: UFitRefundOrganizationCopy.title, onClose: onClose)}
-            else {DetailHeader(title: UFitRefundOrganizationCopy.title, onBack: onClose) {refreshButton}}
+            else {DetailHeader(title: UFitRefundOrganizationCopy.title, onBack: onClose)}
             ScrollView {
                 VStack(alignment: .leading, spacing: UFitSpace.lg) {
                     if let message {UFitNotice(message: message, kind: messageIsError ? .error : .information)}
@@ -58,12 +58,11 @@ struct UFitRefundOrganizationContent: View {
                         if isLoading {UFitLoading().frame(maxWidth: .infinity)}
                     } else if isLoading {UFitLoading(UFitRefundOrganizationCopy.loading).frame(maxWidth: .infinity).padding(.vertical, UFitSpace.xl)}
                     else {UFitEmptyState(title: UFitRefundOrganizationCopy.unavailable, symbol: UFitRefundRecoveryCopy.icon)}
-                    if isSheet || (messageIsError && document == nil) {UFitButton(UFitRefundOrganizationCopy.refresh, action: onRefresh).ufitButtonStyle(.secondary).disabled(isLoading)}
+                    if messageIsError {UFitButton(UFitRefundOrganizationCopy.refresh, action: onRefresh).ufitButtonStyle(.secondary).disabled(isLoading)}
                 }.padding(UFitSpace.page).frame(maxWidth: .infinity, alignment: .leading)
-            }
+            }.ufitRefreshable(isEnabled: !isLoading, title: UFitRefundOrganizationCopy.refresh) { onRefresh() }
         }.foregroundStyle(Color.ufitInk).background(Color.ufitCanvas)
     }
-    private var refreshButton: some View {UFitButton(action: onRefresh) {UFitIcon(systemName: UFitRefundRecoveryCopy.refreshIcon)}.accessibilityLabel(UFitRefundOrganizationCopy.refresh).disabled(isLoading)}
     private func section(_ title: String, _ text: String) -> some View {
         VStack(alignment: .leading, spacing: UFitSpace.xs) {Text(title).font(UFitTypography.subheadline.weight(.semibold)); Text(text).font(UFitTypography.callout).textSelection(.enabled)}
     }

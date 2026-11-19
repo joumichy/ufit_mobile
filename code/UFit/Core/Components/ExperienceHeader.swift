@@ -5,10 +5,9 @@ struct UFitExperienceHeader: View {
     let name: String
     let kind: UFitExperienceKind
     let onChooseExperience: () -> Void
-    var onRefresh: (() -> Void)?
     var isLoading = false
-    private enum Copy { static let choose = String(localized: "Changer d’espace"); static let refresh = String(localized: "Actualiser") }
-    private enum Icon { static let choose = "chevron.down"; static let refresh = "arrow.clockwise" }
+    private enum Copy { static let choose = String(localized: "Changer d’espace") }
+    private enum Icon { static let choose = "chevron.down" }
     private enum Layout {
         static let page: CGFloat = UFitSpace.xl; static let title: CGFloat = UFitTypography.Size.display; static let gap: CGFloat = UFitSpace.xs; static let touch: CGFloat = UFitControlSize.touch
     }
@@ -22,7 +21,7 @@ struct UFitExperienceHeader: View {
                     }.frame(minHeight: Layout.touch).contentShape(Rectangle())
                 }.accessibilityLabel(Copy.choose).accessibilityValue(name == kind.title ? name : name + TextSeparator.value + kind.title)
                 Spacer(minLength: Layout.gap)
-                if let onRefresh { UFitButton(action: onRefresh) { UFitIcon(systemName: Icon.refresh).frame(width: Layout.touch, height: Layout.touch) }.accessibilityLabel(Copy.refresh).disabled(isLoading) }
+                if isLoading { UFitLoading().frame(width: Layout.touch, height: Layout.touch) }
             }
             Text(title).ufitFont(size: Layout.title, weight: .regular, design: .serif).accessibilityAddTraits(.isHeader)
         }.padding(.horizontal, Layout.page).padding(.top, Layout.gap).padding(.bottom, Layout.page)

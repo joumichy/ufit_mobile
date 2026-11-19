@@ -16,14 +16,11 @@ struct UFitUserAdministrationContent: View {
     let onReset: () -> Void
     let onOpen: (String) -> Void
     let onMore: () -> Void
-    private enum Icon { static let refresh = "arrow.clockwise"; static let next = "chevron.right"; static let empty = "person.2" }
+    private enum Icon { static let next = "chevron.right"; static let empty = "person.2" }
     private var filtered: Bool { !UFitServerTextInput.trimmed(search).isEmpty || status != nil || role != nil }
     var body: some View {
         VStack(spacing: .zero) {
-            DetailHeader(title: UFitUserAdministrationCopy.title, onBack: onBack) {
-                UFitButton(action: onRefresh) { UFitIcon(systemName: Icon.refresh) }
-                    .disabled(isLoading).accessibilityLabel(UFitUserAdministrationCopy.refresh)
-            }
+            DetailHeader(title: UFitUserAdministrationCopy.title, onBack: onBack)
             ScrollView {
                 VStack(alignment: .leading, spacing: UFitSpace.lg) {
                     UFitSearchField(query: $search, prompt: UFitUserAdministrationCopy.search).onSubmit(onSearch)
@@ -65,6 +62,7 @@ struct UFitUserAdministrationContent: View {
                     }
                 }.padding(UFitSpace.page).frame(maxWidth: .infinity, alignment: .leading)
             }.scrollDismissesKeyboard(.interactively)
+                .ufitRefreshable(isEnabled: !isLoading, title: UFitUserAdministrationCopy.refresh) { onRefresh() }
         }.ufitButtonStyle(.text).foregroundStyle(Color.ufitInk).background(Color.ufitCanvas)
     }
     private var statusFilter: some View {

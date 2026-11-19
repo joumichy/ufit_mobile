@@ -23,7 +23,7 @@ struct UFitManagedOutfitsHost: View {
                     isLoadingMore: store.isLoadingMore, hasMore: store.nextCursor != nil, busyIDs: store.busyIDs, message: store.message,
                     onBack: onBack, onSelectStatus: { status in Task { await store.filter(status) } }, onRefresh: { await store.load() },
                     onMore: { await store.more() }, onOpen: { id in Task { if let outfit = await store.open(id) { onOpen(outfit) } } }, onCreate: { onCreate(store) }, onCalendar: store.scope == nil ? nil : showCalendar)
-                    .task { await store.load() }.onDisappear { store.cancelOpening() }
+                    .task { await store.loadIfNeeded() }.onDisappear { store.cancelOpening() }
             }
         }
     }
@@ -64,7 +64,7 @@ struct UFitOutfitFormHost: View {
             } else if let metadata = store.metadata, store.hasPrepared {
                 UFitOutfitFormContent(draft: $store.draft, tags: metadata.tags, isNew: store.isNew, changesPublishedOutfit: store.original?.status == .published,
                     hasChanges: store.hasChanges, isBusy: store.isBusy, errors: store.errors, message: store.message, onBack: onBack,
-                    onSave: { Task { if let outfit = await store.save() { onSaved(outfit) } } }, onReloadTags: { Task { await store.prepare() } },
+                    onSave: { Task { if let outfit = await store.save() { onSaved(outfit) } } }, onReloadTags: { Task { await store.prepare(reloadMetadata: true) } },
                     onAddPhotos: { selectedPhotos = []; showingPhotos = true }, onRetryPhoto: store.retryPhoto, onRemovePhoto: store.removePhoto,
                     onSelectProduct: { productSelection = UFitOutfitProductSelectionStore(form: store) }, renewPhotoSource: store.renewPhotoSource,
                     cancelsScheduledPublication: store.original?.scheduledFor != nil)

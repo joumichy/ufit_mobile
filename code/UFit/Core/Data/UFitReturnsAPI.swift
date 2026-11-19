@@ -112,7 +112,7 @@ extension UFitAPIClient {
         guard options.orderId == orderID, options.canRequest else { throw UFitReturnContractError.draft }
         let body = try UFitReturnSelection(draft: draft, options: options)
         do {
-            let result: UFitReturnQuoteDTO = try await send(UFitReturnsHTTP.post, path: UFitReturnScope.customer(orderID: orderID).path + UFitReturnsHTTP.preview, body: body, requiresAuth: true)
+            let result: UFitReturnQuoteDTO = try await send(UFitReturnsHTTP.post, path: UFitReturnScope.customer(orderID: orderID).path + UFitReturnsHTTP.preview, body: body, requiresAuth: true, publicOutfitsChange: false)
             try result.validate(orderID: orderID, options: options); return result
         } catch is DecodingError { throw UFitReturnContractError.document }
     }
@@ -120,7 +120,7 @@ extension UFitAPIClient {
         try request.validate()
         let scope = UFitReturnScope.customer(orderID: orderID)
         do {
-            let result: UFitReturnDetailDTO = try await send(UFitReturnsHTTP.post, path: scope.path, body: request, requiresAuth: true)
+            let result: UFitReturnDetailDTO = try await send(UFitReturnsHTTP.post, path: scope.path, body: request, requiresAuth: true, publicOutfitsChange: false)
             try result.validate(scope: scope)
             guard result.reason == request.reason,
                   Dictionary(uniqueKeysWithValues: result.items.map { ($0.id, $0.quantity) }) == Dictionary(uniqueKeysWithValues: request.items.map { ($0.orderItemId, $0.quantity) }) else { throw UFitReturnContractError.document }
@@ -131,7 +131,7 @@ extension UFitAPIClient {
         try detail.validate(scope: scope, expectedID: detail.id)
         let body = try UFitReturnActionRequest(command: command, draft: draft, detail: detail)
         do {
-            let result: UFitReturnDetailDTO = try await send(UFitReturnsHTTP.post, path: scope.path + UFitReturnsHTTP.separator + detail.id + UFitReturnsHTTP.actions, body: body, requiresAuth: true)
+            let result: UFitReturnDetailDTO = try await send(UFitReturnsHTTP.post, path: scope.path + UFitReturnsHTTP.separator + detail.id + UFitReturnsHTTP.actions, body: body, requiresAuth: true, publicOutfitsChange: false)
             try result.validate(scope: scope, expectedID: detail.id)
             guard result.version == detail.version + UFitReturnInput.versionStep, result.orderId == detail.orderId, result.brandId == detail.brandId else { throw UFitReturnContractError.document }
             return result

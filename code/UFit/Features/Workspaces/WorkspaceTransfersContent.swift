@@ -15,16 +15,11 @@ struct UFitWorkspaceTransfersContent: View {
     let store: UFitWorkspaceTransfersStore
     let onBack: () -> Void; let onAccount: () -> Void
     private typealias Copy = UFitWorkspaceTransfersCopy
-    private enum Icon { static let refresh = "arrow.clockwise" }
     private enum Anchor { case top }
     var body: some View {
         VStack(spacing: .zero) {
             DetailHeader(title: Copy.title, onBack: onBack) {
-                if store.canRead {
-                UFitButton { Task { await store.refresh() } } label: {
-                    if store.isLoading { UFitLoading() } else { UFitIcon(systemName: Icon.refresh) }
-                }.accessibilityLabel(Copy.refresh).disabled(store.isLoading)
-                }
+                if store.canRead && store.isLoading { UFitLoading() }
             }
             if !store.canRead {
                 UFitEmptyState(title: Copy.unavailable, message: Copy.unavailableScope, symbol: Copy.historyIcon,
@@ -58,6 +53,7 @@ struct UFitWorkspaceTransfersContent: View {
                         }
                     }.padding(.vertical, UFitSpace.xl).frame(maxWidth: .infinity, alignment: .leading)
                 }.padding(.horizontal, UFitSpace.page)
+                    .ufitRefreshable(isEnabled: store.canRead && !store.isLoading, title: Copy.refresh) { await store.refresh() }
                     .onChange(of: store.document?.revision) { previous, current in
                         if previous != nil && current != nil && previous != current { proxy.scrollTo(Anchor.top, anchor: .top) }
                     }

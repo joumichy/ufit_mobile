@@ -27,12 +27,10 @@ struct UFitReturnsContent: View {
         static let page: CGFloat = UFitSpace.xl; static let gap: CGFloat = UFitSpace.md; static let small: CGFloat = UFitSpace.xs; static let touch: CGFloat = UFitControlSize.touch
         static let title: CGFloat = UFitTypography.Size.editorial; static let referenceScale = 0.85
     }
-    private enum Icon { static let refresh = "arrow.clockwise"; static let chevron = "chevron.right" }
+    private enum Icon { static let chevron = "chevron.right" }
     var body: some View {
         VStack(spacing: .zero) {
-            DetailHeader(title: Copy.title, onBack: onBack) {
-                UFitButton(action: onRefresh) { UFitIcon(systemName: Icon.refresh).frame(width: Layout.touch, height: Layout.touch) }.accessibilityLabel(Copy.refresh).disabled(isLoading)
-            }
+            DetailHeader(title: Copy.title, onBack: onBack)
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: Layout.page) {
                     Text(context).font(UFitTypography.subheadline).foregroundStyle(Color.ufitSecondaryText)
@@ -59,7 +57,7 @@ struct UFitReturnsContent: View {
                     if isLoading || (!hasLoaded && message == nil) { UFitLoading(Copy.loading).frame(maxWidth: .infinity) }
                     else if hasMore { UFitActionButton(title: Copy.more, kind: .secondary, action: onMore) }
                 }.padding(Layout.page).frame(maxWidth: .infinity, alignment: .leading)
-            }.ufitRefreshable { onRefresh() }
+            }.ufitRefreshable(isEnabled: !isLoading, title: Copy.refresh) { onRefresh() }
         }.safeAreaInset(edge: .bottom, spacing: .zero) {
             if canCreate { UFitButton(action: onCreate) { Text(Copy.create).padding(.horizontal, Layout.gap).frame(maxWidth: .infinity) }.ufitButtonStyle(.primary).padding(Layout.gap).background(Color.ufitCanvas).overlay(alignment: .top) { Divider() } }
         }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.ufitCanvas)

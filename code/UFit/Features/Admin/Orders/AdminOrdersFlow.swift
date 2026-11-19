@@ -96,10 +96,7 @@ private struct UFitAdminOrderReturnsContent: View {
     let onBack: () -> Void; let onOpen: (String) -> Void
     var body: some View {
         VStack(spacing: .zero) {
-            DetailHeader(title: UFitAdminOrdersCopy.returns, onBack: onBack) {
-                UFitButton { Task { await store.refresh() } } label: { UFitIcon(systemName: UFitAdminOrdersCopy.refreshIcon) }
-                    .accessibilityLabel(UFitAdminOrdersCopy.refresh).disabled(store.isLoading)
-            }
+            DetailHeader(title: UFitAdminOrdersCopy.returns, onBack: onBack)
             ScrollView {
                 VStack(alignment: .leading, spacing: UFitSpace.lg) {
                     Text(store.reference).font(UFitTypography.headline)
@@ -132,7 +129,7 @@ private struct UFitAdminOrderReturnsContent: View {
                         UFitActionButton(title: UFitAdminOrdersCopy.more, kind: .secondary, disabled: store.isLoading) { Task { await store.load(reset: false) } }
                     }
                 }.padding(UFitSpace.page).frame(maxWidth: .infinity, alignment: .leading)
-            }
+            }.ufitRefreshable(isEnabled: !store.isLoading, title: UFitAdminOrdersCopy.refresh) { await store.refresh() }
         }.ufitButtonStyle(.text).foregroundStyle(Color.ufitInk).background(Color.ufitCanvas)
             .task { if !store.hasLoaded { await store.load() } }.onDisappear { store.cancelLoading() }
     }

@@ -10,9 +10,7 @@ struct UFitPaymentSettlementContent: View {
     var body: some View {
         VStack(spacing: .zero) {
             DetailHeader(title: Copy.title, onBack: onBack) {
-                UFitButton(action: onRefresh) {
-                    if isLoading { UFitLoading() } else { UFitIcon(systemName: UFitAdminOrdersCopy.refreshIcon) }
-                }.accessibilityLabel(UFitAdminOrdersCopy.refresh).disabled(isLoading || isSending)
+                if isLoading { UFitLoading() }
             }
             ScrollView {
                 VStack(alignment: .leading, spacing: UFitSpace.xxl) {
@@ -39,6 +37,7 @@ struct UFitPaymentSettlementContent: View {
                     }
                 }.frame(maxWidth: .infinity, alignment: .leading).padding(.vertical, UFitSpace.xl)
             }.padding(.horizontal, UFitSpace.page)
+                .ufitRefreshable(isEnabled: !isLoading && !isSending, title: UFitAdminOrdersCopy.refresh) { onRefresh() }
         }.ufitButtonStyle(.text).foregroundStyle(Color.ufitInk).background(Color.ufitCanvas)
     }
     private func payment(_ payment: UFitPaymentSettlementDocument.Payment) -> some View {

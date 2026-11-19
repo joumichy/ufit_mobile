@@ -86,12 +86,13 @@ private struct UFitShippingAddressChange: Decodable { @UFitRequiredNullable var 
 private struct UFitShippingCountries: Decodable { let countries: [String] }
 
 extension UFitAPIClient {
-    func shippingCountries() async throws -> [UFitCountry] {
-        let value: UFitShippingCountries = try await send(UFitShippingAddressesHTTP.get,
-            path: UFitShippingAddressesHTTP.root + UFitShippingAddressesHTTP.countries, requiresAuth: true, cachePolicy: .reloadIgnoringLocalCacheData)
-        guard !value.countries.isEmpty, Set(value.countries).count == value.countries.count,
-              value.countries.allSatisfy({ $0.range(of: UFitCountry.codePattern, options: .regularExpression) != nil }) else {
-            throw UFitShippingAddressFailure.document
+    func shippingCountries(reload: Bool = false) async throws -> [UFitCountry] {
+        let value: UFitShippingCountries = try await fetchReference(path: UFitShippingAddressesHTTP.root + UFitShippingAddressesHTTP.countries,
+            reload: reload) { (value: UFitShippingCountries) in
+            guard !value.countries.isEmpty, Set(value.countries).count == value.countries.count,
+                  value.countries.allSatisfy({ $0.range(of: UFitCountry.codePattern, options: .regularExpression) != nil }) else {
+                throw UFitShippingAddressFailure.document
+            }
         }
         return value.countries.map { .init(id: $0, name: UFitCountry.displayLocale.localizedString(forRegionCode: $0) ?? $0) }
             .sorted { $0.name.localizedCompare($1.name) == .orderedAscending }
@@ -116,7 +117,7 @@ extension UFitAPIClient {
         try command.validate(userID: command.userID)
         let receipt: UFitShippingAddressReceipt = try await send(UFitShippingAddressesHTTP.put,
             path: UFitShippingAddressesHTTP.root + command.userID + UFitShippingAddressesHTTP.changes + command.requestID,
-            body: command.input, requiresAuth: true)
+            body: command.input, requiresAuth: true, publicOutfitsChange: false)
         try receipt.validate(command)
         return receipt
     }

@@ -19,10 +19,7 @@ struct UFitRefundRecoveryContent: View {
     let onOpen: (UFitRefundRecoveryReference) -> Void
     var body: some View {
         VStack(spacing: .zero) {
-            DetailHeader(title: UFitRefundRecoveryCopy.title, onBack: onBack) {
-                UFitButton(action: onRefresh) {UFitIcon(systemName: UFitRefundRecoveryCopy.refreshIcon)}
-                    .accessibilityLabel(UFitRefundRecoveryCopy.refresh).disabled(isLoading)
-            }
+            DetailHeader(title: UFitRefundRecoveryCopy.title, onBack: onBack)
             ScrollView {
                 VStack(alignment: .leading, spacing: UFitSpace.lg) {
                     UFitSearchField(query: $search, prompt: UFitRefundRecoveryCopy.search).onSubmit(onSearch)
@@ -64,6 +61,7 @@ struct UFitRefundRecoveryContent: View {
                     }
                 }.padding(UFitSpace.page).frame(maxWidth: .infinity, alignment: .leading)
             }.scrollDismissesKeyboard(.interactively)
+                .ufitRefreshable(isEnabled: !isLoading, title: UFitRefundRecoveryCopy.refresh) { onRefresh() }
         }.ufitButtonStyle(.text).foregroundStyle(Color.ufitInk).background(Color.ufitCanvas)
     }
 }
@@ -76,10 +74,7 @@ struct UFitRefundRecoveryDetailContent: View {
     let onSource: () -> Void
     var body: some View {
         VStack(spacing: .zero) {
-            DetailHeader(title: UFitRefundRecoveryCopy.title, onBack: onBack) {
-                UFitButton(action: onRefresh) {UFitIcon(systemName: UFitRefundRecoveryCopy.refreshIcon)}
-                    .accessibilityLabel(UFitRefundRecoveryCopy.refresh).disabled(isLoading)
-            }
+            DetailHeader(title: UFitRefundRecoveryCopy.title, onBack: onBack)
             ScrollView {
                 VStack(alignment: .leading, spacing: UFitSpace.lg) {
                     if let message {
@@ -103,7 +98,7 @@ struct UFitRefundRecoveryDetailContent: View {
                     } else if isLoading {UFitLoading(UFitRefundRecoveryCopy.loading).frame(maxWidth: .infinity)}
                     else {UFitEmptyState(title: UFitRefundRecoveryCopy.unavailable, symbol: UFitRefundRecoveryCopy.icon, actionTitle: UFitRefundRecoveryCopy.backToQueue, action: onBack)}
                 }.padding(UFitSpace.page).frame(maxWidth: .infinity, alignment: .leading)
-            }
+            }.ufitRefreshable(isEnabled: !isLoading, title: UFitRefundRecoveryCopy.refresh) { onRefresh() }
         }.foregroundStyle(Color.ufitInk).background(Color.ufitCanvas)
     }
 }

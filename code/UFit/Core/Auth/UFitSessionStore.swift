@@ -116,6 +116,7 @@ final class UFitSessionStore {
                     // Its identity guard rejects the old session without cancelling the new request.
                     if self.profileIdentity != identity { self.user = nil; self.profileIdentity = nil }
                     self.observedAuthIdentity = identity
+                    await self.api.invalidateReadData()
                 }
                 self.isSignedIn = session != nil && identity?.subject != self.deletedAuthSubject
                 if session == nil {
@@ -255,6 +256,17 @@ final class UFitSessionStore {
         try? await auth?.auth.signOut(scope: .local)
     }
 
+    func accountDeletionClient(userID: String, subject: UUID) async throws -> UFitAPIClient {
+        guard let auth, isSignedIn, user?.id == userID, authIdentity?.subject == subject else { throw CancellationError() }
+        let identity = try await auth.auth.session
+        guard identity.user.id == subject, isSignedIn, user?.id == userID,
+              authIdentity?.subject == subject else { throw CancellationError() }
+        // A destructive confirmation must keep its actor even if another session opens
+        // while the request is in flight. The normal token provider can refresh/suspend.
+        return UFitAPIClient(configuration: .init(baseURL: configuration.apiURL, bearerToken: identity.accessToken),
+            onAuthenticationRejected: { [weak self] token in await self?.invalidateAuthentication(accessToken: token) })
+    }
+
     private func prepareAuthenticationTransition() {
         deviceNotifications.prepareForAuthentication()
         profileRequest = UUID(); profileIdentity = nil; user = nil; isLoadingProfile = false
@@ -276,8 +288,15 @@ final class UFitSessionStore {
         do {
             let current = try await api.fetchCurrentUser()
             guard authIdentity == expected, profileRequest == request else { return }
+            if user?.id != current.id || user?.status != current.status ||
+                Set(user?.roles.map(\.rawValue) ?? []) != Set(current.roles.map(\.rawValue)) {
+                await api.invalidateReadData()
+                guard authIdentity == expected, profileRequest == request else { return }
+            }
             user = current; profileIdentity = expected; message = nil; deviceNotifications.contextChanged()
         } catch {
+            guard authIdentity == expected, profileRequest == request else { return }
+            await api.invalidateReadData()
             guard authIdentity == expected, profileRequest == request else { return }
             user = nil; profileIdentity = nil; deviceNotifications.contextChanged()
             message = UFitAuthenticationFailure(error)?.localizedDescription ?? error.localizedDescription

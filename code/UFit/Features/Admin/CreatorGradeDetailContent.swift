@@ -14,10 +14,7 @@ struct UFitCreatorGradeDetailContent: View {
     let onMore: () -> Void
     var body: some View {
         VStack(spacing: .zero) {
-            DetailHeader(title: CreatorGradePresentationCopy.definitions, onBack: onBack) {
-                UFitButton(action: onRefresh) { UFitIcon(systemName: CreatorGradePresentationCopy.refreshSymbol) }
-                    .disabled(isLoading).accessibilityLabel(UFitCreatorGradeAdminCopy.refresh)
-            }
+            DetailHeader(title: CreatorGradePresentationCopy.definitions, onBack: onBack)
             ScrollView {
                 VStack(alignment: .leading, spacing: UFitSpace.xl) {
                     UFitCreatorGradeFacts(grade: grade)
@@ -48,7 +45,7 @@ struct UFitCreatorGradeDetailContent: View {
                         if hasMore { UFitActionButton(title: UFitCreatorGradeAdminCopy.more, kind: .secondary, disabled: isLoading, action: onMore) }
                     }
                 }.padding(UFitSpace.page).frame(maxWidth: .infinity, alignment: .leading)
-            }
+            }.ufitRefreshable(isEnabled: !isLoading, title: UFitCreatorGradeAdminCopy.refresh) { onRefresh() }
         }.ufitButtonStyle(.text).foregroundStyle(Color.ufitInk).background(Color.ufitCanvas)
     }
 }

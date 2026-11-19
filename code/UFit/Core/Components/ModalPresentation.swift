@@ -38,7 +38,9 @@ struct UFitDialogContent<Actions: View, Message: View>: View {
         ZStack(alignment: .bottom) {
             UFitSurface.scrim.ignoresSafeArea().onTapGesture { isPresented = false }.accessibilityHidden(true)
             ViewThatFits(in: .vertical) { panel.fixedSize(horizontal: false, vertical: true); ScrollView { panel }.scrollIndicators(.hidden) }
-        }.background(Color.clear).presentationBackground(.clear)
+        }.frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottom)
+            .background(Color.clear).presentationBackground(.clear)
+            .accessibilityAction(.escape) { isPresented = false }
     }
     private var panel: some View {
             VStack(alignment: .leading, spacing: UFitSpace.md) {
@@ -46,9 +48,13 @@ struct UFitDialogContent<Actions: View, Message: View>: View {
                 message.font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText).padding(.horizontal, UFitSpace.page)
                 VStack(spacing: UFitSpace.xs) { actions }
                     .ufitButtonStyle(.secondary)
+                    .environment(\.ufitButtonFillsWidth, true)
                     .environment(\.ufitActionDismiss, { isPresented = false })
                     .padding(.horizontal, UFitSpace.page).padding(.bottom, UFitSpace.xl)
-            }.background(Color.ufitCanvas, in: UnevenRoundedRectangle(topLeadingRadius: UFitRadius.sheet, topTrailingRadius: UFitRadius.sheet))
+            }.background {
+                UnevenRoundedRectangle(topLeadingRadius: UFitRadius.sheet, topTrailingRadius: UFitRadius.sheet)
+                    .fill(Color.ufitCanvas).ignoresSafeArea(.container, edges: .bottom)
+            }
                 .accessibilityAddTraits(.isModal)
     }
 }

@@ -12,13 +12,9 @@ struct UFitUserAdministrationDetailContent: View {
     let onDecide: (UFitUserAccessDecision) -> Void
     let onMore: () -> Void
     var onProfiles: (() -> Void)? = nil
-    private enum Icon { static let refresh = "arrow.clockwise" }
     var body: some View {
         VStack(spacing: .zero) {
-            DetailHeader(title: UFitUserAdministrationCopy.account, onBack: onBack) {
-                UFitButton(action: onRefresh) { UFitIcon(systemName: Icon.refresh) }
-                    .disabled(isLoading).accessibilityLabel(UFitUserAdministrationCopy.refresh)
-            }
+            DetailHeader(title: UFitUserAdministrationCopy.account, onBack: onBack)
             ScrollView {
                 VStack(alignment: .leading, spacing: UFitSpace.xl) {
                     VStack(alignment: .leading, spacing: UFitSpace.xs) {
@@ -78,7 +74,7 @@ struct UFitUserAdministrationDetailContent: View {
                         }
                     }
                 }.padding(UFitSpace.page).frame(maxWidth: .infinity, alignment: .leading)
-            }
+            }.ufitRefreshable(isEnabled: !isLoading, title: UFitUserAdministrationCopy.refresh) { onRefresh() }
         }.ufitButtonStyle(.text).foregroundStyle(Color.ufitInk).background(Color.ufitCanvas)
     }
 }

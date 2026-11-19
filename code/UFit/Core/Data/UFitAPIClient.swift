@@ -130,6 +130,7 @@ struct UFitAPIClient {
     private let onAuthenticationRejected: (@Sendable (String) async -> Void)?
     private let decoder = JSONDecoder()
     private let encoder = JSONEncoder()
+    private let readReuse = UFitAPIReadReuse()
 
     init(configuration: UFitAPIConfiguration = .live(), session: URLSession = .shared,
          tokenProvider: (@Sendable () async throws -> String?)? = nil,
@@ -142,7 +143,7 @@ struct UFitAPIClient {
 
     func updateProfile(name: String) async throws -> UFitCurrentUser {
         struct ProfilePatch: Encodable { let displayName: String }
-        return try await send("PATCH", path: "me", body: ProfilePatch(displayName: name), requiresAuth: true)
+        return try await send("PATCH", path: "me", body: ProfilePatch(displayName: name), requiresAuth: true, publicOutfitsChange: false)
     }
 
     func fetchCurrentUser() async throws -> UFitCurrentUser {
@@ -157,7 +158,7 @@ struct UFitAPIClient {
         if let author { query.append(URLQueryItem(name: author.kind == .creator ? UFitOutfitPublicHTTP.creator : UFitOutfitPublicHTTP.brand, value: author.id)) }
         if let discovery { query.append(contentsOf: discovery.queryItems) }
         let page: UFitFeedResponseDTO
-        do { page = try await send(UFitOutfitPublicHTTP.get, path: UFitOutfitPublicHTTP.root, query: query) }
+        do { page = try await send(UFitOutfitPublicHTTP.get, path: UFitOutfitPublicHTTP.root, query: query, readScope: .publicOutfits) }
         catch is DecodingError { throw UFitPublicProfileContractError.outfits }
         for item in page.items {
             try item.validateShopping()
@@ -171,7 +172,7 @@ struct UFitAPIClient {
 
     func fetchOutfitDetail(id: String) async throws -> UFitOutfitDetailDTO {
         let detail: UFitOutfitDetailDTO
-        do { detail = try await send(UFitOutfitPublicHTTP.get, path: UFitOutfitPublicHTTP.root + UFitOutfitPublicHTTP.separator + id) }
+        do { detail = try await send(UFitOutfitPublicHTTP.get, path: UFitOutfitPublicHTTP.root + UFitOutfitPublicHTTP.separator + id, readScope: .publicOutfits) }
         catch is DecodingError { throw UFitPublicProfileContractError.outfits }
         guard detail.id == id else { throw UFitPublicProfileContractError.outfits }
         try UFitPublicOutfitIdentity.validate(id: detail.id, author: detail.author, creatorID: detail.creatorId, brandID: detail.brandId)
@@ -180,16 +181,30 @@ struct UFitAPIClient {
     }
 
     func addCartItem(_ body: UFitAddCartItemRequest) async throws -> UFitCartDTO {
-        try await send("POST", path: "cart/items", body: body, requiresAuth: true)
+        try await send("POST", path: "cart/items", body: body, requiresAuth: true, publicOutfitsChange: false)
     }
 
     func checkout(_ body: UFitCheckoutRequest) async throws -> UFitCustomerPaymentSessionDTO {
-        let result: UFitCustomerPaymentSessionDTO = try await send(UFitCustomerPaymentHTTP.post, path: UFitCustomerPaymentHTTP.checkout, body: body, requiresAuth: true)
+        let result: UFitCustomerPaymentSessionDTO = try await send(UFitCustomerPaymentHTTP.post, path: UFitCustomerPaymentHTTP.checkout, body: body, requiresAuth: true, publicOutfitsChange: false)
         try result.validate(); return result
     }
 
     func fetchPublicProduct(id: String) async throws -> UFitPublicProductDTO {
         try await send("GET", path: "products/\(id)/public")
+    }
+
+    func invalidateReadData() async { await readReuse.invalidateAccount() }
+    func dataGeneration() async -> UUID { await readReuse.generation(for: .account) }
+    func publicOutfitsGeneration() async -> UUID { await readReuse.generation(for: .publicOutfits) }
+
+    func fetchReference<Response: Decodable>(path: String, requiresAuth: Bool = true, reload: Bool = false,
+        validate: @escaping @Sendable (Response) throws -> Void) async throws -> Response {
+        let reference = UFitAPIReadReuse.Reference(reload: reload) { data in
+            try validate(JSONDecoder().decode(Response.self, from: data))
+        }
+        let (data, _) = try await response(UFitAPIReadReuse.Policy.get, path: path, query: [], bodyData: nil,
+            requiresAuth: requiresAuth, cachePolicy: .reloadIgnoringLocalCacheData, reference: reference)
+        return try decoder.decode(Response.self, from: data)
     }
 
     func send<Response: Decodable, Body: Encodable>(
@@ -198,9 +213,10 @@ struct UFitAPIClient {
         query: [URLQueryItem] = [],
         body: Body,
         requiresAuth: Bool = false,
-        headers: [String: String] = [:]
+        headers: [String: String] = [:],
+        publicOutfitsChange: Bool = true
     ) async throws -> Response {
-        try await send(method, path: path, query: query, bodyData: encoder.encode(body), requiresAuth: requiresAuth, headers: headers)
+        try await send(method, path: path, query: query, bodyData: encoder.encode(body), requiresAuth: requiresAuth, headers: headers, publicOutfitsChange: publicOutfitsChange)
     }
 
     func send<Response: Decodable>(
@@ -209,13 +225,15 @@ struct UFitAPIClient {
         query: [URLQueryItem] = [],
         requiresAuth: Bool = false,
         cachePolicy: URLRequest.CachePolicy = .useProtocolCachePolicy,
-        headers: [String: String] = [:]
+        headers: [String: String] = [:],
+        readScope: UFitAPIReadReuse.Scope = .account,
+        publicOutfitsChange: Bool = true
     ) async throws -> Response {
-        try await send(method, path: path, query: query, bodyData: nil, requiresAuth: requiresAuth, cachePolicy: cachePolicy, headers: headers)
+        try await send(method, path: path, query: query, bodyData: nil, requiresAuth: requiresAuth, cachePolicy: cachePolicy, headers: headers, readScope: readScope, publicOutfitsChange: publicOutfitsChange)
     }
 
-    func send<Response: Decodable>(_ method: String, path: String, multipart: UFitMultipartBody, requiresAuth: Bool) async throws -> Response {
-        try await send(method, path: path, query: [], bodyData: multipart.data, requiresAuth: requiresAuth, bodyContentType: multipart.contentType)
+    func send<Response: Decodable>(_ method: String, path: String, multipart: UFitMultipartBody, requiresAuth: Bool, publicOutfitsChange: Bool = true) async throws -> Response {
+        try await send(method, path: path, query: [], bodyData: multipart.data, requiresAuth: requiresAuth, bodyContentType: multipart.contentType, publicOutfitsChange: publicOutfitsChange)
     }
 
     private func send<Response: Decodable>(
@@ -226,9 +244,11 @@ struct UFitAPIClient {
         requiresAuth: Bool,
         bodyContentType: String = UFitHTTPBodyContent.json,
         cachePolicy: URLRequest.CachePolicy = .useProtocolCachePolicy,
-        headers: [String: String] = [:]
+        headers: [String: String] = [:],
+        readScope: UFitAPIReadReuse.Scope = .account,
+        publicOutfitsChange: Bool = true
     ) async throws -> Response {
-        let (data, _) = try await response(method, path: path, query: query, bodyData: bodyData, requiresAuth: requiresAuth, bodyContentType: bodyContentType, cachePolicy: cachePolicy, headers: headers)
+        let (data, _) = try await response(method, path: path, query: query, bodyData: bodyData, requiresAuth: requiresAuth, bodyContentType: bodyContentType, cachePolicy: cachePolicy, headers: headers, readScope: readScope, publicOutfitsChange: publicOutfitsChange)
         return try decoder.decode(Response.self, from: data)
     }
 
@@ -239,7 +259,13 @@ struct UFitAPIClient {
 
     private func response(_ method: String, path: String, query: [URLQueryItem], bodyData: Data?, requiresAuth: Bool,
                           bodyContentType: String = UFitHTTPBodyContent.json, cachePolicy: URLRequest.CachePolicy = .useProtocolCachePolicy,
-                          headers: [String: String] = [:], accept: String = UFitHTTPBodyContent.json) async throws -> (Data, HTTPURLResponse) {
+                          headers: [String: String] = [:], accept: String = UFitHTTPBodyContent.json,
+                          reference: UFitAPIReadReuse.Reference? = nil, readScope: UFitAPIReadReuse.Scope = .account,
+                          publicOutfitsChange: Bool = true) async throws -> (Data, HTTPURLResponse) {
+        let isRead = method == UFitAPIReadReuse.Policy.get
+        if !isRead { await readReuse.invalidateMutation(publicOutfitsChange: publicOutfitsChange) }
+        let scope = reference == nil ? readScope : .reference
+        let readContext = await readReuse.generation(for: scope)
         let token: String?
         if let tokenProvider {
             token = requiresAuth ? try await tokenProvider() : nil
@@ -264,11 +290,26 @@ struct UFitAPIClient {
             request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         }
 
-        let (data, response) = try await session.data(for: request)
+        let data: Data
+        let response: URLResponse
+        if isRead {
+            (data, response) = try await readReuse.data(for: request, session: session, scope: scope, context: readContext, reference: reference)
+        } else {
+            do {
+                (data, response) = try await session.data(for: request)
+                await readReuse.invalidateMutation(publicOutfitsChange: publicOutfitsChange)
+            } catch {
+                await readReuse.invalidateMutation(publicOutfitsChange: publicOutfitsChange)
+                throw error
+            }
+        }
         guard let httpResponse = response as? HTTPURLResponse else {
             throw UFitAPIError.emptyResponse
         }
         guard 200..<300 ~= httpResponse.statusCode else {
+            if requiresAuth, httpResponse.statusCode == UFitAuthenticationHTTP.unauthorized || httpResponse.statusCode == UFitAuthenticationHTTP.forbidden {
+                await readReuse.invalidateAccount()
+            }
             if requiresAuth, httpResponse.statusCode == UFitAuthenticationHTTP.unauthorized, let token {
                 await onAuthenticationRejected?(token)
             }

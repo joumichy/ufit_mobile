@@ -56,7 +56,7 @@ extension UFitAPIClient {
         guard current.allowsEditing else { throw UFitNotificationPreferencesFailure.document }
         let result: UFitNotificationPreferencesDTO = try await send(NotificationPreferencesHTTP.put,
             path: NotificationPreferencesHTTP.path + current.userId,
-            body: NotificationPreferencesInput(expectedVersion: current.version, emailEnabled: choices.emailEnabled, pushEnabled: choices.pushEnabled), requiresAuth: true)
+            body: NotificationPreferencesInput(expectedVersion: current.version, emailEnabled: choices.emailEnabled, pushEnabled: choices.pushEnabled), requiresAuth: true, publicOutfitsChange: false)
         try result.validate(userID: current.userId)
         guard result.confirms(choices, after: current) else { throw UFitNotificationPreferencesFailure.document }
         return result

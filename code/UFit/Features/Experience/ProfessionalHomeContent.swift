@@ -19,7 +19,7 @@ struct UFitCreatorStudioContent: View {
     }
     var body: some View {
         VStack(spacing: .zero) {
-            UFitExperienceHeader(title: Copy.title, name: workspace.name, kind: .creator, onChooseExperience: onChooseExperience, onRefresh: message == nil ? onRefresh : nil, isLoading: isLoading)
+            UFitExperienceHeader(title: Copy.title, name: workspace.name, kind: .creator, onChooseExperience: onChooseExperience, isLoading: isLoading)
             ScrollView {
                 VStack(alignment: .leading, spacing: ProfessionalLayout.page) {
                     if workspace.status != .active { UFitNotice(message: workspace.status.label) }
@@ -57,7 +57,7 @@ struct UFitCreatorStudioContent: View {
                     else { UFitActionButton(title: Copy.create, kind: .secondary, disabled: workspace.status == .suspended, action: onCreate) }
                     if let message { UFitNotice(message: message, kind: .error); UFitActionButton(title: Copy.retry, kind: .secondary, action: onRefresh) }
                 }.padding(.horizontal, ProfessionalLayout.page).padding(.bottom, UFitSpace.xl).frame(maxWidth: .infinity, alignment: .leading)
-            }
+            }.ufitRefreshable(isEnabled: !isLoading) { onRefresh() }
         }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.ufitCanvas)
     }
     private func outfitFilter(_ key: UFitWorkspaceActivityFigure.Key) -> UFitOutfitStatus? {
@@ -88,7 +88,7 @@ struct UFitBrandActivityContent: View {
     }
     var body: some View {
         VStack(spacing: .zero) {
-            UFitExperienceHeader(title: Copy.title, name: workspace.name, kind: .brand, onChooseExperience: onChooseExperience, onRefresh: message == nil ? onRefresh : nil, isLoading: isLoading)
+            UFitExperienceHeader(title: Copy.title, name: workspace.name, kind: .brand, onChooseExperience: onChooseExperience, isLoading: isLoading)
             ScrollView {
                 VStack(alignment: .leading, spacing: ProfessionalLayout.page) {
                     if workspace.status != .active { UFitNotice(message: workspace.status.label) }
@@ -139,7 +139,7 @@ struct UFitBrandActivityContent: View {
                     else { UFitActionButton(title: Copy.add, kind: .secondary, disabled: workspace.status == .suspended, action: onAddProduct) }
                     if let message { UFitNotice(message: message, kind: .error); UFitActionButton(title: Copy.retry, kind: .secondary, action: onRefresh) }
                 }.padding(.horizontal, ProfessionalLayout.page).padding(.bottom, UFitSpace.xl).frame(maxWidth: .infinity, alignment: .leading)
-            }
+            }.ufitRefreshable(isEnabled: !isLoading) { onRefresh() }
         }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.ufitCanvas)
     }
 }

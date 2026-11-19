@@ -6,38 +6,26 @@ struct SearchOutfitsContentView: View {
     var preferences: UFitStylePreferencesStore? = nil
     var onCollections: (() -> Void)? = nil
     @State private var showingFilters = false
+    @Environment(\.dynamicTypeSize) private var typeSize
     private typealias Copy = UFitOutfitSearchCopy
     var body: some View {
         VStack(spacing: .zero) {
-            HStack(spacing: .zero) {
-                RootScreenHeader(title: Copy.title)
-                if let onCollections {
-                    UFitButton(UFitEditorialCopy.title, action: onCollections).ufitButtonStyle(.text)
-                        .font(UFitTypography.subheadline).accessibilityLabel(UFitEditorialCopy.open).padding(.trailing, UFitSpace.sm)
-                }
-                UFitButton { Task { await store.search() } } label: {
-                    if store.isLoading { UFitLoading() } else { UFitIcon(systemName: Copy.refreshIcon) }
-                }.ufitButtonStyle(.text).frame(minWidth: UFitControlSize.touch, minHeight: UFitControlSize.touch)
-                    .disabled(store.isLoading).accessibilityLabel(Copy.refresh).padding(.trailing, UFitSpace.page)
-            }
+            header
             VStack(alignment: .leading, spacing: UFitSpace.md) {
                 UFitSearchField(query: $store.criteria.query, prompt: Copy.prompt)
-                UFitChoiceBar(title: Copy.scope, selection: $store.criteria.scope,
-                    options: UFitOutfitSearchScope.allCases.map { .init(value: $0, title: $0.title) })
-                HStack(spacing: UFitSpace.md) {
-                    UFitButton { showingFilters = true } label: {
-                        HStack(spacing: UFitSpace.xs) { UFitIcon(systemName: Copy.filterIcon); Text(Copy.filters) }
-                    }.ufitButtonStyle(.secondary, compact: true).disabled(store.options == nil)
-                    if store.isLoadingOptions { UFitLoading(Copy.loadingOptions) }
-                    else if !store.filterSummary.isEmpty {
-                        Text(store.filterSummary).font(UFitTypography.subheadline).foregroundStyle(Color.ufitSecondaryText)
-                            .fixedSize(horizontal: false, vertical: true)
-                    }
-                    Spacer(minLength: .zero)
+                if typeSize.isAccessibilitySize {
+                    VStack(alignment: .leading, spacing: UFitSpace.xs) { scopes; filters }
+                } else {
+                    HStack(spacing: UFitSpace.sm) { scopes; filters.fixedSize(horizontal: true, vertical: false) }
+                }
+                if store.isLoadingOptions { UFitLoading(Copy.loadingOptions) }
+                else if !store.filterSummary.isEmpty {
+                    Text(store.filterSummary).font(UFitTypography.subheadline).foregroundStyle(Color.ufitSecondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 if let error = store.optionsError {
                     UFitNotice(message: error, kind: .error)
-                    UFitButton(Copy.retryOptions) { Task { await store.loadOptions() } }.ufitButtonStyle(.text)
+                    UFitButton(Copy.retryOptions) { Task { await store.loadOptions() } }.ufitButtonStyle(.secondary, compact: true)
                 }
                 if let preferences, !preferences.shortcuts.isEmpty {
                     UFitChoiceBar(title: UFitStylePreferencesCopy.shortcutTitle, selection: $store.criteria.styleID,
@@ -84,9 +72,9 @@ struct SearchOutfitsContentView: View {
                                 }
                             }.id(Copy.moreAnchor)
                         }
-                    }.padding(UFitSpace.page)
+                    }.padding(.horizontal, UFitSpace.page).padding(.bottom, UFitSpace.page).padding(.top, UFitSpace.xs)
                 }.scrollPosition(id: $store.visibleOutfitID).scrollDismissesKeyboard(.interactively).scrollIndicators(.hidden)
-                    .ufitRefreshable { await store.search() }
+                    .ufitRefreshable(isEnabled: !store.isLoading, title: Copy.refresh) { await store.search() }
                     .onChange(of: store.moreError) { _, error in if error != nil { scroll.scrollTo(Copy.moreAnchor, anchor: .bottom) } }
             }
         }.foregroundStyle(Color.ufitInk).background(Color.ufitCanvas)
@@ -98,6 +86,41 @@ struct SearchOutfitsContentView: View {
             }
             .task(id: store.criteria) { await store.loadIfNeeded() }
             .task { if store.options == nil { await store.loadOptions() } }
+    }
+    private var heading: some View {
+        Text(Copy.title).ufitFont(size: UFitTypography.Size.title, design: .serif)
+            .fixedSize(horizontal: false, vertical: true).accessibilityAddTraits(.isHeader)
+    }
+    @ViewBuilder private var collections: some View {
+        if let onCollections {
+            UFitButton(action: onCollections) {
+                Text(UFitEditorialCopy.title).font(UFitTypography.subheadline.weight(.medium))
+            }.ufitButtonStyle(.secondary, compact: true).accessibilityLabel(UFitEditorialCopy.open)
+        }
+    }
+    private var header: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .center, spacing: UFitSpace.sm) {
+                heading.fixedSize(); Spacer(minLength: .zero); collections.fixedSize(); loadingIndicator
+            }
+            VStack(alignment: .leading, spacing: UFitSpace.sm) {
+                heading
+                HStack { collections; Spacer(minLength: .zero); loadingIndicator }
+            }
+        }.padding(.horizontal, UFitSpace.page).padding(.top, UFitSpace.lg).padding(.bottom, UFitSpace.lg)
+    }
+    @ViewBuilder private var loadingIndicator: some View {
+        if store.isLoading { UFitLoading().frame(width: UFitControlSize.touch, height: UFitControlSize.touch) }
+    }
+    private var scopes: some View {
+        UFitChoiceBar(title: Copy.scope, selection: $store.criteria.scope,
+            options: UFitOutfitSearchScope.allCases.map { .init(value: $0, title: $0.title) }, appearance: .underline)
+    }
+    private var filters: some View {
+        UFitButton { showingFilters = true } label: {
+            HStack(spacing: UFitSpace.xs) { UFitIcon(systemName: Copy.filterIcon); Text(Copy.filters) }
+                .font(UFitTypography.subheadline.weight(.medium))
+        }.ufitButtonStyle(.secondary, compact: true).disabled(store.options == nil)
     }
     private func refresh() { Task { await store.search() } }
 }

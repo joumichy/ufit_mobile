@@ -38,7 +38,7 @@ extension UFitAPIClient {
     func createCommissionRule(brandID: String, productID: String?, gradeCode: String?, configuration: UFitCommissionRuleConfiguration, actorID: String) async throws -> UFitCommissionRuleDTO {
         try configuration.validate()
         let body = CreateRule(brandId: brandID, productId: productID, creatorGradeCode: gradeCode, configuration: configuration)
-        let result: UFitCommissionRuleDTO = try await send(CommissionRulesHTTP.post, path: CommissionRulesHTTP.root, body: body, requiresAuth: true)
+        let result: UFitCommissionRuleDTO = try await send(CommissionRulesHTTP.post, path: CommissionRulesHTTP.root, body: body, requiresAuth: true, publicOutfitsChange: false)
         guard result.matches(brandID: brandID, productID: productID, gradeCode: gradeCode, configuration: configuration), result.createdByUserId == actorID,
               result.revision == UFitCommissionRuleContract.initialRevision, result.previousRuleId == nil, result.supersededAt == nil else { throw UFitCommissionRuleFailure.document }; return result
     }
@@ -46,7 +46,7 @@ extension UFitAPIClient {
         try configuration.validate()
         guard current.revision < UFitCommissionRuleContract.maximumRevision else { throw UFitCommissionRuleFailure.input }
         let body = ReviseRule(expectedRevision: current.revision, configuration: configuration)
-        let result: UFitCommissionRuleDTO = try await send(CommissionRulesHTTP.post, path: CommissionRulesHTTP.root + CommissionRulesHTTP.separator + current.scopeId + CommissionRulesHTTP.revisions, body: body, requiresAuth: true)
+        let result: UFitCommissionRuleDTO = try await send(CommissionRulesHTTP.post, path: CommissionRulesHTTP.root + CommissionRulesHTTP.separator + current.scopeId + CommissionRulesHTTP.revisions, body: body, requiresAuth: true, publicOutfitsChange: false)
         guard result.scopeId == current.scopeId, result.previousRuleId == current.id, result.id != current.id, result.createdByUserId == actorID,
               result.revision == current.revision + UFitCommissionRuleContract.revisionStep, result.supersededAt == nil,
               result.matches(brandID: current.brandId, productID: current.productId, gradeCode: current.creatorGradeCode, configuration: configuration) else { throw UFitCommissionRuleFailure.document }; return result

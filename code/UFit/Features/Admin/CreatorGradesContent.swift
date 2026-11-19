@@ -20,8 +20,6 @@ struct UFitCreatorGradesContent: View {
     var body: some View {
         VStack(spacing: .zero) {
             DetailHeader(title: UFitCreatorGradeAdminCopy.title, onBack: onBack) {
-                UFitButton(action: onSearch) { UFitIcon(systemName: CreatorGradePresentationCopy.refreshSymbol) }
-                    .disabled(isLoading).accessibilityLabel(UFitCreatorGradeAdminCopy.refresh)
                 if !grades.isEmpty || filtered || !hasLoaded || message != nil || isLoading {
                     UFitButton(action: onCreate) { UFitIcon(systemName: CreatorGradePresentationCopy.addSymbol) }
                         .accessibilityLabel(UFitCreatorGradeAdminCopy.create)
@@ -66,6 +64,7 @@ struct UFitCreatorGradesContent: View {
                     }
                 }.padding(UFitSpace.page).frame(maxWidth: .infinity, alignment: .leading)
             }.scrollDismissesKeyboard(.interactively)
+                .ufitRefreshable(isEnabled: !isLoading, title: UFitCreatorGradeAdminCopy.refresh) { onSearch() }
         }.ufitButtonStyle(.text).foregroundStyle(Color.ufitInk).background(Color.ufitCanvas)
     }
     @ViewBuilder private var empty: some View {

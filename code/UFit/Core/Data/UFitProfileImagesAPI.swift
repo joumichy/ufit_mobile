@@ -82,7 +82,7 @@ extension UFitAPIClient {
         let body = UFitMultipartEncoding.image(fields: [(UFitProfileImageHTTP.kind, scope.kind.rawValue),
             (UFitProfileImageHTTP.owner, scope.ownerID.uuidString), (UFitProfileImageHTTP.request, requestID.uuidString)], jpeg: jpeg)
         do {
-            let result: UFitUploadedProfileImage = try await send(UFitProfileImageHTTP.post, path: UFitProfileImageHTTP.upload, multipart: body, requiresAuth: true)
+            let result: UFitUploadedProfileImage = try await send(UFitProfileImageHTTP.post, path: UFitProfileImageHTTP.upload, multipart: body, requiresAuth: true, publicOutfitsChange: false)
             guard result.kind == scope.kind, result.ownerId == scope.ownerID else { throw UFitPhotoError.invalidResponse }
             let image = UFitProfileImage(id: result.id, url: result.url, displayUrl: result.displayUrl)
             try image.validate(); return image
@@ -92,7 +92,7 @@ extension UFitAPIClient {
     func selectProfileImage(scope: UFitProfileImageScope, command: UFitProfileImageCommand) async throws -> UFitProfileImageReceipt {
         guard (UFitProfileImageHTTP.initialVersion..<UFitProfileImageHTTP.maximumVersion).contains(command.expectedVersion) else { throw UFitPhotoError.invalidResponse }
         do {
-            let receipt: UFitProfileImageReceipt = try await send(UFitProfileImageHTTP.put, path: scope.path, body: command, requiresAuth: true)
+            let receipt: UFitProfileImageReceipt = try await send(UFitProfileImageHTTP.put, path: scope.path, body: command, requiresAuth: true, publicOutfitsChange: scope.kind != .account)
             guard receipt.requestId == command.requestId, receipt.version == command.expectedVersion + UFitProfileImageHTTP.versionStep else { throw UFitPhotoError.invalidResponse }
             return receipt
         } catch is DecodingError { throw UFitPhotoError.invalidResponse }

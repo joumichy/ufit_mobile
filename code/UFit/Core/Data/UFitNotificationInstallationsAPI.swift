@@ -59,7 +59,7 @@ extension UFitAPIClient {
             registrationId: operation.id, deviceToken: token, environment: operation.environment)
         let value: UFitInstallationDocument = try await send(UFitInstallationHTTP.put,
             path: UFitInstallationHTTP.path + identity.id + UFitInstallationHTTP.accounts + binding.userID,
-            body: body, requiresAuth: true, headers: [UFitInstallationHTTP.proofHeader: identity.proof])
+            body: body, requiresAuth: true, headers: [UFitInstallationHTTP.proofHeader: identity.proof], publicOutfitsChange: false)
         try value.validate(id: identity.id)
         guard value.confirms(operation, association: binding.id), value.version == operation.version + UFitInstallationHTTP.step else {
             throw UFitInstallationFailure.document
@@ -70,7 +70,7 @@ extension UFitAPIClient {
         try identity.validate(); guard UFitInstallationHTTP.identifier(association) else { throw UFitInstallationFailure.document }
         let value: InstallationDetachDocument = try await send(UFitInstallationHTTP.delete,
             path: UFitInstallationHTTP.path + identity.id + UFitInstallationHTTP.associations + association,
-            body: InstallationDetachInput(), headers: [UFitInstallationHTTP.proofHeader: identity.proof])
+            body: InstallationDetachInput(), headers: [UFitInstallationHTTP.proofHeader: identity.proof], publicOutfitsChange: false)
         guard value.installationId == identity.id, value.associationId == association, value.detached else { throw UFitInstallationFailure.document }
     }
 }

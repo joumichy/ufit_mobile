@@ -15,7 +15,7 @@ struct HomeFeedView: View {
             onDismissFeedback: store.dismissFeedFeedback, onRetry: { Task { await store.refreshFeed() } },
             isLoadingMore: store.isLoadingMoreFeed, moreError: store.feedMoreError,
             onApproachOutfit: { id in Task { await store.loadMoreFeedIfNeeded(near: id) } },
-            onRetryMore: { Task { await store.loadMoreFeed() } })
+            onRetryMore: { Task { await store.retryMoreFeed() } })
         .task {
             await store.loadFeedIfNeeded()
             await store.loadSavedStates(ids: store.outfits.map(\.id))
@@ -23,7 +23,7 @@ struct HomeFeedView: View {
         .onChange(of: store.isLoadingFeed) { _, loading in
             if !loading, let id = store.visibleFeedOutfitID { Task { await store.loadMoreFeedIfNeeded(near: id) } }
         }
-        .ufitRefreshable {
+        .ufitRefreshable(isEnabled: !store.isLoadingFeed) {
             await store.refreshFeed()
         }
         .overlay {

@@ -35,13 +35,25 @@ struct UFitBrandCommercePolicyContent: View {
         static let page: CGFloat = UFitSpace.xl; static let gap: CGFloat = UFitSpace.md; static let small: CGFloat = UFitSpace.xs; static let touch: CGFloat = UFitControlSize.touch; static let title: CGFloat = UFitTypography.Size.editorial
         static let disabledOpacity = 0.4; static let enabledOpacity = 1.0
     }
-    private enum Icon { static let reload = "arrow.clockwise"; static let chevron = "chevron.right" }
+    private enum Icon { static let chevron = "chevron.right" }
     private var locked: Bool { isLoading || isSaving }
+    @ViewBuilder
     var body: some View {
+        if let rate = editingRate {
+            UFitBrandShippingRateContent(rate: rate, isNew: !draft.rates.contains(where: { $0.id == rate.id }), pricesIncludeTaxes: draft.pricesIncludeTaxes,
+                countries: countries, currencies: currencies, otherRates: draft.rates, onClose: { editingRate = nil }, onSave: { value in
+                    if let index = draft.rates.firstIndex(where: { $0.id == value.id }) { draft.rates[index] = value }
+                    else { draft.rates.append(value) }
+                    editingRate = nil
+                })
+        } else {
+            policy
+        }
+    }
+    private var policy: some View {
         VStack(spacing: .zero) {
             DetailHeader(title: Copy.title, onBack: { requestLeaving(.back) }) {
                 if isLoading { UFitLoading().frame(width: Layout.touch, height: Layout.touch) }
-                else { UFitButton { requestLeaving(.reload) } label: { UFitIcon(systemName: Icon.reload).frame(width: Layout.touch, height: Layout.touch) }.accessibilityLabel(Copy.reload) }
             }.disabled(isSaving)
             ScrollView {
                 VStack(alignment: .leading, spacing: Layout.page) {
@@ -82,6 +94,7 @@ struct UFitBrandCommercePolicyContent: View {
                     }
                 }.padding(Layout.page).frame(maxWidth: .infinity, alignment: .leading).disabled(locked)
             }.scrollDismissesKeyboard(.interactively)
+                .ufitRefreshable(isEnabled: !locked, title: Copy.reload) { requestLeaving(.reload) }
         }.safeAreaInset(edge: .bottom, spacing: .zero) {
             VStack(alignment: .leading, spacing: Layout.small) {
                 if let message { Text(message).font(UFitTypography.callout) }
@@ -92,14 +105,6 @@ struct UFitBrandCommercePolicyContent: View {
                 }
             }.padding(Layout.gap).background(Color.ufitCanvas).overlay(alignment: .top) { Divider() }
         }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.ufitCanvas)
-            .ufitSheet(item: $editingRate) { rate in
-                UFitBrandShippingRateContent(rate: rate, isNew: !draft.rates.contains(where: { $0.id == rate.id }), pricesIncludeTaxes: draft.pricesIncludeTaxes,
-                    countries: countries, currencies: currencies, otherRates: draft.rates, onClose: { editingRate = nil }, onSave: { value in
-                        if let index = draft.rates.firstIndex(where: { $0.id == value.id }) { draft.rates[index] = value }
-                        else { draft.rates.append(value) }
-                        editingRate = nil
-                    })
-            }
             .ufitConfirmationDialog(leaving == .reload ? Copy.reloadTitle : Copy.discardTitle,
                 isPresented: Binding(get: { leaving != nil }, set: { if !$0 { leaving = nil } }), titleVisibility: .visible, presenting: leaving) { action in
                     UFitButton(action == .reload ? Copy.reloadDiscard : Copy.discard, role: .destructive) {

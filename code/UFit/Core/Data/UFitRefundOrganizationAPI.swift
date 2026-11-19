@@ -125,7 +125,7 @@ extension UFitAPIClient {
     }
     func applyRefundOrganization(scope: UFitRefundOrganizationScope, reference: UFitRefundRecoveryReference, request: UFitRefundOrganizationRequest) async throws -> UFitRefundOrganizationResultDTO {
         try request.validate()
-        let result: UFitRefundOrganizationResultDTO = try await send(UFitRefundOrganizationHTTP.post, path: UFitRefundOrganizationHTTP.path(scope: scope, reference: reference), body: request, requiresAuth: true)
+        let result: UFitRefundOrganizationResultDTO = try await send(UFitRefundOrganizationHTTP.post, path: UFitRefundOrganizationHTTP.path(scope: scope, reference: reference), body: request, requiresAuth: true, publicOutfitsChange: false)
         try result.validate(scope: scope, reference: reference, request: request); return result
     }
     func refundOrganizationReceipt(scope: UFitRefundOrganizationScope, reference: UFitRefundRecoveryReference, request: UFitRefundOrganizationRequest) async throws -> UFitRefundOrganizationResultDTO {

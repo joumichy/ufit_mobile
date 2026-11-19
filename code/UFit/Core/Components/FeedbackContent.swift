@@ -7,6 +7,7 @@ enum UFitFeedbackCopy {
     static let choose = String(localized: "Choisir")
     static let search = String(localized: "Rechercher")
     static let empty = String(localized: "Aucun résultat")
+    static let refresh = String(localized: "Actualiser")
 }
 struct UFitLoading: View {
     var title: String? = nil
@@ -69,32 +70,43 @@ struct UFitEmptyState: View {
 
 struct UFitPullToRefresh: ViewModifier {
     let action: () async -> Void
+    let isEnabled: Bool
+    let accessibilityTitle: String
+    @Environment(\.isEnabled) private var parentEnabled
     @State private var armed = false
     @State private var refreshing = false
     private enum GestureLayout { static let threshold: CGFloat = 96 }
-    @ViewBuilder func body(content: Content) -> some View {
-        if #available(iOS 18.0, *) {
-            content.onScrollGeometryChange(for: Bool.self) { geometry in
-                geometry.contentOffset.y + geometry.contentInsets.top < -GestureLayout.threshold
-            } action: { _, pulled in if pulled { armed = true } }
-                .onScrollPhaseChange { _, phase in if phase == .idle && armed { refresh() } }
-                .overlay(alignment: .top) { indicator }
-        } else {
-            content.simultaneousGesture(DragGesture().onEnded { gesture in
-                if gesture.startLocation.y < UFitControlSize.touch && gesture.translation.height > GestureLayout.threshold { refresh() }
-            }).overlay(alignment: .top) { indicator }
-        }
+    private var canRefresh: Bool { isEnabled && parentEnabled && !refreshing }
+    func body(content: Content) -> some View {
+        Group {
+            if #available(iOS 18.0, *) {
+                content.onScrollGeometryChange(for: Bool.self) { geometry in
+                    geometry.contentOffset.y + geometry.contentInsets.top < -GestureLayout.threshold
+                } action: { _, pulled in if pulled && canRefresh { armed = true } }
+                    .onScrollPhaseChange { _, phase in if phase == .idle && armed { refresh() } }
+                    .overlay(alignment: .top) { indicator }
+            } else {
+                content.simultaneousGesture(DragGesture().onEnded { gesture in
+                    if gesture.startLocation.y < UFitControlSize.touch && gesture.translation.height > GestureLayout.threshold { refresh() }
+                }).overlay(alignment: .top) { indicator }
+            }
+        }.scrollBounceBehavior(.always, axes: .vertical)
+            .accessibilityActions {
+                if canRefresh { Button(accessibilityTitle, action: refresh) }
+            }
     }
     @ViewBuilder private var indicator: some View {
         if refreshing { UFitLoading().padding(UFitSpace.sm).background(Color.ufitCanvas, in: Capsule()).allowsHitTesting(false) }
     }
     private func refresh() {
         armed = false
-        guard !refreshing else { return }
+        guard canRefresh else { return }
         refreshing = true
         Task { await action(); refreshing = false }
     }
 }
 extension View {
-    func ufitRefreshable(action: @escaping () async -> Void) -> some View { modifier(UFitPullToRefresh(action: action)) }
+    func ufitRefreshable(isEnabled: Bool = true, title: String = UFitFeedbackCopy.refresh, action: @escaping () async -> Void) -> some View {
+        modifier(UFitPullToRefresh(action: action, isEnabled: isEnabled, accessibilityTitle: title))
+    }
 }

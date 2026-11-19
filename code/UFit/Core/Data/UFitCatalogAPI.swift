@@ -86,11 +86,12 @@ struct UFitCatalogWriteRequest: Codable, Equatable {
     }
 }
 extension UFitAPIClient {
-    func fetchCatalogCurrencies() async throws -> [UFitCurrency] {
+    func fetchCatalogCurrencies(reload: Bool = false) async throws -> [UFitCurrency] {
         struct Metadata: Decodable { let currencies: [UFitCurrency] }
-        let result: Metadata = try await send(UFitCatalogHTTP.get, path: UFitCatalogHTTP.metadata, requiresAuth: true)
-        guard !result.currencies.isEmpty, Set(result.currencies.map(\.code)).count == result.currencies.count,
-              result.currencies.allSatisfy({ !$0.code.isEmpty && $0.minorUnitDigits >= .zero }) else { throw UFitCatalogContractError.currencies }
+        let result: Metadata = try await fetchReference(path: UFitCatalogHTTP.metadata, reload: reload) { (result: Metadata) in
+            guard !result.currencies.isEmpty, Set(result.currencies.map(\.code)).count == result.currencies.count,
+                  result.currencies.allSatisfy({ !$0.code.isEmpty && $0.minorUnitDigits >= .zero }) else { throw UFitCatalogContractError.currencies }
+        }
         return result.currencies
     }
     func fetchCatalog(brandID: String?, status: UFitCatalogStatus?, cursor: String?) async throws -> UFitCatalogPage {
@@ -115,19 +116,19 @@ extension UFitAPIClient {
     }
     func writeCatalogProduct(_ request: UFitCatalogWriteRequest, editingID: String?, brandID: String) async throws -> UFitManagedProduct {
         let result: UFitManagedProduct = try await send(editingID == nil ? UFitCatalogHTTP.post : UFitCatalogHTTP.put,
-            path: editingID.map { UFitCatalogHTTP.base + $0 } ?? UFitCatalogHTTP.collection, body: request, requiresAuth: true)
+            path: editingID.map { UFitCatalogHTTP.base + $0 } ?? UFitCatalogHTTP.collection, body: request, requiresAuth: true, publicOutfitsChange: editingID != nil)
         try result.validate(id: editingID, brand: brandID); return result
     }
     func mutateCatalogProduct(_ revision: UFitCatalogRevision, action: UFitCatalogAction) async throws -> UFitManagedProduct {
         struct Body: Encodable { let expectedVersion: Int }
         let result: UFitManagedProduct = try await send(UFitCatalogHTTP.patch, path: UFitCatalogHTTP.base + revision.id + UFitCatalogHTTP.separator + action.rawValue,
-            body: Body(expectedVersion: revision.version), requiresAuth: true)
+            body: Body(expectedVersion: revision.version), requiresAuth: true, publicOutfitsChange: true)
         try result.validate(id: revision.id); return result
     }
     func updateCatalogStock(_ revision: UFitCatalogRevision, variantID: String, expectedQuantity: Int, quantity: Int) async throws -> UFitManagedProduct {
         struct Body: Encodable { let expectedVersion: Int; let variantId: String; let expectedStockQuantity: Int; let stockQuantity: Int }
         let result: UFitManagedProduct = try await send(UFitCatalogHTTP.patch, path: UFitCatalogHTTP.base + revision.id + UFitCatalogHTTP.separator + UFitCatalogHTTP.stock,
-            body: Body(expectedVersion: revision.version, variantId: variantID, expectedStockQuantity: expectedQuantity, stockQuantity: quantity), requiresAuth: true)
+            body: Body(expectedVersion: revision.version, variantId: variantID, expectedStockQuantity: expectedQuantity, stockQuantity: quantity), requiresAuth: true, publicOutfitsChange: false)
         try result.validate(id: revision.id); return result
     }
 }

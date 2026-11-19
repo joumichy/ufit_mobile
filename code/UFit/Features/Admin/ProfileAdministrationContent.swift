@@ -45,10 +45,7 @@ struct UFitProfileAdministrationListContent: View {
     let onBack: () -> Void; let onRefresh: () -> Void; let onMore: () -> Void; let onOpen: (String) -> Void
     var body: some View {
         VStack(spacing: .zero) {
-            DetailHeader(title: UFitProfileAdministrationCopy.title, onBack: onBack) {
-                UFitButton(action: onRefresh) { UFitIcon(systemName: UFitProfileAdministrationCopy.refreshIcon) }
-                    .disabled(isLoading).accessibilityLabel(UFitUserAdministrationCopy.refresh)
-            }
+            DetailHeader(title: UFitProfileAdministrationCopy.title, onBack: onBack)
             ScrollView {
                 VStack(alignment: .leading, spacing: UFitSpace.lg) {
                     UFitChoiceBar(title: UFitProfileAdministrationCopy.kind, selection: $kind,
@@ -83,7 +80,7 @@ struct UFitProfileAdministrationListContent: View {
                         if hasMore { UFitButton(UFitUserAdministrationCopy.more, action: onMore).ufitButtonStyle(.secondary).disabled(isLoading) }
                     }
                 }.padding(UFitSpace.page).frame(maxWidth: .infinity, alignment: .leading)
-            }
+            }.ufitRefreshable(isEnabled: !isLoading, title: UFitUserAdministrationCopy.refresh) { onRefresh() }
         }.ufitButtonStyle(.text).foregroundStyle(Color.ufitInk).background(Color.ufitCanvas)
     }
 }
@@ -98,12 +95,7 @@ struct UFitProfileAdministrationDetailContent: View {
     private var decisions: [UFitProfileStatus] { [.active, .paused, .suspended].filter(profile.allows) }
     var body: some View {
         VStack(spacing: .zero) {
-            DetailHeader(title: decision.map(UFitProfileAdministrationCopy.action) ?? UFitProfileAdministrationCopy.status, onBack: onBack) {
-                if decision == nil {
-                    UFitButton(action: onRefresh) { UFitIcon(systemName: UFitProfileAdministrationCopy.refreshIcon) }
-                        .disabled(isLoading).accessibilityLabel(UFitUserAdministrationCopy.refresh)
-                }
-            }.disabled(isSaving)
+            DetailHeader(title: decision.map(UFitProfileAdministrationCopy.action) ?? UFitProfileAdministrationCopy.status, onBack: onBack).disabled(isSaving)
             ScrollView {
                 VStack(alignment: .leading, spacing: UFitSpace.xl) {
                     VStack(alignment: .leading, spacing: UFitSpace.xs) {
@@ -155,6 +147,7 @@ struct UFitProfileAdministrationDetailContent: View {
                     }
                 }.padding(UFitSpace.page).frame(maxWidth: .infinity, alignment: .leading)
             }.scrollDismissesKeyboard(.interactively)
+                .ufitRefreshable(isEnabled: decision == nil && !isLoading && !isSaving, title: UFitUserAdministrationCopy.refresh) { onRefresh() }
         }.safeAreaInset(edge: .bottom, spacing: .zero) {
             if let decision {
                 UFitActionButton(title: UFitProfileAdministrationCopy.action(decision), kind: decision == .suspended ? .destructive : .primary,

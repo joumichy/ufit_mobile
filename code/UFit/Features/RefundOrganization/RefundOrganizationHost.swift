@@ -12,7 +12,11 @@ struct UFitRefundOrganizationHost: View {
     var onSource: (() -> Void)?
     var body: some View {
         Group {
-            if let proofReview, store.document != nil {
+            if let proofUpload {
+                UFitRefundProofUploadContent(store: proofUpload, onClose: {
+                    self.proofUpload = nil; Task { await store.load() }
+                }).environment(\.ufitPrimarySection, false)
+            } else if let proofReview, store.document != nil {
                 UFitRefundProofReviewContent(store: proofReview, onClose: {self.proofReview = nil; Task {await store.load()}}, onOpenProof: openCurrentProof, isOpeningProof: store.isOpeningProof, proofMessage: store.proofMessage)
             } else if showingHistory, store.document != nil {
                 UFitRefundProofHistoryContent(store: store, onClose: {showingHistory = false})
@@ -30,11 +34,9 @@ struct UFitRefundOrganizationHost: View {
                     onViewProof: store.document?.proof == nil ? nil : openCurrentProof, isOpeningProof: store.isOpeningProof,
                     onReviewProof: canReviewProof ? showProofReview : nil, reviewProofTitle: store.hasReviewRequest ? UFitRefundReviewCopy.resume : UFitRefundReviewCopy.title, onHistory: store.document == nil ? nil : {showingHistory = true})
             }
-        }.interactiveDismissDisabled(store.isSaving || store.hasChanges)
+        }.interactiveDismissDisabled(store.isSaving || store.hasChanges || proofUpload != nil)
             .task {await store.load()}.onDisappear {store.cancelLoading(); store.clearProofPreview()}
-            .ufitSheet(item: $proofUpload, onDismiss: {Task {await store.load()}}) {current in
-                UFitRefundProofUploadContent(store: current, onClose: {proofUpload = nil})
-            }.ufitDocumentPreview($store.previewURL)
+            .ufitDocumentPreview($store.previewURL)
             .onChange(of: store.previewURL) {_, url in if url == nil {store.clearProofPreview()}}
             .onChange(of: store.document == nil) {_, unavailable in if unavailable {proofReview = nil; showingHistory = false}}
     }

@@ -61,14 +61,14 @@ extension UFitAPIClient {
             let socials = draft.socials == before.socials ? nil : draft.socials.map { UFitCreatorSocialAccount(platform: $0.platform, handle: $0.handle, url: $0.url.isEmpty ? nil : $0.url) }
             let profile: UFitManagedCreatorProfile = try await send(WorkspaceHTTP.patch, path: WorkspaceHTTP.creator,
                 body: Patch(displayName: draft.name == before.name ? nil : draft.name, bio: draft.bio == before.bio ? nil : draft.bio,
-                    status: draft.status == before.status ? nil : draft.status, socialAccounts: socials), requiresAuth: true)
+                    status: draft.status == before.status ? nil : draft.status, socialAccounts: socials), requiresAuth: true, publicOutfitsChange: true)
             guard profile.userId == userID else { throw WorkspaceContractError.profileMismatch }
             document = .creator(profile)
         case .brand:
             struct Patch: Encodable { let brandName: String?; let bio: String?; let websiteUrl: String?; let status: UFitProfileStatus? }
             let profile: UFitManagedBrandProfile = try await send(WorkspaceHTTP.patch, path: WorkspaceHTTP.brands + original.id,
                 body: Patch(brandName: draft.name == before.name ? nil : draft.name, bio: draft.bio == before.bio ? nil : draft.bio,
-                    websiteUrl: draft.website == before.website ? nil : draft.website, status: draft.status == before.status ? nil : draft.status), requiresAuth: true)
+                    websiteUrl: draft.website == before.website ? nil : draft.website, status: draft.status == before.status ? nil : draft.status), requiresAuth: true, publicOutfitsChange: true)
             document = .brand(profile)
         }
         guard document.id == original.id else { throw WorkspaceContractError.profileMismatch }

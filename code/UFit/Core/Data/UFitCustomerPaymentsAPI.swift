@@ -15,7 +15,7 @@ extension UFitAPIClient {
     }
     func resumeOrderPayment(_ order: UFitOrderDTO) async throws -> UFitCustomerPaymentSessionDTO {
         let result: UFitCustomerPaymentSessionDTO = try await send(UFitCustomerPaymentHTTP.post,
-            path: UFitCustomerPaymentHTTP.orders + order.id + UFitCustomerPaymentHTTP.session, requiresAuth: true)
+            path: UFitCustomerPaymentHTTP.orders + order.id + UFitCustomerPaymentHTTP.session, requiresAuth: true, publicOutfitsChange: false)
         try result.validate(order: order); return result
     }
 }

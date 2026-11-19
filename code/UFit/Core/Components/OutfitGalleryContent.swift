@@ -5,7 +5,7 @@ struct UFitOutfitGalleryContent: View {
     var contentMode: ContentMode = .fill
     var imageHeight: CGFloat = Layout.hero
     var surface: UFitPhotoSurface = .dark
-    /// Preserve the full image and use imageHeight only as its upper height limit.
+    /// A single photo may adapt to its ratio. A carousel always keeps one viewport.
     var adaptsToImage = false
     var photoAccessibilityLabel: String? = nil
     var renewPhotoSource: ((String) async throws -> String)? = nil
@@ -22,7 +22,7 @@ struct UFitOutfitGalleryContent: View {
     private enum Icon { static let photo = "photo" }
     private var pageIndex: Int { photos.firstIndex(where: { $0.position == selectedPosition }) ?? .zero }
     private var displayedHeight: CGFloat {
-        guard adaptsToImage, contentWidth > .zero, photos.indices.contains(pageIndex),
+        guard adaptsToImage, photos.count == Layout.step, contentWidth > .zero, photos.indices.contains(pageIndex),
               let size = photoSizes[photos[pageIndex].id], size.width > .zero, size.height > .zero,
               size.width.isFinite, size.height.isFinite else { return imageHeight }
         return min(imageHeight, contentWidth * size.height / size.width)
@@ -43,13 +43,18 @@ struct UFitOutfitGalleryContent: View {
                             if contentMode == .fit || renewPhotoSource != nil {
                                 UFitPinnedPhotoContent(source: photo.url, pins: [], contentMode: contentMode, surface: surface, onPin: {_ in},
                                     renewSource: renewPhotoSource.map { renew in { () async throws -> String in try await renew(photo.id) } },
-                                    onImageSize: adaptsToImage ? { photoSizes[photo.id] = $0 } : nil)
+                                    onImageSize: adaptsToImage && photos.count == Layout.step ? { photoSizes[photo.id] = $0 } : nil)
                             } else { FashionImage(source: photo.url).clipped() }
                         }
                             .accessibilityLabel(Copy.page((photos.firstIndex(where: { $0.id == photo.id }) ?? .zero) + Layout.step, count: photos.count))
                             .tag(Optional(photo.position))
                     }
                 }.tabViewStyle(.page(indexDisplayMode: .never)).frame(height: displayedHeight)
+                    .overlay {
+                        if photos.count > Layout.step, surface == .neutral {
+                            Rectangle().strokeBorder(Color.ufitBorder, lineWidth: UFitStroke.control).allowsHitTesting(false)
+                        }
+                    }
                 if photos.count > Layout.step {
                     UFitPhotoPageControl(count: photos.count, selection: Binding(get: { pageIndex }, set: { index in
                         if photos.indices.contains(index) { selectedPosition = photos[index].position }

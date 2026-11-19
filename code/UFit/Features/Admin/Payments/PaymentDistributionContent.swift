@@ -6,10 +6,7 @@ struct UFitDistributionBrandsContent: View {
     private typealias Copy = UFitDistributionCopy
     var body: some View {
         VStack(spacing: .zero) {
-            DetailHeader(title: Copy.title, onBack: onBack) {
-                UFitButton { Task { await store.refresh() } } label: { UFitIcon(systemName: Copy.refreshIcon) }
-                    .accessibilityLabel(Copy.refresh).disabled(store.isLoading)
-            }
+            DetailHeader(title: Copy.title, onBack: onBack)
             UFitSearchField(query: $store.search, prompt: Copy.search).padding(.horizontal, UFitSpace.page).padding(.vertical, UFitSpace.md)
             ScrollView {
                 VStack(alignment: .leading, spacing: UFitSpace.lg) {
@@ -46,7 +43,7 @@ struct UFitDistributionBrandsContent: View {
                         UFitActionButton(title: Copy.more, kind: .secondary, disabled: store.isLoading) { Task { await store.load(reset: false) } }
                     }
                 }.padding(.horizontal, UFitSpace.page).padding(.bottom, UFitSpace.xl)
-            }
+            }.ufitRefreshable(isEnabled: !store.isLoading, title: Copy.refresh) { await store.refresh() }
         }.foregroundStyle(Color.ufitInk).background(Color.ufitCanvas)
             .task { if !store.hasLoaded { await store.load() } }
             .onChange(of: store.search) { _, _ in Task { await store.searchChanged() } }
@@ -61,10 +58,7 @@ struct UFitDistributionDetailContent: View {
     private typealias Copy = UFitDistributionCopy
     var body: some View {
         VStack(spacing: .zero) {
-            DetailHeader(title: Copy.title, onBack: onBack) {
-                UFitButton { Task { await store.refresh() } } label: { UFitIcon(systemName: Copy.refreshIcon) }
-                    .accessibilityLabel(Copy.refresh).disabled(store.isLoading)
-            }
+            DetailHeader(title: Copy.title, onBack: onBack)
             ScrollView {
                 VStack(alignment: .leading, spacing: UFitSpace.xxl) {
                     if let notice, store.document != nil, store.message == nil, !store.isLoading {
@@ -90,7 +84,7 @@ struct UFitDistributionDetailContent: View {
                         Text(Copy.consulted(document.asOf)).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText)
                     } else if store.message == nil { UFitLoading(Copy.loading).frame(maxWidth: .infinity) }
                 }.padding(UFitSpace.page).frame(maxWidth: .infinity, alignment: .leading)
-            }
+            }.ufitRefreshable(isEnabled: !store.isLoading, title: Copy.refresh) { await store.refresh() }
         }.foregroundStyle(Color.ufitInk).background(Color.ufitCanvas)
             .task { if store.document == nil { await store.load() } }.onDisappear { store.cancelLoading() }
     }
@@ -116,10 +110,7 @@ struct UFitDistributionHistoryContent: View {
     private typealias Copy = UFitDistributionCopy
     var body: some View {
         VStack(spacing: .zero) {
-            DetailHeader(title: Copy.history, onBack: onBack) {
-                UFitButton { Task { store.cancelLoading(); await store.load() } } label: { UFitIcon(systemName: Copy.refreshIcon) }
-                    .accessibilityLabel(Copy.refresh).disabled(store.isLoading)
-            }
+            DetailHeader(title: Copy.history, onBack: onBack)
             ScrollView {
                 VStack(alignment: .leading, spacing: UFitSpace.xl) {
                     if let name = store.detail.document?.brand.name { Text(name).font(UFitTypography.title2) }
@@ -152,7 +143,7 @@ struct UFitDistributionHistoryContent: View {
                         UFitActionButton(title: Copy.more, kind: .secondary, disabled: store.isLoading) { Task { await store.load(reset: false) } }
                     }
                 }.padding(UFitSpace.page).frame(maxWidth: .infinity, alignment: .leading)
-            }
+            }.ufitRefreshable(isEnabled: !store.isLoading, title: Copy.refresh) { store.cancelLoading(); await store.load() }
         }.foregroundStyle(Color.ufitInk).background(Color.ufitCanvas)
             .task { if !store.hasLoaded { await store.load() } }.onDisappear { store.cancelLoading() }
     }

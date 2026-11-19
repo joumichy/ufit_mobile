@@ -32,15 +32,19 @@ struct UFitOrderDetailContent: View {
         VStack(spacing: .zero) {
             DetailHeader(onBack: onBack) {
                 if isBusy { UFitLoading().frame(minWidth: Layout.touch, minHeight: Layout.touch) }
-                else { UFitButton(Copy.refresh, action: onRefresh).frame(minHeight: Layout.touch) }
             }
-            if let message { Text(message).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText).padding(.horizontal, Layout.spacing).padding(.top, Layout.rowSpacing) }
+            if let message {
+                VStack(alignment: .leading, spacing: Layout.rowSpacing) {
+                    Text(message).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText)
+                    UFitActionButton(title: Copy.refresh, kind: .secondary, disabled: isBusy, action: onRefresh)
+                }.padding(.horizontal, Layout.spacing).padding(.top, Layout.rowSpacing)
+            }
             ScrollView {
                 VStack(alignment: .leading, spacing: Layout.spacing) {
                     if let order { detail(order) }
                     else if !isBusy { UFitEmptyState(title: Copy.unavailable, symbol: Copy.bag) }
                 }.padding(Layout.spacing).padding(.bottom, UFitSpace.xl)
-            }.ufitRefreshable { onRefresh() }.id(order?.status)
+            }.ufitRefreshable(isEnabled: !isBusy, title: Copy.refresh) { onRefresh() }.id(order?.status)
         }.foregroundStyle(Color.ufitInk).background(Color.ufitCanvas)
         .ufitConfirmationDialog(Copy.cancel, isPresented: $confirmingCancellation, titleVisibility: .visible) {
             UFitButton(Copy.confirmCancel, role: .destructive, action: onCancel)

@@ -14,13 +14,16 @@ struct UFitButton<Label: View>: View {
     private let label: Label
     @Environment(\.ufitButtonKind) private var kind
     @Environment(\.ufitCompactButton) private var compact
+    @Environment(\.ufitButtonFillsWidth) private var fillsWidth
     @Environment(\.ufitActionDismiss) private var dismissAction
     init(role: ButtonRole? = nil, action: @escaping () -> Void, @ViewBuilder label: () -> Label) {
         self.role = role; self.action = action; self.label = label()
     }
     var body: some View {
         Button(role: role) { dismissAction?(); action() } label: {
-            label.frame(minWidth: kind == .text ? UFitControlSize.touch : .zero, minHeight: kind == .text ? UFitControlSize.touch : .zero).contentShape(Rectangle())
+            label.frame(minWidth: kind == .text ? UFitControlSize.touch : .zero,
+                maxWidth: fillsWidth ? .infinity : nil,
+                minHeight: kind == .text ? UFitControlSize.touch : .zero).contentShape(Rectangle())
         }.buttonStyle(UFitButtonStyle(kind: kind, compact: compact, destructive: role == .destructive))
     }
 }

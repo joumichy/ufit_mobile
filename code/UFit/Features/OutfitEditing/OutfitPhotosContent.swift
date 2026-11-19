@@ -7,53 +7,65 @@ struct UFitOutfitPhotosContent: View {
     let onRetry: (UUID) -> Void
     let onRemove: (UUID) -> Void
     var onPins: ((UUID) -> Void)? = nil
+    var renewPhotoSource: ((UUID) async throws -> String)? = nil
+    @State private var reorderCollectionID = UUID()
     private enum Copy {
         static let title = String(localized: "Photos de la tenue"); static let add = String(localized: "Ajouter des photos")
         static let empty = String(localized: "Aucune photo"); static let sending = String(localized: "Envoi de la photo"); static let retry = String(localized: "Réessayer l’envoi")
-        static let up = String(localized: "Déplacer la photo avant"); static let down = String(localized: "Déplacer la photo après"); static let remove = String(localized: "Retirer la photo")
+        static let remove = String(localized: "Retirer la photo")
         static let pins = String(localized: "Placer les repères")
-        static let cover = String(localized: "Photo principale"); static let photo = String(localized: "Photo"); static let space = " "
+        static let cover = String(localized: "Photo principale"); static let photo = String(localized: "Photo"); static let space = " "; static let separator = " · "
     }
     private enum Layout { static let gap: CGFloat = UFitSpace.md; static let small: CGFloat = UFitSpace.xs; static let touch: CGFloat = UFitControlSize.touch; static let image: CGFloat = 104; static let radius: CGFloat = UFitRadius.field }
-    private enum Icon { static let photo = "photo"; static let up = "arrow.up"; static let down = "arrow.down" }
+    private enum Icon { static let photo = "photo"; static let add = "photo.badge.plus"; static let pins = "scope"; static let remove = "trash" }
     var body: some View {
         VStack(alignment: .leading, spacing: Layout.gap) {
-            Text(Copy.title).font(UFitTypography.title2.weight(.medium)).accessibilityAddTraits(.isHeader)
+            HStack(alignment: .center, spacing: Layout.small) {
+                Text(Copy.title).font(UFitTypography.title2.weight(.medium)).accessibilityAddTraits(.isHeader)
+                Spacer(minLength: .zero)
+                if photos.count < UFitOutfitInput.photosMax {
+                    UFitButton(action: onAdd) { UFitIcon(systemName: Icon.add).font(UFitTypography.icon).frame(width: Layout.touch, height: Layout.touch) }
+                        .accessibilityLabel(Copy.add)
+                }
+            }
             if photos.isEmpty { Text(Copy.empty).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
             ForEach(Array(photos.enumerated()), id: \.element.id) { index, photo in
-                HStack(alignment: .top, spacing: Layout.gap) {
-                    Group {
-                        if let data = photo.previewData, let image = UIImage(data: data) { Image(uiImage: image).resizable().scaledToFill() }
-                        else if let source = photo.source { FashionImage(source: source) }
-                        else { Rectangle().fill(Color.ufitCanvas).overlay { UFitIcon(systemName: Icon.photo) } }
-                    }.frame(width: Layout.image, height: Layout.image).clipped().clipShape(RoundedRectangle(cornerRadius: Layout.radius))
-                        .accessibilityLabel(photoLabel(index))
-                    VStack(alignment: .leading, spacing: Layout.small) {
-                        Text(photoLabel(index)).font(UFitTypography.subheadline.weight(.medium))
-                        switch photo.transfer {
-                        case .ready: EmptyView()
-                        case .uploading: UFitLoading(Copy.sending)
-                        case .failed(let message):
-                            Text(message).font(UFitTypography.caption)
-                            if photo.canRetryUpload { UFitButton(Copy.retry) { onRetry(photo.id) }.ufitButtonStyle(.secondary, compact: true) }
+                VStack(alignment: .leading, spacing: Layout.small) {
+                    HStack(alignment: .top, spacing: Layout.small) {
+                        UFitPhotoOrderControls(photoLabel: photoLabel(index), position: index, count: photos.count) { step in
+                            UFitPhotoOrdering.move(photo.id, by: step, in: &photos)
                         }
-                        HStack {
-                            UFitButton { move(photo.id, step: -UFitOutfitInput.positionStep) } label: { UFitIcon(systemName: Icon.up).frame(minWidth: Layout.touch, minHeight: Layout.touch) }.accessibilityLabel(Copy.up).disabled(index == .zero)
-                            UFitButton { move(photo.id, step: UFitOutfitInput.positionStep) } label: { UFitIcon(systemName: Icon.down).frame(minWidth: Layout.touch, minHeight: Layout.touch) }.accessibilityLabel(Copy.down).disabled(index == photos.count - UFitOutfitInput.positionStep)
+                        Group {
+                            if photo.previewData != nil || photo.source != nil {
+                                UFitPinnedPhotoContent(source: photo.source, previewData: photo.previewData, pins: [], surface: .neutral, onPin: { _ in },
+                                    renewSource: renewPhotoSource.map { renew in { () async throws -> String in try await renew(photo.id) } }, showsRetryLabel: false, imageAccessibilityLabel: photoLabel(index))
+                            }
+                            else { Rectangle().fill(Color.ufitCanvas).overlay { UFitIcon(systemName: Icon.photo) } }
+                        }.frame(width: Layout.image, height: Layout.image).clipped().clipShape(RoundedRectangle(cornerRadius: Layout.radius))
+                            .modifier(UFitPhotoReorderSource(photoID: photo.id, collectionID: reorderCollectionID, count: photos.count))
+                        Text(photoLabel(index)).font(UFitTypography.subheadline.weight(.medium)).fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        VStack(spacing: .zero) {
+                            if let onPins {
+                                UFitButton { onPins(photo.id) } label: { UFitIcon(systemName: Icon.pins).font(UFitTypography.icon).frame(width: Layout.touch, height: Layout.touch) }
+                                    .accessibilityLabel(Copy.pins + Copy.separator + photoLabel(index)).disabled(photo.transfer != .ready)
+                            }
+                            UFitButton(role: .destructive) { onRemove(photo.id) } label: { UFitIcon(systemName: Icon.remove).font(UFitTypography.icon).frame(width: Layout.touch, height: Layout.touch) }
+                                .accessibilityLabel(Copy.remove + Copy.separator + photoLabel(index))
                         }
-                        if photo.transfer == .ready, let onPins { UFitButton(Copy.pins) { onPins(photo.id) }.ufitButtonStyle(.secondary, compact: true) }
-                        UFitButton(Copy.remove, role: .destructive) { onRemove(photo.id) }.ufitButtonStyle(.secondary, compact: true)
+                    }.modifier(UFitPhotoReorderDestination(photoID: photo.id, collectionID: reorderCollectionID, photos: $photos))
+                    switch photo.transfer {
+                    case .ready: EmptyView()
+                    case .uploading: UFitLoading(Copy.sending)
+                    case .failed(let message):
+                        UFitFieldError(message: message)
+                        if photo.canRetryUpload { UFitButton(Copy.retry) { onRetry(photo.id) }.ufitButtonStyle(.secondary, compact: true) }
                     }
+                    Divider()
                 }
-                Divider()
             }
-            if photos.count < UFitOutfitInput.photosMax { UFitActionButton(title: Copy.add, kind: .secondary, action: onAdd) }
             if let error { UFitFieldError(message: error) }
         }
     }
     private func photoLabel(_ index: Int) -> String { index == .zero ? Copy.cover : Copy.photo + Copy.space + String(index + UFitOutfitInput.positionStep) }
-    private func move(_ id: UUID, step: Int) {
-        guard let index = photos.firstIndex(where: { $0.id == id }), photos.indices.contains(index + step) else { return }
-        photos.swapAt(index, index + step)
-    }
 }

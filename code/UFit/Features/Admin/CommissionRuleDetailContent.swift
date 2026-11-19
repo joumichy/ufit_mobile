@@ -11,13 +11,9 @@ struct UFitCommissionRuleDetailContent: View {
     let onEdit: () -> Void
     let onMore: () -> Void
     private enum Layout { static let page: CGFloat = UFitSpace.xl; static let gap: CGFloat = UFitSpace.md; static let small: CGFloat = UFitSpace.xs; static let touch: CGFloat = UFitControlSize.touch; static let rate: CGFloat = 40 }
-    private enum Icon { static let refresh = "arrow.clockwise" }
     var body: some View {
         VStack(spacing: .zero) {
-            DetailHeader(title: UFitCommissionAdminCopy.rules, onBack: onBack) {
-                UFitButton(action: onRefresh) { UFitIcon(systemName: Icon.refresh).frame(width: Layout.touch, height: Layout.touch) }
-                    .disabled(isLoading).accessibilityLabel(UFitCommissionAdminCopy.refresh)
-            }
+            DetailHeader(title: UFitCommissionAdminCopy.rules, onBack: onBack)
             ScrollView {
                 VStack(alignment: .leading, spacing: Layout.page) {
                     if let message { Text(message).font(UFitTypography.callout); UFitActionButton(title: UFitCommissionAdminCopy.retry, kind: .secondary, action: onRefresh).disabled(isLoading) }
@@ -56,7 +52,7 @@ struct UFitCommissionRuleDetailContent: View {
                     }
                     if isLoading { UFitLoading(UFitCommissionAdminCopy.loading).frame(maxWidth: .infinity) }
                 }.padding(Layout.page).frame(maxWidth: .infinity, alignment: .leading)
-            }
+            }.ufitRefreshable(isEnabled: !isLoading, title: UFitCommissionAdminCopy.refresh) { onRefresh() }
         }.ufitButtonStyle(.text).foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.ufitCanvas)
     }
 }

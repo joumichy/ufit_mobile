@@ -7,9 +7,7 @@ struct UFitPaymentDisbursementContent: View {
     var body: some View {
         VStack(spacing: .zero) {
             DetailHeader(title: Copy.title, onBack: onBack) {
-                UFitButton { Task { await store.refresh() } } label: {
-                    if store.isLoading { UFitLoading() } else { UFitIcon(systemName: UFitAdminOrdersCopy.refreshIcon) }
-                }.accessibilityLabel(Copy.check).disabled(store.isSending || store.isLoading)
+                if store.isLoading { UFitLoading() }
             }.disabled(store.isSending)
             if let message = store.message {
                 VStack(spacing: UFitSpace.md) {
@@ -46,6 +44,7 @@ struct UFitPaymentDisbursementContent: View {
                     }
                 }.frame(maxWidth: .infinity, alignment: .leading).padding(.vertical, UFitSpace.xl)
             }.padding(.horizontal, UFitSpace.page)
+                .ufitRefreshable(isEnabled: !store.isSending && !store.isLoading, title: Copy.check) { await store.refresh() }
         }.ufitButtonStyle(.text).foregroundStyle(Color.ufitInk).background(Color.ufitCanvas)
     }
     private func context(_ document: UFitPaymentDisbursementDocument) -> some View {

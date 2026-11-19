@@ -13,16 +13,14 @@ struct UFitAdminOrdersContent: View {
                     .padding(.vertical, UFitSpace.lg)
             }.padding(.horizontal, UFitSpace.page)
                 .scrollPosition(id: $store.visibleRowID, anchor: .top).scrollDismissesKeyboard(.interactively)
+                .ufitRefreshable(isEnabled: !store.isLoading, title: UFitAdminOrdersCopy.refresh) { await store.refresh() }
         }.ufitButtonStyle(.text).foregroundStyle(Color.ufitInk).background(Color.ufitCanvas)
             .task { if !store.hasLoaded { await store.load() } }
             .onChange(of: store.selection) { _, _ in Task<Void, Never> { await store.selectionChanged() } }
             .onDisappear { store.cancelLoading() }
     }
     private var header: some View {
-        DetailHeader(title: UFitAdminOrdersCopy.title, onBack: onBack) {
-            UFitButton { Task<Void, Never> { await store.refresh() } } label: { UFitIcon(systemName: UFitAdminOrdersCopy.refreshIcon) }
-                .accessibilityLabel(UFitAdminOrdersCopy.refresh).disabled(store.isLoading)
-        }
+        DetailHeader(title: UFitAdminOrdersCopy.title, onBack: onBack)
     }
     private var collection: some View {
         VStack(alignment: .leading, spacing: UFitSpace.lg) {

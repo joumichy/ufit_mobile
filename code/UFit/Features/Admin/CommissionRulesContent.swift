@@ -15,12 +15,10 @@ struct UFitCommissionRulesContent: View {
     let onOpen: (String) -> Void
     let onMore: () -> Void
     private enum Layout { static let page: CGFloat = UFitSpace.xl; static let gap: CGFloat = UFitSpace.md; static let small: CGFloat = UFitSpace.xs; static let touch: CGFloat = UFitControlSize.touch }
-    private enum Icon { static let add = "plus"; static let filter = "line.3.horizontal.decrease"; static let next = "chevron.right"; static let refresh = "arrow.clockwise" }
+    private enum Icon { static let add = "plus"; static let filter = "line.3.horizontal.decrease"; static let next = "chevron.right" }
     var body: some View {
         VStack(spacing: .zero) {
             DetailHeader(title: UFitCommissionAdminCopy.title, onBack: onBack) {
-                UFitButton(action: onRefresh) { UFitIcon(systemName: Icon.refresh).frame(width: Layout.touch, height: Layout.touch) }
-                    .disabled(isLoading).accessibilityLabel(UFitCommissionAdminCopy.refresh)
                 if !rows.isEmpty || !hasLoaded || isLoading || message != nil {
                     UFitButton(action: onCreate) { UFitIcon(systemName: Icon.add).frame(width: Layout.touch, height: Layout.touch) }
                         .accessibilityLabel(UFitCommissionAdminCopy.create)
@@ -66,7 +64,7 @@ struct UFitCommissionRulesContent: View {
                         if hasMore { UFitActionButton(title: UFitCommissionAdminCopy.more, kind: .secondary, action: onMore).disabled(isLoading) }
                     }
                 }.padding(Layout.page).frame(maxWidth: .infinity, alignment: .leading)
-            }
+            }.ufitRefreshable(isEnabled: !isLoading, title: UFitCommissionAdminCopy.refresh) { onRefresh() }
         }.ufitButtonStyle(.text).foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.ufitCanvas)
     }
 }

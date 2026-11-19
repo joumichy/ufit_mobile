@@ -25,7 +25,7 @@ extension UFitAPIClient {
         let owner = UFitOutfitEditingHTTP.ownerQuery(scope)
         let body = UFitMultipartEncoding.image(fields: [(owner.name, scope.profileID), (UFitOutfitMediaHTTP.request, requestID.uuidString)], jpeg: jpeg)
         let result: UFitUploadedOutfitPhoto
-        do { result = try await send(UFitOutfitEditingHTTP.post, path: UFitOutfitMediaHTTP.upload, multipart: body, requiresAuth: true) }
+        do { result = try await send(UFitOutfitEditingHTTP.post, path: UFitOutfitMediaHTTP.upload, multipart: body, requiresAuth: true, publicOutfitsChange: false) }
         catch let UFitAPIError.requestFailed(status, _, _) where status == UFitOutfitMediaHTTP.tooLarge { throw UFitPhotoError.tooLarge }
         try result.validate(scope: scope, baseURL: configuration.baseURL); return result
     }

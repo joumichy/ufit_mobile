@@ -83,18 +83,21 @@ struct UFitSearchField: View {
     }
 }
 
+enum UFitChoiceBarAppearance { case outlined, underline, chips }
+
 struct UFitChoiceBar<Value: Hashable>: View {
     private enum Copy { static var separator: String { " : " } }
     let title: String
     @Binding var selection: Value
     let options: [UFitSelectionOption<Value>]
+    var appearance: UFitChoiceBarAppearance = .outlined
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView(.horizontal) {
                 HStack(spacing: UFitSpace.xs) {
                     ForEach(options) { option in
-                        UFitButton { selection = option.value } label: { Text(option.title).font(UFitTypography.subheadline.weight(.medium)).fixedSize(horizontal: true, vertical: false) }
-                            .ufitButtonStyle(option.value == selection ? .primary : .secondary, compact: true).disabled(!option.enabled)
+                        choice(option)
+                            .disabled(!option.enabled)
                             .accessibilityAddTraits(option.value == selection ? .isSelected : [])
                             .accessibilityLabel(title + Copy.separator + option.title)
                             .id(option.id)
@@ -103,6 +106,28 @@ struct UFitChoiceBar<Value: Hashable>: View {
             }.scrollIndicators(.hidden)
                 .onChange(of: selection) { _, value in proxy.scrollTo(value, anchor: .center) }
                 .onAppear { proxy.scrollTo(selection, anchor: .center) }
+        }
+    }
+    @ViewBuilder private func choice(_ option: UFitSelectionOption<Value>) -> some View {
+        if appearance == .chips {
+            UFitChoiceChip(selected: option.value == selection, action: { selection = option.value }) {
+                Text(option.title)
+            }
+        } else if appearance == .underline {
+            UFitButton { selection = option.value } label: {
+                Text(option.title).ufitFont(size: UFitTypography.Size.small, weight: .medium)
+                    .fixedSize(horizontal: true, vertical: false)
+                    .foregroundStyle(option.value == selection ? Color.ufitInk : Color.ufitSecondaryText)
+                    .padding(.horizontal, UFitSpace.xs).frame(minHeight: UFitControlSize.touch)
+                    .overlay(alignment: .bottom) {
+                        Rectangle().fill(option.value == selection ? Color.ufitInk : Color.clear)
+                            .frame(height: UFitSpace.hairline)
+                    }
+            }.ufitButtonStyle(.text)
+        } else {
+            UFitButton { selection = option.value } label: {
+                Text(option.title).font(UFitTypography.subheadline.weight(.medium)).fixedSize(horizontal: true, vertical: false)
+            }.ufitButtonStyle(option.value == selection ? .primary : .secondary, compact: true)
         }
     }
 }

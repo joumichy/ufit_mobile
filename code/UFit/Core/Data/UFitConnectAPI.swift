@@ -23,12 +23,13 @@ private enum ConnectContractError: LocalizedError {
 private enum ConnectCountryCode { static let length = 2; static let uppercaseASCII: ClosedRange<UInt8> = 65...90 }
 struct UFitConnectLink: Decodable { let url: URL }
 extension UFitAPIClient {
-    func fetchConnectCountries() async throws -> [String] {
+    func fetchConnectCountries(reload: Bool = false) async throws -> [String] {
         struct Countries: Decodable { let countries: [String] }
-        let result: Countries = try await send(ConnectHTTP.get, path: ConnectHTTP.countries, requiresAuth: true)
-        guard !result.countries.isEmpty, Set(result.countries).count == result.countries.count,
-              result.countries.allSatisfy({ $0.utf8.count == ConnectCountryCode.length && $0.utf8.allSatisfy(ConnectCountryCode.uppercaseASCII.contains) }) else {
-            throw ConnectContractError.invalidCountries
+        let result: Countries = try await fetchReference(path: ConnectHTTP.countries, reload: reload) { (result: Countries) in
+            guard !result.countries.isEmpty, Set(result.countries).count == result.countries.count,
+                  result.countries.allSatisfy({ $0.utf8.count == ConnectCountryCode.length && $0.utf8.allSatisfy(ConnectCountryCode.uppercaseASCII.contains) }) else {
+                throw ConnectContractError.invalidCountries
+            }
         }
         return result.countries
     }
@@ -45,9 +46,9 @@ extension UFitAPIClient {
     }
     func createConnectOnboarding(_ profile: UFitPaymentProfile, country: String) async throws -> UFitConnectLink {
         struct Request: Encodable { let country: String }
-        return try await send(ConnectHTTP.post, path: ConnectHTTP.base + profile.kind.rawValue + ConnectHTTP.separator + profile.profileID + ConnectHTTP.onboarding, body: Request(country: country), requiresAuth: true)
+        return try await send(ConnectHTTP.post, path: ConnectHTTP.base + profile.kind.rawValue + ConnectHTTP.separator + profile.profileID + ConnectHTTP.onboarding, body: Request(country: country), requiresAuth: true, publicOutfitsChange: false)
     }
     func createConnectDashboard(_ profile: UFitPaymentProfile) async throws -> UFitConnectLink {
-        try await send(ConnectHTTP.post, path: ConnectHTTP.base + profile.kind.rawValue + ConnectHTTP.separator + profile.profileID + ConnectHTTP.dashboard, requiresAuth: true)
+        try await send(ConnectHTTP.post, path: ConnectHTTP.base + profile.kind.rawValue + ConnectHTTP.separator + profile.profileID + ConnectHTTP.dashboard, requiresAuth: true, publicOutfitsChange: false)
     }
 }

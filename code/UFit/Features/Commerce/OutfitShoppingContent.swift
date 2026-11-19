@@ -43,7 +43,10 @@ struct UFitOutfitShoppingContent: View {
             }
             ScrollView {
                 VStack(alignment: .leading, spacing: Layout.spacing) {
-                    if focusedItemID == nil { UFitOutfitGalleryContent(photos: photos).frame(width: geometry.size.width) }
+                    if focusedItemID == nil {
+                        UFitOutfitGalleryContent(photos: photos, contentMode: .fit, surface: .neutral)
+                            .frame(width: geometry.size.width)
+                    }
                     VStack(alignment: .leading, spacing: Layout.spacing) {
                         Text(title).ufitFont(size: Layout.title, weight: .regular, design: .serif).fixedSize(horizontal: false, vertical: true)
                         if let author {
@@ -82,22 +85,27 @@ private struct UFitShoppingPieceCard: View {
     let onQuantity: (Int) -> Void
     let onAdd: () -> Void
     private enum Copy {
-        static let photo = "photo"
         static let brandChevron = "chevron.right"
     }
     private enum Layout {
         static let spacing: CGFloat = UFitSpace.md
         static let image: CGFloat = 92
+        static let glyph: CGFloat = 40
         static let radius: CGFloat = UFitRadius.card
     }
     private enum BrandLayout { static let touch: CGFloat = UFitControlSize.touch }
     var body: some View {
         VStack(alignment: .leading, spacing: Layout.spacing) {
             HStack(alignment: .top, spacing: Layout.spacing) {
-                Group {
-                    if let image = piece.image { FashionImage(source: image) }
-                    else { Color.ufitCanvas.overlay(UFitIcon(systemName: Copy.photo).foregroundStyle(Color.ufitSecondaryText)) }
-                }.frame(width: Layout.image, height: Layout.image).clipped().clipShape(RoundedRectangle(cornerRadius: Layout.radius))
+                if let image = piece.image {
+                    FashionImage(source: image).frame(width: Layout.image, height: Layout.image)
+                        .clipped().clipShape(RoundedRectangle(cornerRadius: Layout.radius))
+                } else if let itemType = piece.itemType {
+                    Color.ufitSecondary.frame(width: Layout.image, height: Layout.image)
+                        .overlay { UFitOutfitItemIcon(type: itemType, size: Layout.glyph) }
+                        .clipShape(RoundedRectangle(cornerRadius: Layout.radius))
+                        .accessibilityElement(children: .ignore).accessibilityLabel(itemType.label)
+                }
                 VStack(alignment: .leading, spacing: Layout.spacing) {
                     if let brand = piece.brand, piece.brandID != nil {
                         UFitButton(action: onBrand) { HStack { Text(brand); UFitIcon(systemName: Copy.brandChevron) }.frame(minHeight: BrandLayout.touch) }.font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText)

@@ -23,7 +23,7 @@ extension UFitAPIClient {
     func preparePaymentAllocation(reference: UFitPaymentSettlementDocument, brandID: String) async throws -> UFitPaymentAllocationDocument {
         struct Request: Encodable {}
         let document: UFitPaymentAllocationDocument = try await send(UFitPaymentAllocationHTTP.post,
-            path: UFitPaymentAllocationHTTP.path(reference.payment.id, suffix: UFitPaymentAllocationHTTP.prepare), body: Request(), requiresAuth: true)
+            path: UFitPaymentAllocationHTTP.path(reference.payment.id, suffix: UFitPaymentAllocationHTTP.prepare), body: Request(), requiresAuth: true, publicOutfitsChange: false)
         try document.validate(reference: reference, brandID: brandID); return document
     }
 }

@@ -3,6 +3,7 @@ import Supabase
 
 enum UFitAuthenticationHTTP {
     static let unauthorized = 401
+    static let forbidden = 403
     static let get = "GET"
     static let me = "me"
 }

@@ -6,9 +6,7 @@ struct UFitEditorialAdminListContent: View {
     private typealias Copy = UFitEditorialAdminCopy
     var body: some View {
         VStack(spacing: .zero) {
-            DetailHeader(title: Copy.title, onBack: onBack) {
-                UFitButton(UFitEditorialCopy.refresh) { Task { await store.load() } }.disabled(store.isLoading)
-            }
+            DetailHeader(title: Copy.title, onBack: onBack)
             UFitEditorialAdminFeedback(store: store)
             if let error = store.listError, !store.moreFailed {
                 VStack(spacing: UFitSpace.sm) {
@@ -54,6 +52,7 @@ struct UFitEditorialAdminListContent: View {
                     }
                 }.padding(.vertical, UFitSpace.page)
             }.padding(.horizontal, UFitSpace.page).scrollPosition(id: $store.visibleRowID, anchor: .top)
+                .ufitRefreshable(isEnabled: !store.isLoading && !store.isWorking, title: UFitEditorialCopy.refresh) { await store.load() }
         }.task { if !store.hasLoaded { await store.load() } }
     }
 }
@@ -67,9 +66,7 @@ struct UFitEditorialAdminDetailContent: View {
     private var canPublish: Bool { !detail.items.isEmpty && detail.items.allSatisfy(\.available) }
     var body: some View {
         VStack(spacing: .zero) {
-            DetailHeader(title: Copy.detail, onBack: onBack) {
-                UFitButton(UFitEditorialCopy.refresh) { Task { await store.refreshDetail() } }.disabled(store.isRefreshingDetail || store.isWorking)
-            }.disabled(store.isWorking)
+            DetailHeader(title: Copy.detail, onBack: onBack).disabled(store.isWorking)
             UFitEditorialAdminFeedback(store: store)
             ScrollView {
                 VStack(alignment: .leading, spacing: UFitSpace.lg) {
@@ -93,7 +90,7 @@ struct UFitEditorialAdminDetailContent: View {
                         UFitActionButton(title: Copy.archive, kind: .secondary, role: .destructive, disabled: !store.allowsMutation) { archiving = true }
                     }
                 }.padding(UFitSpace.page)
-            }
+            }.ufitRefreshable(isEnabled: !store.isRefreshingDetail && !store.isWorking, title: UFitEditorialCopy.refresh) { await store.refreshDetail() }
         }.ufitConfirmationDialog(Copy.archive, isPresented: $archiving) {
             UFitButton(Copy.archive, role: .destructive) { Task { await store.transition(.archive) } }
             UFitButton(Copy.cancel, role: .cancel) {}

@@ -11,7 +11,7 @@ struct UFitWorkspaceDashboardHost: View {
             revenue: store.revenue, revenuePeriod: $store.revenuePeriod, isRevenueLoading: store.isRevenueLoading, revenueMessage: store.revenueMessage,
             onRevenueRetry: { Task { await store.loadRevenue() } },
             onBack: onBack, onRefresh: { Task { await store.refresh() } }, onCommissions: onCommissions, onTransfers: onTransfers, sectionTitle: title, showsActivity: false)
-            .task { await store.refresh() }
+            .task { await store.prepare() }
             .onChange(of: store.revenuePeriod) { _, _ in Task { await store.changeRevenuePeriod() } }
             .onDisappear { store.cancelLoading() }
     }

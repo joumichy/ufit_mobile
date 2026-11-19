@@ -29,11 +29,14 @@ struct UFitApplicationsContent: View {
     private enum Layout { static let spacing: CGFloat = UFitSpace.xl; static let inline: CGFloat = 12; static let radius: CGFloat = UFitRadius.card; static let bottom: CGFloat = 110; static let title: CGFloat = UFitTypography.Size.editorial; static let touch: CGFloat = UFitControlSize.touch }
     var body: some View {
         VStack(spacing: .zero) {
-            DetailHeader(onBack: onBack) { if isLoading { UFitLoading().frame(minWidth: Layout.touch, minHeight: Layout.touch) } else { UFitButton(Copy.refresh, action: onRefresh).frame(minHeight: Layout.touch) } }
+            DetailHeader(onBack: onBack) { if isLoading { UFitLoading().frame(minWidth: Layout.touch, minHeight: Layout.touch) } }
             ScrollView {
                 VStack(alignment: .leading, spacing: Layout.spacing) {
                     Text(focusedKind == nil ? Copy.title : Copy.focusedTitle).ufitFont(size: Layout.title, design: .serif).accessibilityAddTraits(.isHeader)
-                    if let message { Text(message).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
+                    if let message {
+                        Text(message).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText)
+                        UFitActionButton(title: Copy.refresh, kind: .secondary, disabled: isLoading, action: onRefresh)
+                    }
                     if hasLoaded {
                         if let focusedKind { card(focusedKind, focusedKind == .creator ? creator : brand, canApply: false) }
                         else {
@@ -42,7 +45,7 @@ struct UFitApplicationsContent: View {
                         }
                     }
                 }.padding(Layout.spacing).padding(.bottom, UFitSpace.xl).frame(maxWidth: .infinity, alignment: .leading)
-            }
+            }.ufitRefreshable(isEnabled: !isLoading, title: Copy.refresh) { onRefresh() }
         }.foregroundStyle(Color.ufitInk).background(Color.ufitCanvas)
     }
     private func card(_ kind: UFitApplicationKind, _ application: UFitApplicationDocument?, canApply: Bool) -> some View {

@@ -29,12 +29,15 @@ struct UFitApplicationReviewContent: View {
     var body: some View {
         VStack(spacing: .zero) {
             DetailHeader(onBack: onBack) {
-                if isLoading { UFitLoading() } else { UFitButton(Copy.refresh, action: onRefresh).frame(minHeight: Layout.touch).disabled(isDeciding) }
+                if isLoading { UFitLoading() }
             }
             ScrollView {
                 VStack(alignment: .leading, spacing: Layout.spacing) {
                     Text(Copy.title).ufitFont(size: Layout.title, design: .serif).accessibilityAddTraits(.isHeader)
-                    if let message { Text(message).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText) }
+                    if let message {
+                        Text(message).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText)
+                        UFitActionButton(title: Copy.refresh, kind: .secondary, disabled: isLoading || isDeciding, action: onRefresh)
+                    }
                     if let application {
                         VStack(alignment: .leading, spacing: Layout.inline) {
                             Text(application.name).font(UFitTypography.title2.weight(.medium))
@@ -77,6 +80,7 @@ struct UFitApplicationReviewContent: View {
                     }
                 }.padding(Layout.spacing).frame(maxWidth: .infinity, alignment: .leading)
             }.scrollDismissesKeyboard(.interactively)
+                .ufitRefreshable(isEnabled: !isLoading && !isDeciding, title: Copy.refresh) { onRefresh() }
         }.foregroundStyle(Color.ufitInk).background(Color.ufitCanvas)
             .ufitConfirmationDialog(confirmation?.label ?? Copy.confirm, isPresented: Binding(get: { confirmation != nil }, set: { if !$0 { confirmation = nil } }), titleVisibility: .visible) {
                 if let decision = confirmation { UFitButton(Copy.confirm) { confirmation = nil; onDecide(decision) } }

@@ -7,10 +7,7 @@ struct UFitAdminOrderDetailContent: View {
     private var document: UFitAdminOrderDetail? { store.collection.canRead ? store.document : nil }
     var body: some View {
         VStack(spacing: .zero) {
-            DetailHeader(title: UFitAdminOrdersCopy.detail, onBack: onBack) {
-                UFitButton { Task { await store.load() } } label: { UFitIcon(systemName: UFitAdminOrdersCopy.refreshIcon) }
-                    .accessibilityLabel(UFitAdminOrdersCopy.refresh).disabled(store.isLoading)
-            }
+            DetailHeader(title: UFitAdminOrdersCopy.detail, onBack: onBack)
             ScrollView {
                 VStack(alignment: .leading, spacing: UFitSpace.xl) {
                     if let message = store.message {
@@ -20,7 +17,7 @@ struct UFitAdminOrderDetailContent: View {
                     if let document { detail(document) }
                     else if store.isLoading { UFitLoading(UFitAdminOrdersCopy.loadingOrder).frame(maxWidth: .infinity) }
                 }.padding(UFitSpace.page).frame(maxWidth: .infinity, alignment: .leading)
-            }
+            }.ufitRefreshable(isEnabled: !store.isLoading, title: UFitAdminOrdersCopy.refresh) { await store.load() }
         }.ufitButtonStyle(.text).foregroundStyle(Color.ufitInk).background(Color.ufitCanvas)
             .task { await store.load() }.onDisappear { store.cancelLoading() }
     }

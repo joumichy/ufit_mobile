@@ -40,7 +40,7 @@ extension UFitAPIClient {
     }
     func reviseDistribution(brandID: String, body: UFitDistributionChangeBody, previousID: String?) async throws -> UFitDistributionChangeResult {
         try body.validate(previousID: previousID)
-        let result: UFitDistributionChangeResult = try await send(UFitDistributionHTTP.put, path: UFitDistributionHTTP.path(brandID), body: body, requiresAuth: true)
+        let result: UFitDistributionChangeResult = try await send(UFitDistributionHTTP.put, path: UFitDistributionHTTP.path(brandID), body: body, requiresAuth: true, publicOutfitsChange: false)
         try result.validate(brandID: brandID, body: body, previousID: previousID); return result
     }
     func fetchDistributionChange(brandID: String, body: UFitDistributionChangeBody, previousID: String?) async throws -> UFitDistributionChangeResult {

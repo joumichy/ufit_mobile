@@ -36,13 +36,12 @@ struct UFitManagedOutfitContent: View {
         static let page: CGFloat = UFitSpace.xl; static let gap: CGFloat = UFitSpace.md; static let small: CGFloat = UFitSpace.xs; static let touch: CGFloat = UFitControlSize.touch
         static let title: CGFloat = UFitTypography.Size.editorial; static let hero: CGFloat = 390; static let image: CGFloat = 76; static let radius: CGFloat = UFitRadius.field; static let editor: CGFloat = 150; static let bottom: CGFloat = 80
     }
-    private enum Icon { static let refresh = "arrow.clockwise"; static let photo = "photo" }
+    private enum Icon { static let photo = "photo" }
     private var locked: Bool { isLoading || isMutating }
     var body: some View {
         VStack(spacing: .zero) {
             DetailHeader(onBack: onBack) {
                 if isLoading { UFitLoading().frame(width: Layout.touch, height: Layout.touch) }
-                else { UFitButton(action: onRefresh) { UFitIcon(systemName: Icon.refresh).frame(width: Layout.touch, height: Layout.touch) }.accessibilityLabel(Copy.refresh).disabled(isMutating) }
             }
             ScrollView {
                 VStack(alignment: .leading, spacing: Layout.page) {
@@ -57,7 +56,7 @@ struct UFitManagedOutfitContent: View {
                     } else {
                         UFitOutfitGalleryContent(photos: outfit.photos.enumerated().map { index, photo in
                             .init(url: photo.source, position: index, id: photo.id)
-                        }, contentMode: .fit, imageHeight: Layout.hero, surface: .canvas,
+                        }, contentMode: .fit, imageHeight: Layout.hero, surface: outfit.photos.count > 1 ? .neutral : .canvas,
                             adaptsToImage: true, renewPhotoSource: renewPhotoSource)
                     }
                     if !outfit.description.isEmpty { Text(outfit.description).font(UFitTypography.body) }
@@ -90,11 +89,14 @@ struct UFitManagedOutfitContent: View {
                             Text(zoneID).font(UFitTypography.caption).foregroundStyle(Color.ufitSecondaryText)
                         }
                     }
-                    if let message { Text(message).font(UFitTypography.callout) }
+                    if let message {
+                        Text(message).font(UFitTypography.callout)
+                        UFitActionButton(title: Copy.refresh, kind: .secondary, disabled: locked, action: onRefresh)
+                    }
                     if isMutating { UFitLoading(Copy.saving).frame(maxWidth: .infinity, minHeight: Layout.touch) }
                     actions.disabled(locked)
                 }.padding(Layout.page).padding(.bottom, UFitSpace.xl).frame(maxWidth: .infinity, alignment: .leading)
-            }
+            }.ufitRefreshable(isEnabled: !locked, title: Copy.refresh) { onRefresh() }
         }.foregroundStyle(Color.ufitInk).tint(Color.ufitInk).background(Color.ufitCanvas)
             .ufitConfirmationDialog(Copy.publishTitle, isPresented: $confirmingPublication, titleVisibility: .visible) {
                 UFitButton(Copy.publishNow) { if let revision = decisionRevision { onPublish(revision) } }

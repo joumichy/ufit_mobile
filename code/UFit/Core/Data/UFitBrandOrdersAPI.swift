@@ -183,7 +183,7 @@ extension UFitAPIClient {
     func performShipment(brandID: String, orderID: String, shipmentID: String, command: UFitShipmentCommand, draft: UFitShipmentFormDraft? = nil) async throws -> UFitShipmentResult {
         let body = try UFitShipmentActionRequest(command: command, draft: draft)
         do {
-            let result: UFitShipmentResult = try await send(UFitBrandOrdersHTTP.post, path: UFitBrandOrdersHTTP.shipping + shipmentID + UFitBrandOrdersHTTP.actions, body: body, requiresAuth: true)
+            let result: UFitShipmentResult = try await send(UFitBrandOrdersHTTP.post, path: UFitBrandOrdersHTTP.shipping + shipmentID + UFitBrandOrdersHTTP.actions, body: body, requiresAuth: true, publicOutfitsChange: false)
             try result.validate(brandID: brandID, orderID: orderID, shipmentID: shipmentID, previousVersion: command.expectedVersion); return result
         } catch is DecodingError { throw UFitBrandOrderContractError.document }
     }
