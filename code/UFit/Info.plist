@@ -12,4 +12,6 @@
 <key>SUPABASE_PUBLIC_KEY</key><string>$(SUPABASE_PUBLIC_KEY)</string>
 <key>UFIT_APNS_ENVIRONMENT</key><string>$(UFIT_APNS_ENVIRONMENT)</string>
 <key>STRIPE_PUBLIC_KEY</key><string>$(STRIPE_PUBLIC_KEY)</string>
+<key>UFIT_APPLE_PAY_MERCHANT_ID</key><string>$(UFIT_APPLE_PAY_MERCHANT_ID)</string>
+<key>UFIT_APPLE_PAY_MERCHANT_COUNTRY_CODE</key><string>$(UFIT_APPLE_PAY_MERCHANT_COUNTRY_CODE)</string>
 </dict></plist>

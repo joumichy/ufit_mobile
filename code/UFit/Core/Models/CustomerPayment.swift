@@ -8,6 +8,8 @@ enum UFitCustomerPaymentState: String, Decodable {
 enum UFitCustomerPaymentCopy {
     static let loading = String(localized: "Vérification du paiement")
     static let resume = String(localized: "Reprendre le paiement")
+    static let chooseMethod = String(localized: "Choisir le moyen de paiement")
+    static let methodChoice = String(localized: "Vous pouvez changer de carte à l’étape suivante.")
     static let invalid = String(localized: "Le paiement n’a pas pu être vérifié. Actualisez son statut avant de réessayer.")
     static let unavailable = String(localized: "Le statut du paiement est indisponible. Vérifiez-le avant toute nouvelle tentative.")
     static let interrupted = String(localized: "Le paiement a été interrompu. Vous pouvez reprendre la même tentative.")
@@ -26,8 +28,8 @@ enum UFitCustomerPaymentCopy {
     }
     static func detail(_ state: UFitCustomerPaymentState) -> String {
         switch state {
-        case .notStarted: String(localized: "Finalisez le paiement depuis cette commande.")
-        case .ready: String(localized: "Reprenez la même tentative depuis cette commande.")
+        case .notStarted: String(localized: "Choisissez votre moyen de paiement pour cette commande.")
+        case .ready: String(localized: "Vous pouvez choisir une autre carte pour finaliser cette commande.")
         case .failed: String(localized: "Vous pouvez utiliser une autre carte en reprenant cette tentative.")
         case .action: String(localized: "Reprenez le paiement pour terminer la vérification demandée par votre banque.")
         case .processing: String(localized: "Le résultat est attendu. Aucune nouvelle tentative de paiement n’est nécessaire.")

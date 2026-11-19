@@ -28,6 +28,7 @@ struct UFitCheckoutContent: View {
     var isLoadingAddress = false
     private enum Layout { static let spacing: CGFloat = UFitSpace.xl; static let fieldSpacing: CGFloat = UFitSpace.md; static let bottom: CGFloat = 110; static let fieldHeight: CGFloat = UFitControlSize.input }
     private struct ScrollIdentity: Hashable { let step: UFitCheckoutStep; let addressID: String? }
+    private var resumesPayment: Bool { payment?.state.canResume == true }
     var body: some View {
         VStack(spacing: .zero) {
             DetailHeader(title: String(localized: "Livraison et paiement"), onBack: onBack)
@@ -116,8 +117,20 @@ struct UFitCheckoutContent: View {
                 Text(summary.returnPolicy)
                 Text(summary.refundPolicy.explanation)
             }.font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText)
-            UFitActionButton(title: purchaseAvailable ? String(localized: "Payer \(summary.total)") : UFitCheckoutAvailabilityCopy.recheck,
-                isBusy: isBusy, action: purchaseAvailable ? onPay : onReview)
+            paymentAction(total: summary.total)
+        }
+    }
+
+    @ViewBuilder private func paymentAction(total: String) -> some View {
+        if !purchaseAvailable {
+            UFitActionButton(title: UFitCheckoutAvailabilityCopy.recheck, isBusy: isBusy, action: onReview)
+        } else if resumesPayment {
+            VStack(alignment: .leading, spacing: UFitSpace.sm) {
+                Text(UFitCustomerPaymentCopy.methodChoice).font(UFitTypography.callout).foregroundStyle(Color.ufitSecondaryText)
+                UFitActionButton(title: UFitCustomerPaymentCopy.chooseMethod, isBusy: isBusy, action: onPay)
+            }
+        } else {
+            UFitActionButton(title: String(localized: "Payer \(total)"), isBusy: isBusy, action: onPay)
         }
     }
 

@@ -16,7 +16,6 @@ struct UFitOrderDetailContent: View {
     private enum Copy {
         static let title = String(localized: "Ma commande")
         static let refresh = String(localized: "Actualiser")
-        static let resume = String(localized: "Reprendre le paiement")
         static let cancel = String(localized: "Annuler la commande")
         static let confirmCancel = String(localized: "Confirmer l’annulation")
         static let continueCancel = String(localized: "Reprendre l’annulation")
@@ -64,7 +63,7 @@ struct UFitOrderDetailContent: View {
                 UFitCustomerPaymentStatusContent(payment: payment, isLoading: isBusy, message: paymentMessage)
             }
             if order.canResumePayment {
-                UFitButton(action: onPay) { Text(Copy.resume).frame(maxWidth: .infinity) }.ufitButtonStyle(.primary).disabled(isBusy)
+                UFitActionButton(title: UFitCustomerPaymentCopy.chooseMethod, disabled: isBusy, action: onPay)
             }
             ForEach(order.items) { UFitOrderPieceContent(item: $0) }
             Divider()
