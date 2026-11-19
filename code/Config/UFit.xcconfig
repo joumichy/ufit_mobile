@@ -3,8 +3,8 @@ UFIT_API_BASE_URL = http:/$()/127.0.0.1:4013
 SUPABASE_URL =
 SUPABASE_PUBLIC_KEY =
 STRIPE_PUBLIC_KEY =
-// Register the matching Apple merchant/certificate and signing entitlement before enabling Apple Pay.
-UFIT_APPLE_PAY_MERCHANT_ID =
+// Registered for com.stellark.ufit; the Stripe account's country belongs to each environment.
+UFIT_APPLE_PAY_MERCHANT_ID = merchant.com.stellark.ufit
 UFIT_APPLE_PAY_MERCHANT_COUNTRY_CODE =
 #include? "UFit.local.xcconfig"
 INFOPLIST_KEY_UFIT_API_BASE_URL = $(UFIT_API_BASE_URL)
