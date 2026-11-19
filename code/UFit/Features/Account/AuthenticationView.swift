@@ -12,7 +12,7 @@ struct UFitAuthenticationView: View {
     let onSubmit: () -> Void
     let onAppleRequest: (ASAuthorizationAppleIDRequest) -> Void
     let onAppleComplete: (Result<ASAuthorization, Error>) -> Void
-    let onBrowse: () -> Void
+    let onCancelRecovery: () -> Void
 
     private enum Copy {
         static let brand = "UFIT"
@@ -62,7 +62,7 @@ struct UFitAuthenticationView: View {
 
     var body: some View {
         VStack(spacing: .zero) {
-        DetailHeader(onBack: back).disabled(isBusy)
+        if mode != .signIn { DetailHeader(onBack: back).disabled(isBusy) }
         ScrollView {
             VStack(alignment: .leading, spacing: Layout.spacing) {
                 Text(Copy.brand).ufitFont(size: Layout.logoSize, weight: .semibold).tracking(Layout.tracking)
@@ -137,7 +137,7 @@ struct UFitAuthenticationView: View {
         }.frame(maxWidth: .infinity, maxHeight: .infinity).background(Color.ufitCanvas)
     }
     private func back() {
-        if mode == .signIn || mode == .newPassword { onBrowse() }
+        if mode == .newPassword { onCancelRecovery() }
         else { mode = .signIn }
     }
     private func fieldLabel(_ label: String) -> some View {

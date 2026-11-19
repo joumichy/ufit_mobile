@@ -86,6 +86,10 @@ final class UFitSessionStore {
     @ObservationIgnored private var deletedAuthSubject: UUID?
     @ObservationIgnored lazy var deviceNotifications = UFitNotificationDeviceStore(session: self)
     private var authIdentity: UFitAuthSessionIdentity? { UFitAuthSessionIdentity(auth?.auth.currentSession) }
+    var canAccessApplication: Bool {
+        isSignedIn && !isRestoring && !needsNewPassword && !isHandlingAuthenticationCallback
+            && user != nil && profileIdentity == authIdentity
+    }
     var accountDeletionSubject: UUID? { authIdentity?.subject }
     var notificationContext: UFitNotificationAccountContext? {
         guard isSignedIn, !isRestoring, let user, profileIdentity == authIdentity,
@@ -301,6 +305,12 @@ final class UFitSessionStore {
             user = nil; profileIdentity = nil; deviceNotifications.contextChanged()
             message = UFitAuthenticationFailure(error)?.localizedDescription ?? error.localizedDescription
         }
+    }
+
+    func revalidateAccess() async -> Bool {
+        guard let identity = authIdentity else { return false }
+        await reloadProfile()
+        return authIdentity == identity && canAccessApplication
     }
 
     @discardableResult

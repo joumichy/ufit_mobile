@@ -26,7 +26,6 @@ struct MarketplaceRootView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var routeHistory: [AppRoute] = []
-    @State private var showAuthentication = false
 
     init(notifications: UFitNotificationsDelegate) {
         self.notifications = notifications
@@ -52,9 +51,10 @@ struct MarketplaceRootView: View {
     @State private var activeRoute: AppRoute = ProcessInfo.processInfo.arguments.contains("--start-profile") ? .account : .feed
 
     var body: some View {
-        ZStack {
-            // Keep local drafts and one-shot entry gates mounted during authentication.
-            Group {
+        Group {
+            if !session.canAccessApplication {
+                UFitSessionGateContent(session: session)
+            } else {
                 if showOnboarding {
                     UFitOnboardingHost(styles: stylePreferences, onComplete: completeOnboarding)
                 } else {
@@ -64,12 +64,6 @@ struct MarketplaceRootView: View {
                         }
                     .background(Color.ufitBackground)
                 }
-            }.opacity(showAuthentication ? .zero : UFitMotion.visibleOpacity)
-                .accessibilityHidden(showAuthentication).allowsHitTesting(!showAuthentication)
-                .disabled(showAuthentication)
-            if showAuthentication {
-                UFitAuthenticationHost(session: session, onBrowse: dismissAuthentication)
-                    .environment(\.ufitPrimarySection, false)
             }
         }
         .preferredColorScheme(usesImmersiveFeedAppearance ? .dark : .light)
@@ -116,7 +110,7 @@ struct MarketplaceRootView: View {
             }
         }
         .onChange(of: experience.asksForChoice) { _, requested in
-            if requested && !showAuthentication && !notificationOpening.hasPending { showExperienceChooser = true }
+            if requested && session.canAccessApplication && !notificationOpening.hasPending { showExperienceChooser = true }
         }
         .onChange(of: scenePhase) { _, phase in
             if phase == .active {
@@ -130,25 +124,23 @@ struct MarketplaceRootView: View {
                 }
             }
         }
-        .onChange(of: session.needsNewPassword) { _, needed in
-            if needed { showAuthentication = true }
-        }
-        .onChange(of: showAuthentication) { _, showing in
-            if !showing {
-                if session.user == nil { preserveCustomerContextOnAccountLoad = false }
+        .onChange(of: session.canAccessApplication) { _, accessible in
+            if accessible {
                 if experience.asksForChoice && !notificationOpening.hasPending { showExperienceChooser = true }
                 resolveNotification()
                 if case .publicProfile(let profile) = activeRoute { Task { await profile.loadFollow(refreshProfile: true) } }
+            } else {
+                showExperienceChooser = false; showAccountDeletion = false
             }
         }
-        .ufitSheet(isPresented: $showExperienceChooser, onDismiss: experience.dismissChoiceRequest) { experienceChooser }
-        .ufitSheet(isPresented: $showAccountDeletion) {
+        .ufitSheet(isPresented: Binding(get: { session.canAccessApplication && showExperienceChooser }, set: { showExperienceChooser = $0 }), onDismiss: experience.dismissChoiceRequest) { experienceChooser }
+        .ufitSheet(isPresented: Binding(get: { session.canAccessApplication && showAccountDeletion }, set: { showAccountDeletion = $0 })) {
             UFitAccountDeletionContent(store: accountDeletion, onClose: { showAccountDeletion = false })
         }
     }
 
     private var isFeedVisible: Bool {
-        !showOnboarding && !showAuthentication && !showExperienceChooser && !showAccountDeletion && activeRoute.isFeed
+        session.canAccessApplication && !showOnboarding && !showExperienceChooser && !showAccountDeletion && activeRoute.isFeed
     }
     private var usesImmersiveFeedAppearance: Bool { isFeedVisible && !store.outfits.isEmpty }
 
@@ -737,12 +729,17 @@ private extension MarketplaceRootView {
                 else { chooseExperience(.customer) }
             })
     }
-    func dismissAuthentication() {
-        showAuthentication = false
-        if session.user == nil && notificationOpening.hasPending { closeNotification() }
-    }
     func requestSignIn(keepCustomerContext: Bool) {
-        preserveCustomerContextOnAccountLoad = keepCustomerContext; showAuthentication = true
+        preserveCustomerContextOnAccountLoad = keepCustomerContext
+        guard session.canAccessApplication else { return }
+        let requestedProfile: UFitPublicProfileStore?
+        if case .publicProfile(let profile) = activeRoute { requestedProfile = profile } else { requestedProfile = nil }
+        Task {
+            guard await session.revalidateAccess() else { return }
+            if let requestedProfile, case .publicProfile(let profile) = activeRoute, profile === requestedProfile {
+                await profile.loadFollow(refreshProfile: true)
+            }
+        }
     }
     func receiveNotificationTap() {
         guard let id = notifications.pendingNotificationID,
@@ -759,7 +756,7 @@ private extension MarketplaceRootView {
         if appliedExperience != experience.selected { applyExperienceNavigation() } else { goBack() }
     }
     func resolveNotification() {
-        guard notificationOpening.hasPending, case .notification = activeRoute, !showAuthentication else { return }
+        guard notificationOpening.hasPending, case .notification = activeRoute, session.canAccessApplication else { return }
         Task {
             if !session.isRestoring && session.isSignedIn && session.user == nil { await session.reloadProfile() }
             await notificationOpening.resolve()

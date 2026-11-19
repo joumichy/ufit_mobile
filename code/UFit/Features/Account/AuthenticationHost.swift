@@ -5,35 +5,27 @@ import Security
 
 struct UFitAuthenticationHost: View {
     let session: UFitSessionStore
-    let onBrowse: () -> Void
     @State private var mode = UFitAuthenticationMode.signIn
     @State private var name = String()
     @State private var email = String()
     @State private var password = String()
     @State private var appleNonce: String?
     @State private var appleError: String?
-    private var authenticationReady: Bool {
-        session.user != nil && !session.isBusy && !session.needsNewPassword
-            && !session.isHandlingAuthenticationCallback && session.authenticationFailure == nil
-    }
 
     var body: some View {
         UFitAuthenticationView(mode: $mode, name: $name, email: $email, password: $password,
             isBusy: session.isBusy, message: appleError ?? session.message,
             messageKind: appleError != nil || session.authenticationFailure != nil ? .error : .information,
             onSubmit: { Task { await submit() } },
-            onAppleRequest: prepareApple, onAppleComplete: completeApple, onBrowse: leave)
+            onAppleRequest: prepareApple, onAppleComplete: completeApple,
+            onCancelRecovery: { Task { await session.cancelPasswordRecovery() } })
             .onChange(of: session.needsNewPassword) { _, needed in
                 if needed { mode = .newPassword }
                 else if mode == .newPassword { mode = .recovery }
             }
-            .onChange(of: authenticationReady) { _, ready in if ready { onBrowse() } }
             .onChange(of: mode) { _, _ in appleError = nil; appleNonce = nil; session.message = nil; password = String() }
             .onAppear { if session.needsNewPassword { mode = .newPassword } }
             .onDisappear { if session.authenticationFailure != nil { session.message = nil } }
-            .task {
-                if session.isSignedIn && session.user == nil { await session.reloadProfile() }
-            }
     }
 
     private func submit() async {
@@ -50,14 +42,8 @@ struct UFitAuthenticationHost: View {
         case .recoverySent:
             if await session.resetPassword(email: email) { session.message = UFitAuthenticationCopy.sentAgain }
         case .newPassword:
-            if await session.updatePassword(password) { onBrowse() }
+            _ = await session.updatePassword(password)
         }
-    }
-
-    private func leave() {
-        guard !session.isBusy else { return }
-        if session.needsNewPassword { Task { await session.cancelPasswordRecovery(); onBrowse() } }
-        else { onBrowse() }
     }
 
     private func prepareApple(_ request: ASAuthorizationAppleIDRequest) {
