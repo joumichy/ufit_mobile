@@ -13,9 +13,11 @@ struct UFitAuthenticationHost: View {
     @State private var appleNonce: String?
     @State private var appleError: String?
 
+    private var showsImmersiveEntry: Bool { showsEntry && !session.needsNewPassword }
+
     var body: some View {
         Group {
-            if showsEntry && !session.needsNewPassword {
+            if showsImmersiveEntry {
                 UFitAuthenticationEntryContent(message: appleError ?? session.message,
                     messageKind: appleError != nil || session.authenticationFailure != nil ? .error : .information,
                     onSignIn: { open(.signIn) }, onSignUp: { open(.signUp) })
@@ -23,6 +25,7 @@ struct UFitAuthenticationHost: View {
                 form
             }
         }
+            .preferredColorScheme(showsImmersiveEntry ? .dark : .light)
             .onChange(of: session.needsNewPassword) { _, needed in
                 if needed { mode = .newPassword; showsEntry = false }
                 else if mode == .newPassword { mode = .recovery }

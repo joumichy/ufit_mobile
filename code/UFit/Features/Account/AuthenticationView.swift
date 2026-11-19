@@ -133,7 +133,6 @@ struct UFitAuthenticationView: View {
         .scrollDismissesKeyboard(.interactively)
         .id(mode)
         }.frame(maxWidth: .infinity, maxHeight: .infinity).background(Color.ufitCanvas)
-            .preferredColorScheme(.light)
     }
     private func back() {
         if mode == .newPassword { onCancelRecovery() }

@@ -147,6 +147,7 @@ final class UFitSessionStore {
                 loginEmail = resolution.email
             }
             #endif
+            loginEmail = try UFitAuthenticationEmail.validated(loginEmail)
             self.prepareAuthenticationTransition()
             _ = try await auth.auth.signIn(email: loginEmail, password: password)
             self.isSignedIn = true
@@ -158,8 +159,9 @@ final class UFitSessionStore {
     func signUp(email: String, password: String, name: String) async -> Bool {
         await perform {
             guard let auth = self.auth else { throw UFitSessionError.unavailable }
+            let address = try UFitAuthenticationEmail.validated(email)
             self.prepareAuthenticationTransition()
-            let response = try await auth.auth.signUp(email: email.trimmingCharacters(in: .whitespacesAndNewlines), password: password,
+            let response = try await auth.auth.signUp(email: address, password: password,
                 data: [UFitAuthenticationCallback.nameMetadata: .string(name.trimmingCharacters(in: .whitespacesAndNewlines))], redirectTo: UFitAuthenticationCallback.confirmationURL)
             if response.session == nil { self.message = String(localized: "Consultez votre e-mail pour confirmer votre inscription.") }
             else { self.isSignedIn = true; await self.reloadProfile() }
@@ -180,7 +182,8 @@ final class UFitSessionStore {
     func resetPassword(email: String) async -> Bool {
         await perform {
             guard let auth = self.auth else { throw UFitSessionError.unavailable }
-            try await auth.auth.resetPasswordForEmail(email.trimmingCharacters(in: .whitespacesAndNewlines), redirectTo: UFitAuthenticationCallback.recoveryURL)
+            let address = try UFitAuthenticationEmail.validated(email)
+            try await auth.auth.resetPasswordForEmail(address, redirectTo: UFitAuthenticationCallback.recoveryURL)
             self.message = String(localized: "Si ce compte existe, un lien de réinitialisation vous a été envoyé.")
         }
     }
@@ -218,7 +221,8 @@ final class UFitSessionStore {
     func resendConfirmation(email: String) async -> Bool {
         await perform {
             guard let auth = self.auth else { throw UFitSessionError.unavailable }
-            try await auth.auth.resend(email: email.trimmingCharacters(in: .whitespacesAndNewlines), type: .signup,
+            let address = try UFitAuthenticationEmail.validated(email)
+            try await auth.auth.resend(email: address, type: .signup,
                 emailRedirectTo: UFitAuthenticationCallback.confirmationURL)
             self.message = UFitAuthenticationCopy.sentAgain
         }

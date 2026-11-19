@@ -43,7 +43,6 @@ struct UFitAuthenticationEntryContent: View {
             }.padding(.horizontal, UFitSpace.page)
         }.frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color.ufitInk)
-            .preferredColorScheme(.dark)
     }
     private var background: some View {
         GeometryReader { geometry in

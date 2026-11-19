@@ -39,12 +39,26 @@ enum UFitAuthenticationCallback {
     }
 }
 
+enum UFitAuthenticationEmail {
+    // A broad structural check; the identity provider still owns address acceptance.
+    private static let structure = #"^[^\s@]+@[^\s@]+$"#
+    static func validated(_ raw: String) throws -> String {
+        let address = raw.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard address.range(of: structure, options: .regularExpression) != nil else {
+            throw UFitAuthenticationFailure.invalidEmail
+        }
+        return address
+    }
+}
+
 enum UFitAuthenticationFailure: LocalizedError {
-    case credentials, unconfirmed, rateLimited, expiredLink, weakPassword, samePassword, appleUnavailable, unavailable, offline, sessionExpired
+    case invalidEmail, invalidInput, credentials, unconfirmed, rateLimited, expiredLink, weakPassword, samePassword, appleUnavailable, unavailable, offline, sessionExpired
     init?(_ error: Error) {
+        if let failure = error as? Self { self = failure; return }
         if error is URLError { self = .offline; return }
         guard let error = error as? AuthError else { return nil }
         switch error.errorCode {
+        case .validationFailed: self = .invalidInput
         case .invalidCredentials: self = .credentials
         case .emailNotConfirmed: self = .unconfirmed
         case .overRequestRateLimit, .overEmailSendRateLimit: self = .rateLimited
@@ -62,6 +76,8 @@ enum UFitAuthenticationFailure: LocalizedError {
     }
     var errorDescription: String? {
         switch self {
+        case .invalidEmail: String(localized: "Saisissez une adresse e-mail valide.")
+        case .invalidInput: String(localized: "Vérifiez les informations saisies.")
         case .credentials: String(localized: "L’adresse e-mail ou le mot de passe est incorrect.")
         case .unconfirmed: String(localized: "Confirmez votre adresse e-mail avant de vous connecter.")
         case .rateLimited: String(localized: "Trop de tentatives rapprochées. Patientez un moment avant de réessayer.")
