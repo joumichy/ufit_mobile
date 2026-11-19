@@ -20,7 +20,11 @@ un instantané historique ; ne pas y consigner le travail courant.
 ## Branche de travail
 
 Travailler par défaut sur `charlie` pour le code de l’application et le backend.
-Vérifier la branche avant toute modification de ces dépôts. Les branches
+Vérifier la branche avant toute modification de ces dépôts. Les commits et
+vérifications locales restent sur `charlie`. Fusionner vers `main` uniquement
+lorsqu’un build cloud ou un déploiement concret est prêt à être lancé depuis
+cette branche ; une recherche d’hébergement ou un build local ne justifie pas
+une fusion préventive. Aucune CI depuis une branche de développement. Les branches
 techniques existantes ne sont pas la cible de travail par défaut ; une autre
 branche nécessite une demande explicite de l’utilisateur. Préserver les
 modifications locales et l’index pendant toute bascule ou intégration.
