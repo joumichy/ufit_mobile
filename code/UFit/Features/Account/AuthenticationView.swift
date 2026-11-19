@@ -20,6 +20,9 @@ struct UFitAuthenticationView: View {
         static let closeIcon = "xmark"
         static let name = String(localized: "Nom")
         static let email = String(localized: "Adresse e-mail")
+        #if DEBUG
+        static let identifier = String(localized: "E-mail ou identifiant")
+        #endif
         static let password = String(localized: "Mot de passe")
         static let passwordMinimum = String(localized: "Au moins 8 caractères")
         static let forgotten = String(localized: "Mot de passe oublié ?")
@@ -55,6 +58,12 @@ struct UFitAuthenticationView: View {
         case .newPassword: Copy.save
         default: mode.title
         }
+    }
+    private var identifierLabel: String {
+        #if DEBUG
+        if mode == .signIn { return Copy.identifier }
+        #endif
+        return Copy.email
     }
 
     var body: some View {
@@ -92,8 +101,8 @@ struct UFitAuthenticationView: View {
                         UFitInput(Copy.name, text: $name).textContentType(.name)
                     }
                     if mode != .newPassword {
-                        fieldLabel(Copy.email)
-                        UFitInput(Copy.email, text: $email)
+                        fieldLabel(identifierLabel)
+                        UFitInput(identifierLabel, text: $email)
                             .textContentType(.emailAddress).keyboardType(.emailAddress)
                             .textInputAutocapitalization(.never).autocorrectionDisabled()
                     }

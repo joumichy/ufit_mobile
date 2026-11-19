@@ -132,8 +132,18 @@ final class UFitSessionStore {
     func signIn(email: String, password: String) async {
         await perform {
             guard let auth = self.auth else { throw UFitSessionError.unavailable }
+            var loginEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
+            #if DEBUG
+            if loginEmail == UFitDevelopmentLogin.alias {
+                let resolution: UFitDevelopmentLogin.Resolution = try await self.api.send(
+                    UFitAuthenticationHTTP.get, path: UFitDevelopmentLogin.path, cachePolicy: .reloadIgnoringLocalCacheData)
+                guard resolution.alias == UFitDevelopmentLogin.alias, resolution.supabaseURL == self.configuration.supabaseURL,
+                      !resolution.email.isEmpty else { throw UFitSessionError.unavailable }
+                loginEmail = resolution.email
+            }
+            #endif
             self.prepareAuthenticationTransition()
-            _ = try await auth.auth.signIn(email: email.trimmingCharacters(in: .whitespacesAndNewlines), password: password)
+            _ = try await auth.auth.signIn(email: loginEmail, password: password)
             self.isSignedIn = true
             await self.reloadProfile()
         }

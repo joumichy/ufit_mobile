@@ -7,6 +7,18 @@ enum UFitAuthenticationHTTP {
     static let me = "me"
 }
 
+#if DEBUG
+enum UFitDevelopmentLogin {
+    static let alias = "test"
+    static let path = "auth/development-login/test"
+    struct Resolution: Decodable {
+        let alias: String
+        let email: String
+        let supabaseURL: URL
+    }
+}
+#endif
+
 enum UFitAuthenticationCallback {
     enum Purpose { case confirmation, recovery }
     static let scheme = "ufit", host = "auth", confirmationPath = "/callback", recoveryPath = "/recovery"
