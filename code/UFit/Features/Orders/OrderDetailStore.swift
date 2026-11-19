@@ -25,7 +25,12 @@ final class UFitOrderDetailStore {
         result.canResumePayment = order.status == .pendingPayment && payment?.state.canResume == true && paymentMessage == nil
         return result
     }
-    private func receive(_ order: UFitOrderDTO) { self.order = order; orders.receive(order) }
+    private func receive(_ order: UFitOrderDTO) {
+        self.order = order; orders.receive(order)
+        guard let userID = session.user?.id else { return }
+        do { try UFitCheckoutJournal(userID: userID, endpoint: client.configuration.baseURL).resolve(confirmedOrder: order) }
+        catch { message = error.localizedDescription }
+    }
     func load() async {
         guard !isBusy, let userID = session.user?.id else { return }
         isBusy = true; message = nil; payment = nil; paymentMessage = nil
@@ -109,7 +114,6 @@ final class UFitOrderDetailStore {
         case .completed: await confirmPayment()
         case .canceled:
             await load()
-            if payment?.state.canResume == true { message = UFitCustomerPaymentCopy.interrupted }
         case .failed:
             await load()
             if payment?.state.canResume == true { message = UFitCustomerPaymentCopy.failed }

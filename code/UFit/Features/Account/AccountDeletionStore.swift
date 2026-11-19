@@ -31,7 +31,7 @@ final class UFitAccountDeletionStore {
         var cleaned = false
         do {
             try UFitShippingAddressJournal(userID: current.userID, endpoint: session.api.configuration.baseURL).clear()
-            try UFitCheckoutJournal(userID: current.userID, endpoint: session.api.configuration.baseURL).resolve()
+            try UFitCheckoutJournal(userID: current.userID, endpoint: session.api.configuration.baseURL).clearForDeletedAccount()
             cleaned = true
         } catch { /* Keep the private recovery record for the next lifecycle retry. */ }
         // A local cleanup failure must never keep a deleted account signed in.

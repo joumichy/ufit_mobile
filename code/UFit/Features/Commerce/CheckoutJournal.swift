@@ -1,8 +1,8 @@
 import Foundation
 import CryptoKit
 
-struct UFitCheckoutRecoveryRecord: Codable {
-    enum Outcome: Codable { case unknown, order(id: String) }
+struct UFitCheckoutRecoveryRecord: Codable, Equatable {
+    enum Outcome: Codable, Equatable { case unknown, order(id: String) }
     let version: Int
     let userID: String
     let endpoint: String
@@ -34,6 +34,11 @@ struct UFitCheckoutRecoveryRecord: Codable {
 
 /// Keeps the exact request until the server supplies an order or rejects its quote.
 struct UFitCheckoutJournal {
+    enum Reconciliation {
+        case empty
+        case awaitingOrder(UFitCheckoutRecoveryRecord)
+        case openOrder(UFitCheckoutRecoveryRecord, UFitOrderDTO)
+    }
     let userID: String
     let endpoint: URL
     static let version = 1
@@ -55,11 +60,14 @@ struct UFitCheckoutJournal {
         }
     }
     func read() throws -> UFitCheckoutRecoveryRecord? {
-        let url = try file
-        guard FileManager.default.fileExists(atPath: url.path) else { return nil }
-        let record = try JSONDecoder().decode(UFitCheckoutRecoveryRecord.self, from: Data(contentsOf: url))
-        try record.validate(userID: userID, endpoint: endpoint.absoluteString)
-        return record
+        do {
+            let url = try file
+            guard FileManager.default.fileExists(atPath: url.path) else { return nil }
+            let record = try JSONDecoder().decode(UFitCheckoutRecoveryRecord.self, from: Data(contentsOf: url))
+            try record.validate(userID: userID, endpoint: endpoint.absoluteString)
+            return record
+        } catch let failure as UFitCheckoutRecoveryFailure { throw failure }
+        catch { throw UFitCheckoutRecoveryFailure.localRead }
     }
     func record(_ value: UFitCheckoutRecoveryRecord) throws {
         try value.validate(userID: userID, endpoint: endpoint.absoluteString)
@@ -69,8 +77,54 @@ struct UFitCheckoutJournal {
         try JSONEncoder().encode(value).write(to: url, options: [.atomic, .completeFileProtection])
         try FileManager.default.setAttributes([.posixPermissions: Storage.filePermissions], ofItemAtPath: url.path)
     }
-    func resolve() throws {
+    static func isResolved(_ order: UFitOrderDTO) -> Bool {
+        [.paid, .preparing, .shipped, .delivered, .cancelled, .refunded].contains(order.status)
+    }
+    func clearForDeletedAccount() throws {
         let url = try file
-        if FileManager.default.fileExists(atPath: url.path) { try FileManager.default.removeItem(at: url) }
+        guard FileManager.default.fileExists(atPath: url.path) else { return }
+        do { try FileManager.default.removeItem(at: url) }
+        catch { throw UFitCheckoutRecoveryFailure.localWrite }
+    }
+    @discardableResult func resolve(_ expected: UFitCheckoutRecoveryRecord) throws -> Bool {
+        guard try read() == expected else { return false }
+        let url = try file
+        do { try FileManager.default.removeItem(at: url) }
+        catch { throw UFitCheckoutRecoveryFailure.localWrite }
+        return true
+    }
+    func resolve(confirmedOrder order: UFitOrderDTO) throws {
+        guard Self.isResolved(order), let record = try read(), record.orderID == order.id else { return }
+        guard order.totalAmount == record.amount, order.currency == record.currency else { throw UFitCheckoutRecoveryFailure.document }
+        try resolve(record)
+    }
+    @MainActor func reconcile(using client: UFitAPIClient, isCurrentAccount: () -> Bool) async throws -> Reconciliation {
+        try Task.checkCancellation()
+        guard isCurrentAccount() else { throw CancellationError() }
+        guard let record = try read() else { return .empty }
+        let orderID: String
+        if let known = record.orderID { orderID = known }
+        else {
+            let outcome = try await client.checkoutOutcome(requestID: record.request.requestId, knownOrderID: nil)
+            try Task.checkCancellation()
+            guard isCurrentAccount() else { throw CancellationError() }
+            guard let found = outcome.orderId else {
+                guard try read() == record else { throw UFitCheckoutRecoveryFailure.document }
+                return .awaitingOrder(record)
+            }
+            orderID = found
+        }
+        let order = try await client.fetchOrder(id: orderID)
+        try Task.checkCancellation()
+        guard isCurrentAccount() else { throw CancellationError() }
+        guard order.id == orderID, order.totalAmount == record.amount, order.currency == record.currency else {
+            throw UFitCheckoutRecoveryFailure.document
+        }
+        guard try read() == record else { throw UFitCheckoutRecoveryFailure.document }
+        if Self.isResolved(order) {
+            guard try resolve(record) else { throw UFitCheckoutRecoveryFailure.document }
+            return .empty
+        }
+        return .openOrder(record, order)
     }
 }

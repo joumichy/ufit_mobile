@@ -45,7 +45,8 @@ final class UFitCartStore {
         let request = generation
         isLoading = true
         defer { if generation == request { isLoading = false } }
-        readCheckoutRecovery(userID: userID)
+        await readCheckoutRecovery(userID: userID, verifyingOrder: true)
+        guard !Task.isCancelled, generation == request, session.user?.id == userID else { return }
         do {
             let response = try await client.fetchCart()
             guard generation == request, session.user?.id == userID else { return }
@@ -59,7 +60,8 @@ final class UFitCartStore {
     func receive(_ response: UFitCartDTO) async {
         guard let userID = session.user?.id else { return }
         let request = generation
-        readCheckoutRecovery(userID: userID)
+        await readCheckoutRecovery(userID: userID)
+        guard generation == request, session.user?.id == userID else { return }
         cart = response; hasLoaded = true; loadError = nil; message = nil
         await hydrate(userID: userID, request: request)
     }
@@ -71,11 +73,24 @@ final class UFitCartStore {
         guard generation == request, session.user?.id == userID else { return }
         products = loaded
     }
-    private func readCheckoutRecovery(userID: String) {
+    private func readCheckoutRecovery(userID: String, verifyingOrder: Bool = false) async {
+        let request = generation
         do {
-            let record = try UFitCheckoutJournal(userID: userID, endpoint: client.configuration.baseURL).read()
+            let journal = UFitCheckoutJournal(userID: userID, endpoint: client.configuration.baseURL)
+            if verifyingOrder {
+                _ = try await journal.reconcile(using: client) { self.generation == request && self.session.user?.id == userID }
+            }
+            let record = try journal.read()
+            guard generation == request, session.user?.id == userID else { return }
             checkoutRecovery = record.map { .pending(amount: UFitMoney.format($0.amount, currency: $0.currency)) }
-        } catch { checkoutRecovery = .unavailable }
+        } catch is CancellationError { return }
+        catch {
+            guard generation == request, session.user?.id == userID else { return }
+            do {
+                let record = try UFitCheckoutJournal(userID: userID, endpoint: client.configuration.baseURL).read()
+                checkoutRecovery = record.map { .pending(amount: UFitMoney.format($0.amount, currency: $0.currency)) }
+            } catch { checkoutRecovery = .unavailable }
+        }
     }
     func update(id: String, quantity: Int) async {
         guard !busyItems.contains(id), let userID = session.user?.id else { return }

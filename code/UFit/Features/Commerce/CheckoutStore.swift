@@ -70,12 +70,34 @@ final class UFitCheckoutStore {
         guard isCurrentAccount, !isBusy, step == .address || step == .recovery else { return }
         isBusy = true; isLoadingAddress = true; message = nil; canReplay = false
         defer { isBusy = false; isLoadingAddress = false }
-        do { pending = try journal.read(); journalUnavailable = false }
-        catch { journalUnavailable = true; step = .recovery; message = UFitCheckoutRecoveryCopy.localRead; return }
-        if let pending {
-            address = pending.request.shippingAddress; step = .recovery
-            do { try await findOrder(pending) }
-            catch { if isCurrentAccount { message = recoveryMessage(error) } }
+        do {
+            let result = try await journal.reconcile(using: client) { self.isCurrentAccount }
+            guard isCurrentAccount else { return }
+            journalUnavailable = false
+            switch result {
+            case .empty:
+                pending = nil; order = nil; payment = nil; recoveredOrderAvailable = false
+                quote = nil; purchaseAvailable = false
+            case .awaitingOrder(let record):
+                guard try journal.read() == record else { throw UFitCheckoutRecoveryFailure.document }
+                pending = record; address = record.request.shippingAddress; step = .recovery; canReplay = true
+                return
+            case .openOrder(let record, let current):
+                guard try journal.read() == record else { throw UFitCheckoutRecoveryFailure.document }
+                pending = record; address = record.request.shippingAddress; step = .recovery
+                try rememberOrder(current.id, attempt: record)
+                try receive(current); recoveredOrderAvailable = true
+                return
+            }
+        }
+        catch is CancellationError { return }
+        catch {
+            guard isCurrentAccount else { return }
+            switch error {
+            case UFitCheckoutRecoveryFailure.localRead, UFitCheckoutRecoveryFailure.localWrite: journalUnavailable = true
+            default: journalUnavailable = false
+            }
+            step = .recovery; message = recoveryMessage(error)
             return
         }
         step = .address
@@ -199,22 +221,14 @@ final class UFitCheckoutStore {
         catch { journalUnavailable = true; throw UFitCheckoutRecoveryFailure.localWrite }
     }
     private func resolveJournal() throws {
-        do { try journal.resolve() }
+        guard let pending else { return }
+        do { try journal.resolve(pending) }
         catch { journalUnavailable = true; throw UFitCheckoutRecoveryFailure.localWrite }
     }
     private func rememberOrder(_ id: String, attempt: UFitCheckoutRecoveryRecord) throws {
         guard attempt.orderID == nil || attempt.orderID == id else { throw UFitCheckoutRecoveryFailure.document }
         var record = attempt; record.outcome = .order(id: id)
         try persist(record)
-    }
-    private func findOrder(_ attempt: UFitCheckoutRecoveryRecord) async throws {
-        let outcome = try await client.checkoutOutcome(requestID: attempt.request.requestId, knownOrderID: attempt.orderID)
-        guard isCurrentAccount else { return }
-        guard let id = outcome.orderId else { canReplay = true; return }
-        try rememberOrder(id, attempt: attempt)
-        let result = try await client.fetchOrder(id: id)
-        guard isCurrentAccount else { return }
-        try receive(result); recoveredOrderAvailable = true
     }
     private func handleSubmissionFailure(_ error: Error) async {
         guard isCurrentAccount else { return }
@@ -249,7 +263,6 @@ final class UFitCheckoutStore {
         case .completed: step = .confirming; await refreshConfirmation(polling: true)
         case .canceled:
             await refreshConfirmation()
-            if payment?.state.canResume == true { message = UFitCustomerPaymentCopy.interrupted }
         case .failed:
             await refreshConfirmation()
             if payment?.state.canResume == true { message = UFitCustomerPaymentCopy.failed }
@@ -285,7 +298,7 @@ final class UFitCheckoutStore {
         guard let pending, updated.id == pending.orderID, updated.totalAmount == pending.amount,
               updated.currency == pending.currency else { throw UFitCheckoutRecoveryFailure.document }
         order = updated
-        if [.paid, .preparing, .shipped, .delivered, .cancelled, .refunded].contains(updated.status) {
+        if UFitCheckoutJournal.isResolved(updated) {
             try resolveJournal()
         }
         if [.paid, .preparing, .shipped, .delivered].contains(updated.status) { step = .paid; payment = nil }
